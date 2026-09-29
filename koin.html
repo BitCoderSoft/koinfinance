@@ -44,6 +44,9 @@
                           Charts), estatísticas, conversor e regra de 5s
                           na troca do preço nos painéis.
   [ETAPA 2.1 · 29/09/2026] Ajustes sem campo de chave da CoinGecko (só a embutida).
+  [ETAPA 3 · 29/09/2026] motor de custo (portado do Dash Finance, só cripto),
+                          lançamentos (compra, venda, entrada, saída, conversão),
+                          lucro realizado, posição na página da moeda.
 -->
 <html lang="pt-BR" data-tema="escuro">
 <head>
@@ -1442,6 +1445,225 @@ main#miolo {
     margin-top: 0 !important;
 }
 
+
+/* =================================================================
+   LANÇAMENTOS  [ETAPA 3 · 29/09/2026]
+   ================================================================= */
+.botao-pequeno {
+    height: 30px;
+    padding: 0 10px;
+    font-size: var(--t-xs);
+}
+
+/* etiqueta da operação: latão pra o que entra, cinza pra o que sai, azul pra
+   conversão. Verde e vermelho ficam reservados pra alta e queda */
+.etiqueta-tipo {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-size: var(--t-xs);
+    font-weight: 700;
+}
+
+.etiqueta-tipo.t-compra,
+.etiqueta-tipo.t-entrada {
+    background: var(--marca-suave);
+    color: var(--marca);
+}
+
+.etiqueta-tipo.t-venda,
+.etiqueta-tipo.t-saida {
+    background: var(--superficie-3);
+    color: var(--texto);
+}
+
+.etiqueta-tipo.t-conversao {
+    background: rgba(110, 155, 245, 0.14);
+    color: var(--info);
+}
+
+.seta-conv {
+    color: var(--texto-3);
+    margin: 0 2px;
+}
+
+.lanc-resumo {
+    margin-bottom: 16px;
+}
+
+.tabela-lanc th:nth-child(-n+3),
+.tabela-lanc td:nth-child(-n+3) {
+    text-align: left;
+}
+
+.tabela-lanc .col-moeda-lanc {
+    display: table-cell;
+}
+
+.tabela-lanc .col-moeda-lanc .celula-moeda {
+    display: inline-flex;
+    vertical-align: middle;
+}
+
+.tabela-lanc .col-acoes {
+    white-space: nowrap;
+}
+
+.lanc-lista {
+    list-style: none;
+    margin: 0 0 12px;
+    padding: 0;
+}
+
+.lanc-lista li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--borda);
+    font-size: var(--t-sm);
+}
+
+.lanc-lista li:last-child {
+    border-bottom: none;
+}
+
+.lanc-data {
+    width: 84px;
+    color: var(--texto-2);
+}
+
+.lanc-qtd {
+    flex: 1;
+    color: var(--texto-2);
+}
+
+.lanc-valor {
+    font-weight: 600;
+}
+
+.estatisticas-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* gaveta que desliza da direita (lançamento) */
+.gaveta-fundo {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(3, 6, 14, 0.6);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 200ms ease, visibility 200ms;
+}
+
+.gaveta {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 61;
+    width: min(500px, 100vw);
+    display: flex;
+    flex-direction: column;
+    background: var(--superficie);
+    border-left: 1px solid var(--borda-forte);
+    box-shadow: var(--sombra-flutuante);
+    transform: translateX(100%);
+    visibility: hidden;
+    transition: transform 240ms var(--ease), visibility 240ms;
+}
+
+/* com a gaveta aberta, os avisos saem da frente dos botões dela */
+body:has(#gaveta.aberta) .avisos {
+    right: calc(min(500px, 100vw) + 20px);
+}
+
+#gaveta.aberta .gaveta-fundo {
+    opacity: 1;
+    visibility: visible;
+}
+
+#gaveta.aberta .gaveta {
+    transform: none;
+    visibility: visible;
+}
+
+.gaveta-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--borda);
+}
+
+.gaveta-topo h2 {
+    font-size: var(--t-lg);
+    font-weight: 700;
+}
+
+.gaveta-topo .botao-icone {
+    font-size: 22px;
+    line-height: 1;
+}
+
+.gaveta-corpo {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.gaveta-pe {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 24px calc(14px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--borda);
+}
+
+.segmentado-quebra {
+    flex-wrap: wrap;
+}
+
+.campo-ajuda {
+    font-size: var(--t-xs);
+    color: var(--texto-3);
+}
+
+.campo-erro {
+    font-size: var(--t-xs);
+    color: var(--queda);
+}
+
+.campo-erro-caixa {
+    padding: 10px 14px;
+    border-radius: var(--r-controle);
+    border: 1px solid var(--queda);
+    background: var(--queda-suave);
+    color: var(--queda);
+    font-size: var(--t-sm);
+}
+
+.nota-operacao {
+    padding: 10px 12px;
+    border-radius: var(--r-controle);
+    background: var(--superficie-2);
+    color: var(--texto-2);
+    font-size: var(--t-xs);
+    line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gaveta,
+    .gaveta-fundo {
+        transition: none;
+    }
+}
+
 /* telas médias: a Etapa 6 cuida do celular de verdade (barra inferior).
    Aqui só evitamos quebrar abaixo de 1000px. */
 @media (max-width: 1000px) {
@@ -1457,6 +1679,7 @@ main#miolo {
 
 <div id="app"></div>
 <div class="avisos" id="avisos" aria-live="polite"></div>
+<div id="gaveta"></div>
 
 <script>
 (function () {
@@ -1525,7 +1748,7 @@ var armazem = {
 // no preview, puxa as preferências salvas antes do primeiro desenho
 function carregarArmazenamento() {
     if (modoArmazenamento !== 'claude') return Promise.resolve();
-    var chaves = ['PREFS'];
+    var chaves = ['PREFS', 'BANCO'];
     return Promise.all(chaves.map(function (c) {
         return window.storage.get(PREFIXO + c, false)
             .then(function (r) { if (r && r.value != null) espelho[PREFIXO + c] = r.value; })
@@ -1830,7 +2053,7 @@ var MARCA_SVG = '<svg class="marca-moeda" viewBox="0 0 32 32" aria-hidden="true"
 var ROTAS = {
     '/mercado':       { titulo: 'Mercado',        icone: 'mercado',       etapa: 1, render: paginaMercado },
     '/portfolio':     { titulo: 'Portfólio',      icone: 'portfolio',     etapa: 4, render: paginaPortfolio },
-    '/lancamentos':   { titulo: 'Lançamentos',    icone: 'lancamentos',   etapa: 3, render: paginaEmBreve },
+    '/lancamentos':   { titulo: 'Lançamentos',    icone: 'lancamentos',   etapa: 3, render: paginaLancamentos },
     '/balanceamento': { titulo: 'Balanceamento',  icone: 'balanceamento', etapa: 5, render: paginaEmBreve },
     '/objetivos':     { titulo: 'Objetivos',      icone: 'objetivos',     etapa: 5, render: paginaEmBreve },
     '/ajustes':       { titulo: 'Ajustes',        icone: 'ajustes',       render: paginaAjustes },
@@ -3145,10 +3368,7 @@ function moedaHTML(m) {
         '<input class="entrada" id="conv-valor" type="text" inputmode="decimal" autocomplete="off" placeholder="0"></div>' +
         '</div></div>' +
 
-        '<div class="moeda-colunas">' +
-        '<div class="painel"><p class="painel-titulo">Sua posição</p>' + emBreveHTML(4, 'Quantidade, preço médio e lucro desta moeda na sua carteira.') + '</div>' +
-        '<div class="painel"><p class="painel-titulo">Seus lançamentos</p>' + emBreveHTML(3, 'Compras, vendas e conversões desta moeda.') + '</div>' +
-        '</div>';
+        '<div class="moeda-colunas">' + posicaoMoedaHTML(m) + lancamentosMoedaHTML(m) + '</div>';
 }
 
 // ---------- gráfico ----------
@@ -3295,6 +3515,7 @@ function aplicarPrecoMoeda(simbolo, fechamento, abertura) {
     if (v) v.innerHTML = pctCelula(pg.m.var24h);
 
     atualizarDistanciaMaxima();
+    atualizarPosicaoMoeda();
     recalcularConversor();
     atualizarUltimaVela(preco);
 }
@@ -3414,6 +3635,7 @@ ROTAS['/moeda'].montar = function (miolo) {
         caixa.innerHTML = moedaHTML(m);
         preencherValores(caixa);
         atualizarDistanciaMaxima();
+        atualizarPosicaoMoeda();
         atualizarRotuloConversor();
         recalcularConversor('qtd');
         estado.ouvir('conexao', atualizarStatusConexao, true);
@@ -3470,6 +3692,883 @@ document.addEventListener('click', function (ev) {
         desenharSerie(false);
     }
 });
+
+
+/* =================================================================
+   MOTOR E LANÇAMENTOS  [ETAPA 3 · 29/09/2026]
+   Portado do Dash Finance ([CRIPTO v2], [CRIPTO v2.1], [MOTOR v2]),
+   só a parte de cripto. Diferenças em relação ao original:
+     - sem usuário e sem login: um banco só, neste aparelho
+     - a moeda é identificada pelo ID DA COINGECKO (não pelo símbolo)
+     - lucro realizado (novo): valor recebido na venda menos o custo baixado
+   Tudo em REAIS. Valores unitários e taxas são guardados em reais.
+   ================================================================= */
+
+// [MOTOR:início] funções puras: recebem a lista de lançamentos e devolvem
+// resultado, sem ler nem gravar nada (assim dá pra testar sozinhas).
+
+var QTD_EPSILON = 1e-9;   // tolerância de ponto flutuante em quantidades
+
+var TIPOS = { COMPRA: 'Compra', VENDA: 'Venda', ENTRADA: 'Entrada', SAIDA: 'Saída', CONVERSAO: 'Conversão' };
+var TIPOS_ORDEM = ['COMPRA', 'VENDA', 'ENTRADA', 'SAIDA', 'CONVERSAO'];
+var TIPOS_COM_PRECO = { COMPRA: true, VENDA: true };
+var TIPOS_DE_BAIXA = { VENDA: true, SAIDA: true, CONVERSAO: true };
+
+// PERNAS: cada lançamento vira uma ou duas variações de quantidade por moeda.
+//   COMPRA / ENTRADA -> +quantidade
+//   VENDA  / SAIDA   -> -quantidade
+//   CONVERSAO        -> -quantidade na origem e +quantidadeDestino no destino
+function pernasDaTransacao(t) {
+    switch (t.tipo) {
+        case 'COMPRA':
+        case 'ENTRADA':
+            return [{ moedaId: t.moedaId, delta: t.quantidade }];
+        case 'VENDA':
+        case 'SAIDA':
+            return [{ moedaId: t.moedaId, delta: -t.quantidade }];
+        case 'CONVERSAO':
+            return [
+                { moedaId: t.moedaId, delta: -t.quantidade },
+                { moedaId: t.moedaDestinoId, delta: t.quantidadeDestino },
+            ];
+    }
+    return [];
+}
+
+// ORDEM CANÔNICA: data -> prioridade no dia -> criadoEm -> id.
+// No mesmo dia o que ENTRA (compra, entrada) vem antes da conversão, que vem
+// antes do que SAI (venda, saída). Assim a ordem de digitação dos lançamentos
+// do mesmo dia não muda o resultado. Cálculo e validação usam sempre esta.
+var PRIORIDADE_NO_DIA = { COMPRA: 0, ENTRADA: 0, CONVERSAO: 1, VENDA: 2, SAIDA: 2 };
+
+function ordenarTransacoes(lista) {
+    return lista.slice().sort(function (a, b) {
+        if (a.data < b.data) return -1;
+        if (a.data > b.data) return 1;
+        var pa = PRIORIDADE_NO_DIA[a.tipo] || 0;
+        var pb = PRIORIDADE_NO_DIA[b.tipo] || 0;
+        if (pa !== pb) return pa - pb;
+        if (a.criadoEm !== b.criadoEm) return a.criadoEm - b.criadoEm;
+        return a.id - b.id;
+    });
+}
+
+// O CORAÇÃO DO CÁLCULO DE CUSTO. Recebe os lançamentos JÁ ORDENADOS e devolve:
+//   posicoes[moedaId] = { quantidade, custoTotal, qtdComCusto }
+//   deltaCusto[idLancamento]  = quanto o lançamento mexeu no custo total
+//   realizado[idLancamento]   = lucro realizado (só vendas)
+// Regras:
+//   COMPRA    soma quantidade e custo (qtd x preço + taxas)
+//   ENTRADA   soma SÓ quantidade: custo zero, sempre (mineração, recompensa,
+//             airdrop, presente). Não mexe no preço médio de compra
+//   VENDA     tira quantidade e o custo proporcional pelo preço médio
+//   SAIDA     igual à venda, mas sem devolver reais (taxa de rede, envio, perda)
+//   CONVERSAO tira da origem pelo preço médio e ESSE MESMO custo entra no
+//             destino. Nenhuma cotação participa; o custo total não muda
+// PREÇO MÉDIO DE COMPRA = custoTotal / qtdComCusto. Cada posição sabe quanto
+// da sua quantidade TEM custo (qtdComCusto): a entrada gratuita aumenta a
+// quantidade mas não derruba o preço médio. Na baixa, a parte com custo e a
+// gratuita saem na mesma proporção.
+// LUCRO REALIZADO da venda = (qtd x preço - taxas) - custo baixado.
+function processarCarteira(ordenadas) {
+    var posicoes = {};
+    var deltaCusto = {};
+    var realizado = {};
+
+    function pos(id) {
+        if (!posicoes[id]) posicoes[id] = { quantidade: 0, custoTotal: 0, qtdComCusto: 0 };
+        return posicoes[id];
+    }
+
+    // tira `q` da posição, custo e parte com custo na mesma fração
+    function baixar(p, q) {
+        var fracao = p.quantidade > 0 ? Math.min(q / p.quantidade, 1) : 0;
+        var custo = p.custoTotal * fracao;
+        var comCusto = p.qtdComCusto * fracao;
+        p.quantidade -= q;
+        p.custoTotal -= custo;
+        p.qtdComCusto -= comCusto;
+        // resíduo de ponto flutuante: abaixo da tolerância, zera de vez
+        if (Math.abs(p.quantidade) < QTD_EPSILON) {
+            custo += p.custoTotal;
+            comCusto += p.qtdComCusto;
+            p.quantidade = 0;
+            p.custoTotal = 0;
+            p.qtdComCusto = 0;
+        }
+        return { custo: custo, qtdComCusto: comCusto };
+    }
+
+    ordenadas.forEach(function (t) {
+        var delta = 0;
+        if (t.tipo === 'COMPRA') {
+            var p = pos(t.moedaId);
+            delta = t.quantidade * t.precoUnitario + (t.taxas || 0);
+            p.quantidade += t.quantidade;
+            p.custoTotal += delta;
+            p.qtdComCusto += t.quantidade;
+        } else if (t.tipo === 'ENTRADA') {
+            pos(t.moedaId).quantidade += t.quantidade;
+        } else if (t.tipo === 'VENDA' || t.tipo === 'SAIDA') {
+            var saiu = baixar(pos(t.moedaId), t.quantidade);
+            delta = -saiu.custo;
+            if (t.tipo === 'VENDA') {
+                realizado[t.id] = (t.quantidade * t.precoUnitario - (t.taxas || 0)) - saiu.custo;
+            }
+        } else if (t.tipo === 'CONVERSAO') {
+            var origem = baixar(pos(t.moedaId), t.quantidade);
+            var destino = pos(t.moedaDestinoId);
+            destino.quantidade += t.quantidadeDestino;
+            destino.custoTotal += origem.custo;
+            var fracaoComCusto = t.quantidade > 0 ? origem.qtdComCusto / t.quantidade : 0;
+            destino.qtdComCusto += t.quantidadeDestino * fracaoComCusto;
+        }
+        deltaCusto[t.id] = delta;
+    });
+
+    return { posicoes: posicoes, deltaCusto: deltaCusto, realizado: realizado };
+}
+
+// Primeira perna NEGATIVA da moeda que ficaria sem saldo, ou null.
+// `quantidade` é o que a perna tentou tirar; `disponivel`, o que havia.
+function primeiroFuroDeSaldo(ordenadas, moedaId) {
+    var saldo = 0;
+    for (var i = 0; i < ordenadas.length; i++) {
+        var pernas = pernasDaTransacao(ordenadas[i]);
+        for (var j = 0; j < pernas.length; j++) {
+            var perna = pernas[j];
+            if (perna.moedaId !== moedaId) continue;
+            if (perna.delta < 0 && -perna.delta > saldo + QTD_EPSILON) {
+                return { transacao: ordenadas[i], disponivel: Math.max(saldo, 0), quantidade: -perna.delta };
+            }
+            saldo += perna.delta;
+        }
+    }
+    return null;
+}
+
+// VALIDAÇÃO NA LINHA DO TEMPO: simula a carteira COM a alteração e checa se
+// alguma baixa, em qualquer data, ficaria sem saldo.
+//   alteracao = { editId, novo }  pra salvar (novo = lançamento simulado)
+//               { excluirId }     pra excluir
+// Moeda ainda não cadastrada usa id fictício ('NOVO' / 'NOVO_DESTINO').
+// Checa todas as moedas tocadas pelo lançamento original e pelo novo.
+function verificarCronologia(transacoes, alteracao) {
+    var idRemovido = alteracao.editId || alteracao.excluirId || null;
+    var lista = transacoes.filter(function (t) { return t.id !== idRemovido; });
+
+    var afetadas = [];
+    function marcar(t) {
+        pernasDaTransacao(t).forEach(function (p) {
+            if (afetadas.indexOf(p.moedaId) === -1) afetadas.push(p.moedaId);
+        });
+    }
+    if (idRemovido) {
+        var original = transacoes.filter(function (t) { return t.id === idRemovido; })[0];
+        if (original) marcar(original);
+    }
+    if (alteracao.novo) {
+        lista.push(alteracao.novo);
+        marcar(alteracao.novo);
+    }
+
+    var ordenadas = ordenarTransacoes(lista);
+    for (var i = 0; i < afetadas.length; i++) {
+        var furo = primeiroFuroDeSaldo(ordenadas, afetadas[i]);
+        if (furo) {
+            furo.moedaId = afetadas[i];
+            furo.ehANova = furo.transacao === alteracao.novo;
+            return furo;
+        }
+    }
+    return null;
+}
+
+// [MOTOR:fim]
+
+// ---------- banco local (só neste aparelho) ----------
+// BANCO = { moedas: { id: { id, simbolo, nome, logo } }, transacoes: [...], proximoId }
+// `moedas` guarda o cadastro de cada moeda já lançada, pra a tela de
+// lançamentos não depender do pacote diário da CoinGecko (moeda que saiu do
+// top 100 continua aparecendo com nome e logo).
+// Lançamento: { id, criadoEm, tipo, moedaId, quantidade, precoUnitario,
+//   taxas, data, moedaDestinoId?, quantidadeDestino? }  (valores em reais)
+var BANCO_CHAVE = 'BANCO';
+
+function lerBanco() {
+    var b = armazem.json(BANCO_CHAVE, null);
+    if (!b || !Array.isArray(b.transacoes)) b = { moedas: {}, transacoes: [], proximoId: 1 };
+    b.moedas = b.moedas || {};
+    b.proximoId = b.proximoId || 1;
+    return b;
+}
+
+function gravarBanco(b) {
+    armazem.set(BANCO_CHAVE, JSON.stringify(b));
+}
+
+function hojeISO() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function formatarDataBR(iso) {
+    var p = String(iso || '').split('-');
+    return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : String(iso || '');
+}
+
+// número -> texto de campo em pt-BR, sem milhar e sem zeros sobrando
+function numeroParaCampo(n, casas) {
+    return Number(n).toFixed(casas || 8).replace(/0+$/, '').replace(/\.$/, '').replace('.', ',');
+}
+
+function textoQuantidade(n) {
+    return textoNumero(Number(n) || 0, 8);
+}
+
+// ---------- catálogo de moedas ----------
+// tudo que dá pra escolher: as 100 do pacote diário + o que já foi lançado
+function catalogoMoedas() {
+    var banco = lerBanco();
+    var mapa = {};
+    Object.keys(banco.moedas).forEach(function (id) { mapa[id] = banco.moedas[id]; });
+    mercado.lista.forEach(function (m) {
+        mapa[m.id] = { id: m.id, simbolo: m.simbolo, nome: m.nome, logo: m.logo };
+    });
+    return Object.keys(mapa).map(function (id) { return mapa[id]; })
+        .sort(function (a, b) { return a.nome < b.nome ? -1 : 1; });
+}
+
+function infoMoeda(id) {
+    var banco = lerBanco();
+    if (banco.moedas[id]) return banco.moedas[id];
+    var m = mercado.porId[id];
+    if (m) return { id: m.id, simbolo: m.simbolo, nome: m.nome, logo: m.logo };
+    return { id: id, simbolo: String(id).toUpperCase(), nome: id, logo: null };
+}
+
+function rotuloMoeda(m) {
+    return m.nome + ' (' + m.simbolo + ')';
+}
+
+// aceita o id, "Bitcoin (BTC)", só o símbolo ou só o nome
+function resolverMoeda(valor) {
+    var t = String(valor || '').trim().toLowerCase();
+    if (!t) return null;
+    var lista = catalogoMoedas();
+    var achada = null;
+    lista.forEach(function (m) {
+        if (achada) return;
+        if (m.id.toLowerCase() === t || rotuloMoeda(m).toLowerCase() === t) achada = m;
+    });
+    if (achada) return achada;
+    var porSimbolo = lista.filter(function (m) { return m.simbolo.toLowerCase() === t; });
+    if (porSimbolo.length === 1) return porSimbolo[0];
+    var porNome = lista.filter(function (m) { return m.nome.toLowerCase() === t; });
+    return porNome.length === 1 ? porNome[0] : null;
+}
+
+// saldo de hoje (soma das pernas), sem contar o lançamento em edição
+function saldoDaMoeda(banco, moedaId, ignorarId) {
+    var q = 0;
+    banco.transacoes.forEach(function (t) {
+        if (ignorarId && t.id === ignorarId) return;
+        pernasDaTransacao(t).forEach(function (p) { if (p.moedaId === moedaId) q += p.delta; });
+    });
+    return q;
+}
+
+function moedasComSaldo(banco, ignorarId) {
+    var ids = {};
+    banco.transacoes.forEach(function (t) {
+        pernasDaTransacao(t).forEach(function (p) { ids[p.moedaId] = true; });
+    });
+    return Object.keys(ids).filter(function (id) { return saldoDaMoeda(banco, id, ignorarId) > QTD_EPSILON; })
+        .map(infoMoeda).sort(function (a, b) { return a.nome < b.nome ? -1 : 1; });
+}
+
+function carteiraAtual() {
+    return processarCarteira(ordenarTransacoes(lerBanco().transacoes));
+}
+
+// ---------- validação e gravação ----------
+var VERBO_DA_BAIXA = { VENDA: 'vender', SAIDA: 'retirar', CONVERSAO: 'converter' };
+var NOME_DA_BAIXA = { VENDA: 'a venda', SAIDA: 'a saída', CONVERSAO: 'a conversão' };
+
+function descreverFuro(furo) {
+    var info = infoMoeda(furo.moedaId);
+    return (NOME_DA_BAIXA[furo.transacao.tipo] || 'o lançamento') + ' de ' + textoQuantidade(furo.quantidade) + ' ' + info.simbolo +
+        ' em ' + formatarDataBR(furo.transacao.data);
+}
+
+// d = campos como texto, do jeito que a pessoa digitou. Devolve { erros, dados }.
+function validarLancamento(d, editId) {
+    var banco = lerBanco();
+    var erros = {};
+    var dados = { tipo: d.tipo };
+    var tipo = d.tipo;
+
+    if (!TIPOS[tipo]) erros.tipo = 'Escolha a operação.';
+
+    var moeda = resolverMoeda(d.moeda);
+    if (!String(d.moeda || '').trim()) erros.moeda = 'Este campo é obrigatório.';
+    else if (!moeda) erros.moeda = 'Não achei essa moeda. Escolha uma da lista.';
+    dados.moeda = moeda;
+
+    var qtd = lerNumero(d.quantidade);
+    if (!String(d.quantidade || '').trim()) erros.quantidade = 'Este campo é obrigatório.';
+    else if (isNaN(qtd)) erros.quantidade = 'Número inválido.';
+    else if (qtd <= 0) erros.quantidade = 'A quantidade precisa ser maior que zero.';
+    dados.quantidade = qtd;
+
+    if (!d.data) erros.data = 'Este campo é obrigatório.';
+    else if (!/^\d{4}-\d{2}-\d{2}$/.test(d.data)) erros.data = 'Data inválida.';
+    else if (d.data > hojeISO()) erros.data = 'A data não pode ser futura.';
+    dados.data = d.data;
+
+    dados.precoUnitario = 0;
+    dados.taxas = 0;
+    if (TIPOS_COM_PRECO[tipo]) {
+        var preco = lerNumero(d.preco);
+        if (!String(d.preco || '').trim()) erros.preco = 'Este campo é obrigatório.';
+        else if (isNaN(preco)) erros.preco = 'Número inválido.';
+        else if (preco <= 0) erros.preco = 'O preço precisa ser maior que zero.';
+        dados.precoUnitario = preco;
+
+        if (String(d.taxas || '').trim()) {
+            var taxas = lerNumero(d.taxas);
+            if (isNaN(taxas)) erros.taxas = 'Número inválido.';
+            else if (taxas < 0) erros.taxas = 'As taxas não podem ser negativas.';
+            else dados.taxas = taxas;
+        }
+    }
+
+    var destino = null;
+    if (tipo === 'CONVERSAO') {
+        destino = resolverMoeda(d.destino);
+        if (!String(d.destino || '').trim()) erros.destino = 'Este campo é obrigatório.';
+        else if (!destino) erros.destino = 'Não achei essa moeda. Escolha uma da lista.';
+        else if (moeda && destino.id === moeda.id) erros.destino = 'O destino precisa ser diferente da origem.';
+        dados.destino = destino;
+
+        var qd = lerNumero(d.quantidadeDestino);
+        if (!String(d.quantidadeDestino || '').trim()) erros.quantidadeDestino = 'Este campo é obrigatório.';
+        else if (isNaN(qd)) erros.quantidadeDestino = 'Número inválido.';
+        else if (qd <= 0) erros.quantidadeDestino = 'A quantidade precisa ser maior que zero.';
+        dados.quantidadeDestino = qd;
+    }
+
+    // linha do tempo: só roda com os campos que ela usa já válidos
+    var podeSimular = !erros.tipo && !erros.moeda && !erros.quantidade && !erros.data && !erros.destino && !erros.quantidadeDestino;
+    if (podeSimular) {
+        var original = editId ? banco.transacoes.filter(function (t) { return t.id === editId; })[0] : null;
+        var simulada = {
+            id: original ? original.id : Number.MAX_SAFE_INTEGER,
+            criadoEm: original ? original.criadoEm : Number.MAX_SAFE_INTEGER,
+            tipo: tipo, moedaId: moeda.id, quantidade: qtd, data: d.data,
+        };
+        if (tipo === 'CONVERSAO') {
+            simulada.moedaDestinoId = destino.id;
+            simulada.quantidadeDestino = dados.quantidadeDestino;
+        }
+        var furo = verificarCronologia(banco.transacoes, { editId: editId, novo: simulada });
+        if (furo) {
+            if (furo.ehANova) {
+                erros.quantidade = 'Você não pode ' + (VERBO_DA_BAIXA[tipo] || 'tirar') + ' mais do que possui: ' +
+                    textoQuantidade(furo.disponivel) + ' ' + moeda.simbolo + ' disponível em ' + formatarDataBR(d.data) + '.' +
+                    (tipo === 'VENDA' ? ' O Koin não trabalha com venda a descoberto.' : '');
+            } else {
+                erros._geral = 'Essa alteração deixaria sem saldo ' + descreverFuro(furo) + ' (haveria só ' +
+                    textoQuantidade(furo.disponivel) + ' disponível nessa data). Ajuste ou exclua esse lançamento antes.';
+            }
+        }
+    }
+    return { erros: erros, dados: dados };
+}
+
+function salvarLancamento(dados, editId) {
+    var banco = lerBanco();
+    function cadastrar(m) {
+        if (!banco.moedas[m.id]) banco.moedas[m.id] = { id: m.id, simbolo: m.simbolo, nome: m.nome, logo: m.logo || null };
+    }
+    cadastrar(dados.moeda);
+
+    var registro = {
+        tipo: dados.tipo,
+        moedaId: dados.moeda.id,
+        quantidade: dados.quantidade,
+        precoUnitario: TIPOS_COM_PRECO[dados.tipo] ? dados.precoUnitario : 0,
+        taxas: TIPOS_COM_PRECO[dados.tipo] ? dados.taxas : 0,
+        data: dados.data,
+    };
+    if (dados.tipo === 'CONVERSAO') {
+        cadastrar(dados.destino);
+        registro.moedaDestinoId = dados.destino.id;
+        registro.quantidadeDestino = dados.quantidadeDestino;
+    }
+
+    if (editId) {
+        var t = banco.transacoes.filter(function (x) { return x.id === editId; })[0];
+        delete t.moedaDestinoId;
+        delete t.quantidadeDestino;
+        Object.assign(t, registro);   // edição preserva id e criadoEm (mesma posição na ordem)
+    } else {
+        banco.transacoes.push(Object.assign({ id: banco.proximoId++, criadoEm: Date.now() }, registro));
+    }
+    gravarBanco(banco);
+}
+
+// devolve null se excluiu, ou o texto do motivo se recusou
+function excluirLancamento(id) {
+    var banco = lerBanco();
+    var furo = verificarCronologia(banco.transacoes, { excluirId: id });
+    if (furo) {
+        return 'Não dá pra excluir: ' + descreverFuro(furo) + ' ficaria sem saldo. Exclua ou ajuste esse lançamento primeiro.';
+    }
+    banco.transacoes = banco.transacoes.filter(function (t) { return t.id !== id; });
+    gravarBanco(banco);
+    return null;
+}
+
+// ---------- gaveta de lançamento ----------
+// Sem <form>: o preview do claude.ai bloqueia o envio nativo. Botões com
+// data-*, Enter tratado no keydown. Trocar a operação redesenha o corpo,
+// levando o que já foi digitado; o que foi sugerido (data-auto) fica pra trás.
+var lanc = null;   // { editId, valores, erros } com a gaveta aberta
+
+function campoLancHTML(id, rotulo, controle, ajuda, erro) {
+    return '<div class="campo"><label for="' + id + '">' + rotulo + '</label>' + controle +
+        (ajuda !== null && ajuda !== undefined ? '<p class="campo-ajuda" id="' + id + '-ajuda">' + ajuda + '</p>' : '') +
+        (erro ? '<p class="campo-erro">' + escapar(erro) + '</p>' : '') + '</div>';
+}
+
+function campoMoedaHTML(name, id, valor, comoLista, editId) {
+    var atual = resolverMoeda(valor);
+    if (comoLista) {
+        var itens = moedasComSaldo(lerBanco(), editId);
+        var tem = false;
+        var opcoes = itens.map(function (m) {
+            var sel = atual && atual.id === m.id;
+            if (sel) tem = true;
+            return '<option value="' + escapar(m.id) + '"' + (sel ? ' selected' : '') + '>' + escapar(rotuloMoeda(m)) +
+                ' (saldo ' + textoQuantidade(saldoDaMoeda(lerBanco(), m.id, editId)) + ')</option>';
+        }).join('');
+        if (atual && !tem) opcoes = '<option value="' + escapar(atual.id) + '" selected>' + escapar(rotuloMoeda(atual)) + '</option>' + opcoes;
+        if (!itens.length && !atual) {
+            return '<select class="entrada" name="' + name + '" id="' + id + '" disabled><option value="">Nenhuma moeda com saldo</option></select>';
+        }
+        return '<select class="entrada" name="' + name + '" id="' + id + '"><option value=""' + (atual ? '' : ' selected') + '>Selecione a moeda</option>' + opcoes + '</select>';
+    }
+    var sugestoes = catalogoMoedas().map(function (m) { return '<option value="' + escapar(rotuloMoeda(m)) + '"></option>'; }).join('');
+    return '<input class="entrada" type="text" name="' + name + '" id="' + id + '" list="' + id + '-lista" autocomplete="off" ' +
+        'placeholder="Ex.: Bitcoin ou BTC" value="' + escapar(atual ? rotuloMoeda(atual) : (valor || '')) + '">' +
+        '<datalist id="' + id + '-lista">' + sugestoes + '</datalist>';
+}
+
+function infoMoedaTexto(tipo, valor, editId) {
+    var m = resolverMoeda(valor);
+    if (!m) {
+        if (TIPOS_DE_BAIXA[tipo]) return 'Só aparecem as moedas que você tem hoje.';
+        return 'Escolha uma das 100 maiores moedas, pelo nome ou símbolo.';
+    }
+    var banco = lerBanco();
+    var saldo = saldoDaMoeda(banco, m.id, editId);
+    if (saldo <= QTD_EPSILON) return 'Sem saldo hoje.';
+    var p = processarCarteira(ordenarTransacoes(banco.transacoes.filter(function (t) { return t.id !== editId; }))).posicoes[m.id];
+    var txt = 'Você tem ' + textoQuantidade(saldo) + ' ' + m.simbolo + ' hoje';
+    if (p && p.qtdComCusto > QTD_EPSILON) txt += ', preço médio de compra R$ ' + formatarPreco(p.custoTotal / p.qtdComCusto);
+    else txt += ', custo zero';
+    return txt + '.';
+}
+
+var NOTA_DA_OPERACAO = {
+    ENTRADA: 'Entrada soma a quantidade com custo zero: o valor investido e o preço médio de compra não mudam, e o ganho aparece no lucro. Use para mineração, recompensa, airdrop ou presente.',
+    SAIDA: 'Saída tira a quantidade junto com o custo proporcional (pelo preço médio), sem receber reais. Use para taxa de rede, envio a terceiros ou perda.',
+    CONVERSAO: 'O custo que sai da moeda de origem passa inteiro para o destino. Nenhuma cotação em reais entra na conta, e o total investido não muda.',
+    VENDA: 'O lucro realizado é o valor recebido (quantidade x preço, menos taxas) menos o custo da parte vendida, pelo preço médio.',
+};
+
+function corpoLancamentoHTML(v, e, editId) {
+    var tipo = TIPOS[v.tipo] ? v.tipo : 'COMPRA';
+    var baixa = !!TIPOS_DE_BAIXA[tipo];
+    var ehConv = tipo === 'CONVERSAO';
+
+    var botoesTipo = TIPOS_ORDEM.map(function (k) {
+        return '<button type="button" data-lanc-tipo="' + k + '" aria-pressed="' + (k === tipo) + '">' + TIPOS[k] + '</button>';
+    }).join('');
+
+    var html = (e._geral ? '<div class="campo-erro-caixa">' + escapar(e._geral) + '</div>' : '') +
+        '<div class="campo"><label>Operação</label><div class="segmentado segmentado-quebra" role="group" aria-label="Operação">' + botoesTipo + '</div>' +
+        (e.tipo ? '<p class="campo-erro">' + escapar(e.tipo) + '</p>' : '') + '</div>';
+
+    html += campoLancHTML('l-moeda', ehConv ? 'Moeda de origem' : 'Moeda',
+        campoMoedaHTML('moeda', 'l-moeda', v.moeda, baixa, editId),
+        escapar(infoMoedaTexto(tipo, v.moeda, editId)), e.moeda);
+
+    html += campoLancHTML('l-quantidade', ehConv ? 'Quantidade que saiu' : 'Quantidade',
+        '<input class="entrada" type="text" inputmode="decimal" name="quantidade" id="l-quantidade" autocomplete="off" placeholder="0" value="' + escapar(v.quantidade || '') + '"' + (v._autoQtd ? ' data-auto="1"' : '') + '>',
+        null, e.quantidade);
+
+    if (ehConv) {
+        html += campoLancHTML('l-destino', 'Moeda de destino', campoMoedaHTML('destino', 'l-destino', v.destino, false, editId),
+            'Pode ser uma moeda que você já tem ou uma nova.', e.destino) +
+            campoLancHTML('l-quantidade-destino', 'Quantidade recebida',
+                '<input class="entrada" type="text" inputmode="decimal" name="quantidadeDestino" id="l-quantidade-destino" autocomplete="off" placeholder="0" value="' + escapar(v.quantidadeDestino || '') + '">',
+                'O que de fato chegou, já descontadas as taxas da conversão.', e.quantidadeDestino);
+    }
+
+    if (TIPOS_COM_PRECO[tipo]) {
+        html += campoLancHTML('l-preco', 'Preço unitário (R$)',
+            '<input class="entrada" type="text" inputmode="decimal" name="preco" id="l-preco" autocomplete="off" placeholder="0,00" value="' + escapar(v.preco || '') + '"' + (v._autoPreco ? ' data-auto="1"' : '') + '>',
+            escapar(v._infoPreco || 'Em reais, por unidade da moeda.'), e.preco);
+    }
+
+    html += campoLancHTML('l-data', 'Data', '<input class="entrada" type="date" name="data" id="l-data" max="' + hojeISO() + '" value="' + escapar(v.data || hojeISO()) + '">', null, e.data);
+
+    if (TIPOS_COM_PRECO[tipo]) {
+        html += campoLancHTML('l-taxas', 'Taxas (R$)',
+            '<input class="entrada" type="text" inputmode="decimal" name="taxas" id="l-taxas" autocomplete="off" placeholder="0,00" value="' + escapar(v.taxas || '') + '">',
+            'Opcional. Taxas da corretora ou da rede, em reais.', e.taxas);
+    }
+
+    if (NOTA_DA_OPERACAO[tipo]) html += '<p class="nota-operacao">' + NOTA_DA_OPERACAO[tipo] + '</p>';
+    return html;
+}
+
+function gavetaHTML() {
+    var editId = lanc.editId;
+    return '<div class="gaveta-fundo" data-lanc-fechar></div>' +
+        '<div class="gaveta" id="gaveta-painel" role="dialog" aria-modal="true" aria-labelledby="gaveta-titulo">' +
+        '<div class="gaveta-topo"><h2 id="gaveta-titulo">' + (editId ? 'Editar lançamento' : 'Novo lançamento') + '</h2>' +
+        '<button type="button" class="botao-icone" data-lanc-fechar aria-label="Fechar">&times;</button></div>' +
+        '<div class="gaveta-corpo" id="gaveta-corpo">' + corpoLancamentoHTML(lanc.valores, lanc.erros, editId) + '</div>' +
+        '<div class="gaveta-pe"><button type="button" class="botao botao-neutro" data-lanc-fechar>Cancelar</button>' +
+        '<button type="button" class="botao botao-marca" data-lanc-salvar>Salvar lançamento</button></div></div>';
+}
+
+function lerCamposLancamento() {
+    var v = { tipo: lanc && lanc.valores.tipo };
+    document.querySelectorAll('#gaveta [name]').forEach(function (el) { v[el.name] = el.value; });
+    return v;
+}
+
+// abre a gaveta. opcoes: { editId, moedaId, tipo }
+function abrirLancamento(opcoes) {
+    opcoes = opcoes || {};
+    var valores = { tipo: opcoes.tipo || 'COMPRA', data: hojeISO() };
+    if (opcoes.editId) {
+        var t = lerBanco().transacoes.filter(function (x) { return x.id === opcoes.editId; })[0];
+        if (!t) return;
+        valores = {
+            tipo: t.tipo, moeda: t.moedaId, quantidade: numeroParaCampo(t.quantidade, 8), data: t.data,
+            preco: TIPOS_COM_PRECO[t.tipo] ? numeroParaCampo(t.precoUnitario, 10) : '',
+            taxas: t.taxas ? numeroParaCampo(t.taxas, 8) : '',
+            destino: t.moedaDestinoId || '',
+            quantidadeDestino: t.quantidadeDestino ? numeroParaCampo(t.quantidadeDestino, 8) : '',
+        };
+    } else if (opcoes.moedaId) {
+        valores.moeda = opcoes.moedaId;
+    }
+    lanc = { editId: opcoes.editId || null, valores: valores, erros: {} };
+
+    var raiz = document.getElementById('gaveta');
+    raiz.innerHTML = gavetaHTML();
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function () {
+        raiz.classList.add('aberta');
+        var primeiro = raiz.querySelector('input:not([type=hidden]), select');
+        if (primeiro) primeiro.focus();
+    });
+    if (!opcoes.editId) aplicarAutopreenchimento();
+
+    // sem o pacote diário carregado não há lista de moedas: busca e redesenha
+    if (!mercado.lista.length) {
+        carregarMercado().then(function () {
+            if (lanc) redesenharCorpoLancamento(lerCamposLancamento());
+        }).catch(function () {});
+    }
+}
+
+function fecharLancamento() {
+    if (!lanc) return;
+    lanc = null;
+    var raiz = document.getElementById('gaveta');
+    raiz.classList.remove('aberta');
+    document.body.style.overflow = '';
+    setTimeout(function () { if (!lanc) raiz.innerHTML = ''; }, menosMovimento ? 0 : 240);
+}
+
+function redesenharCorpoLancamento(valores, erros) {
+    if (!lanc) return;
+    lanc.valores = valores;
+    lanc.erros = erros || {};
+    document.getElementById('gaveta-corpo').innerHTML = corpoLancamentoHTML(lanc.valores, lanc.erros, lanc.editId);
+}
+
+// Sugestões só em lançamento novo, nunca em edição. Tudo que é sugerido leva
+// data-auto; se a pessoa digitar por cima, vira dela e não é mais sobrescrito.
+function aplicarAutopreenchimento() {
+    if (!lanc || lanc.editId) return;
+    var v = lanc.valores;
+    var moeda = resolverMoeda(v.moeda);
+    var qtd = document.getElementById('l-quantidade');
+    var preco = document.getElementById('l-preco');
+    var infoPreco = document.getElementById('l-preco-ajuda');
+
+    // desfaz só o que foi sugerido pela moeda anterior
+    [qtd, preco].forEach(function (el) {
+        if (el && el.dataset.auto === '1') { el.value = ''; delete el.dataset.auto; }
+    });
+    if (preco && preco.value === '' && infoPreco) infoPreco.textContent = 'Em reais, por unidade da moeda.';
+    if (!moeda) return;
+
+    if (TIPOS_DE_BAIXA[v.tipo] && qtd && qtd.value === '') {
+        var saldo = saldoDaMoeda(lerBanco(), moeda.id, null);
+        if (saldo > QTD_EPSILON) { qtd.value = numeroParaCampo(saldo, 8); qtd.dataset.auto = '1'; }
+    }
+    if (preco && preco.value === '') {
+        var m = mercado.porId[moeda.id];
+        if (m && m.preco > 0) {
+            preco.value = numeroParaCampo(m.preco, 10);
+            preco.dataset.auto = '1';
+            if (infoPreco) infoPreco.textContent = 'Sugerido pelo preço atual. Confira antes de salvar.';
+        }
+    }
+}
+
+function moedaMudou() {
+    if (!lanc) return;
+    var campo = document.getElementById('l-moeda');
+    lanc.valores.moeda = campo ? campo.value : '';
+    var info = document.getElementById('l-moeda-ajuda');
+    if (info) info.textContent = infoMoedaTexto(lanc.valores.tipo, lanc.valores.moeda, lanc.editId);
+    aplicarAutopreenchimento();
+}
+
+function salvarPelaGaveta() {
+    if (!lanc) return;
+    var campos = lerCamposLancamento();
+    var r = validarLancamento(campos, lanc.editId);
+    if (Object.keys(r.erros).length) {
+        redesenharCorpoLancamento(campos, r.erros);
+        var primeiro = document.querySelector('#gaveta .campo-erro');
+        if (primeiro) primeiro.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        return;
+    }
+    salvarLancamento(r.dados, lanc.editId);
+    var edicao = !!lanc.editId;
+    fecharLancamento();
+    avisar(edicao ? 'Lançamento salvo.' : 'Lançamento registrado.', 'sucesso');
+    desenhar();
+}
+
+document.addEventListener('click', function (ev) {
+    var novo = ev.target.closest('[data-lanc-novo]');
+    if (novo) { abrirLancamento({ moedaId: novo.getAttribute('data-moeda') || null }); return; }
+
+    var ed = ev.target.closest('[data-lanc-editar]');
+    if (ed) { abrirLancamento({ editId: Number(ed.getAttribute('data-lanc-editar')) }); return; }
+
+    var ex = ev.target.closest('[data-lanc-excluir]');
+    if (ex) {
+        if (!window.confirm('Excluir este lançamento?')) return;
+        var motivo = excluirLancamento(Number(ex.getAttribute('data-lanc-excluir')));
+        if (motivo) { avisar(motivo, 'erro'); return; }
+        avisar('Lançamento excluído.', 'sucesso');
+        desenhar();
+        return;
+    }
+
+    if (!lanc) return;
+    if (ev.target.closest('[data-lanc-fechar]')) { fecharLancamento(); return; }
+    if (ev.target.closest('[data-lanc-salvar]')) { salvarPelaGaveta(); return; }
+    var tipo = ev.target.closest('[data-lanc-tipo]');
+    if (tipo) {
+        var campos = lerCamposLancamento();
+        campos.tipo = tipo.getAttribute('data-lanc-tipo');
+        // o campo da moeda muda de lista para texto: leva a moeda já resolvida
+        var m = resolverMoeda(campos.moeda);
+        if (m) campos.moeda = m.id;
+        // sugestões da operação anterior não seguem
+        ['quantidade', 'preco'].forEach(function (n) {
+            var el = document.querySelector('#gaveta [name=' + n + ']');
+            if (el && el.dataset.auto === '1') campos[n] = '';
+        });
+        redesenharCorpoLancamento(campos);
+        aplicarAutopreenchimento();
+    }
+});
+
+document.addEventListener('change', function (ev) {
+    if (lanc && ev.target.id === 'l-moeda') moedaMudou();
+});
+
+document.addEventListener('input', function (ev) {
+    if (!lanc) return;
+    if (ev.target.id === 'l-moeda' && ev.target.tagName === 'INPUT') { moedaMudou(); return; }
+    // a pessoa digitou por cima de um valor sugerido: agora o campo é dela
+    if (ev.target.dataset && ev.target.dataset.auto === '1') {
+        delete ev.target.dataset.auto;
+        if (ev.target.id === 'l-preco') {
+            var info = document.getElementById('l-preco-ajuda');
+            if (info) info.textContent = 'Em reais, por unidade da moeda.';
+        }
+    }
+});
+
+document.addEventListener('keydown', function (ev) {
+    if (!lanc) return;
+    if (ev.key === 'Escape') { fecharLancamento(); return; }
+    if (ev.key === 'Enter' && ev.target.closest && ev.target.closest('#gaveta') && ev.target.tagName === 'INPUT') {
+        ev.preventDefault();
+        salvarPelaGaveta();
+    }
+});
+
+// ---------- página Lançamentos ----------
+function moedaCelulaHTML(id) {
+    var m = infoMoeda(id);
+    return '<a role="link" tabindex="0" class="celula-moeda" data-rota="/moeda/' + escapar(id) + '">' + logoHTML(m) +
+        '<div><strong>' + escapar(m.nome) + '</strong> <span>' + escapar(m.simbolo) + '</span></div></a>';
+}
+
+function etiquetaTipoHTML(tipo) {
+    return '<span class="etiqueta-tipo t-' + tipo.toLowerCase() + '">' + TIPOS[tipo] + '</span>';
+}
+
+// valor total do lançamento em reais, ou null quando não se aplica
+function valorTotalDoLancamento(t) {
+    if (t.tipo === 'COMPRA') return t.quantidade * t.precoUnitario + (t.taxas || 0);
+    if (t.tipo === 'VENDA') return t.quantidade * t.precoUnitario - (t.taxas || 0);
+    return null;
+}
+
+function linhaLancamentoHTML(t, realizado) {
+    var qtd = textoQuantidade(t.quantidade);
+    var moedaCel = moedaCelulaHTML(t.moedaId);
+    if (t.tipo === 'CONVERSAO') {
+        qtd += ' <span class="seta-conv">&rarr;</span> ' + textoQuantidade(t.quantidadeDestino);
+        moedaCel += ' <span class="seta-conv">&rarr;</span> ' + moedaCelulaHTML(t.moedaDestinoId);
+    }
+    var total = valorTotalDoLancamento(t);
+    var totalCel = total !== null ? '<span data-brl="' + total + '"></span>' : (t.tipo === 'ENTRADA' ? '<span class="sem-dado">custo zero</span>' : '<span class="sem-dado">—</span>');
+    var precoCel = TIPOS_COM_PRECO[t.tipo] ? '<span data-brl="' + t.precoUnitario + '" data-tipo="preco"></span>' : '<span class="sem-dado">—</span>';
+    var taxasCel = TIPOS_COM_PRECO[t.tipo] && t.taxas ? '<span data-brl="' + t.taxas + '"></span>' : '<span class="sem-dado">—</span>';
+    var real = realizado[t.id];
+    var realCel = real === undefined ? '<span class="sem-dado">—</span>' :
+        '<span class="var ' + (real >= 0 ? 'alta' : 'queda') + '" data-brl="' + real + '"></span>';
+
+    return '<tr><td>' + formatarDataBR(t.data) + '</td><td>' + etiquetaTipoHTML(t.tipo) + '</td>' +
+        '<td class="col-moeda-lanc">' + moedaCel + '</td><td>' + qtd + '</td><td>' + precoCel + '</td><td>' + taxasCel + '</td>' +
+        '<td>' + totalCel + '</td><td>' + realCel + '</td>' +
+        '<td class="col-acoes"><button type="button" class="botao botao-fantasma botao-pequeno" data-lanc-editar="' + t.id + '">Editar</button>' +
+        '<button type="button" class="botao botao-fantasma botao-pequeno" data-lanc-excluir="' + t.id + '">Excluir</button></td></tr>';
+}
+
+function paginaLancamentos() {
+    var banco = lerBanco();
+    var carteira = processarCarteira(ordenarTransacoes(banco.transacoes));
+    var lista = ordenarTransacoes(banco.transacoes).reverse();   // mais recente primeiro
+    var realizadoTotal = Object.keys(carteira.realizado).reduce(function (s, k) { return s + carteira.realizado[k]; }, 0);
+    var temVenda = Object.keys(carteira.realizado).length > 0;
+
+    var corpo;
+    if (lista.length) {
+        corpo = '<div class="painel painel-tabela"><table class="tabela tabela-lanc"><thead><tr>' +
+            '<th>Data</th><th>Operação</th><th>Moeda</th><th>Quantidade</th><th>Preço</th><th>Taxas</th><th>Valor total</th><th>Lucro realizado</th><th></th>' +
+            '</tr></thead><tbody>' + lista.map(function (t) { return linhaLancamentoHTML(t, carteira.realizado); }).join('') + '</tbody></table></div>';
+    } else {
+        corpo = '<div class="painel"><p class="painel-titulo">Nenhum lançamento ainda</p>' +
+            '<p class="painel-sub">Registre a sua primeira compra, entrada ou conversão. Ela passa a valer no preço médio e no lucro da moeda.</p>' +
+            '<button type="button" class="botao botao-marca" data-lanc-novo>' + icone('mais') + 'Novo lançamento</button></div>';
+    }
+
+    return '<div class="pagina">' +
+        '<div class="pagina-cabecalho"><div><h1>Lançamentos</h1>' +
+        '<p>Compras, vendas, entradas, saídas e conversões. Cada lançamento é conferido na linha do tempo: nenhuma baixa pode ficar sem saldo.</p></div>' +
+        '<button type="button" class="botao botao-marca" data-lanc-novo>' + icone('mais') + 'Novo lançamento</button></div>' +
+        (lista.length ? '<div class="grade-2 lanc-resumo"><div class="cartao"><p class="indicador-rotulo">Lançamentos</p><p class="indicador-valor">' + lista.length + '</p></div>' +
+            '<div class="cartao"><p class="indicador-rotulo">Lucro realizado</p><p class="indicador-valor">' +
+            (temVenda ? '<span class="var ' + (realizadoTotal >= 0 ? 'alta' : 'queda') + '" data-brl="' + realizadoTotal + '"></span>' : '<span class="sem-dado">sem vendas ainda</span>') +
+            '</p></div></div>' : '') +
+        corpo + '</div>';
+}
+
+// ---------- moeda: sua posição e seus lançamentos ----------
+function posicaoDaMoeda(id) {
+    var p = carteiraAtual().posicoes[id];
+    return p && p.quantidade > QTD_EPSILON ? p : null;
+}
+
+function posicaoMoedaHTML(m) {
+    var p = posicaoDaMoeda(m.id);
+    var carteira = carteiraAtual();
+    var realizado = 0, temVenda = false;
+    lerBanco().transacoes.forEach(function (t) {
+        if (t.moedaId === m.id && carteira.realizado[t.id] !== undefined) { realizado += carteira.realizado[t.id]; temVenda = true; }
+    });
+    var corpo;
+    if (!p) {
+        corpo = '<p class="painel-sub">Você não tem ' + escapar(m.nome) + ' na carteira.</p>' +
+            '<button type="button" class="botao botao-neutro" data-lanc-novo data-moeda="' + escapar(m.id) + '">' + icone('mais') + 'Novo lançamento</button>';
+    } else {
+        var semCusto = p.quantidade - p.qtdComCusto;
+        var pm = p.qtdComCusto > QTD_EPSILON ? p.custoTotal / p.qtdComCusto : null;
+        corpo = '<div class="estatisticas estatisticas-2">' +
+            estatisticaHTML('Quantidade', textoQuantidade(p.quantidade) + ' ' + escapar(m.simbolo),
+                semCusto > QTD_EPSILON && pm !== null ? textoQuantidade(semCusto) + ' sem custo' : '') +
+            estatisticaHTML('Preço médio de compra', pm !== null ? valorBRL(pm, 'preco') : '<span class="sem-dado">custo zero</span>') +
+            estatisticaHTML('Custo total', valorBRL(p.custoTotal)) +
+            estatisticaHTML('Valor atual', '<span id="pos-valor" data-brl="' + (p.quantidade * m.preco) + '"></span>') +
+            estatisticaHTML('Lucro não realizado', '<span id="pos-lucro"></span>') +
+            estatisticaHTML('Lucro realizado', temVenda ? '<span class="var ' + (realizado >= 0 ? 'alta' : 'queda') + '" data-brl="' + realizado + '"></span>' : '<span class="sem-dado">sem vendas</span>') +
+            '</div>';
+    }
+    return '<div class="painel"><p class="painel-titulo">Sua posição</p>' + corpo + '</div>';
+}
+
+// valor atual e lucro não realizado acompanham o preço ao vivo
+function atualizarPosicaoMoeda() {
+    var pg = moedaPg;
+    if (!pg) return;
+    var p = posicaoDaMoeda(pg.m.id);
+    var valor = document.getElementById('pos-valor');
+    var lucro = document.getElementById('pos-lucro');
+    if (!p || !valor || !lucro) return;
+    var atual = p.quantidade * pg.m.preco;
+    valor.setAttribute('data-brl', atual);
+    valor.textContent = formatarMoeda(atual);
+    if (p.custoTotal > 0) {
+        var l = atual - p.custoTotal;
+        lucro.innerHTML = '<span class="var ' + (l >= 0 ? 'alta' : 'queda') + '" data-brl="' + l + '">' + formatarMoeda(l) + '</span>' +
+            ' <span class="var ' + (l >= 0 ? 'alta' : 'queda') + '">' + formatarPct(l / p.custoTotal * 100) + '</span>';
+    } else {
+        lucro.innerHTML = '<span class="var alta" data-brl="' + atual + '">' + formatarMoeda(atual) + '</span> <span class="sem-dado">custo zero</span>';
+    }
+}
+
+function lancamentosMoedaHTML(m) {
+    var lista = ordenarTransacoes(lerBanco().transacoes.filter(function (t) {
+        return t.moedaId === m.id || t.moedaDestinoId === m.id;
+    })).reverse();
+    var corpo;
+    if (!lista.length) {
+        corpo = '<p class="painel-sub">Nenhum lançamento desta moeda ainda.</p>';
+    } else {
+        corpo = '<ul class="lanc-lista">' + lista.slice(0, 8).map(function (t) {
+            var doDestino = t.moedaDestinoId === m.id;
+            var qtd = doDestino ? '+' + textoQuantidade(t.quantidadeDestino) : ((t.tipo === 'COMPRA' || t.tipo === 'ENTRADA') ? '+' : '-') + textoQuantidade(t.quantidade);
+            var total = valorTotalDoLancamento(t);
+            return '<li><span class="lanc-data">' + formatarDataBR(t.data) + '</span>' + etiquetaTipoHTML(t.tipo) +
+                '<span class="lanc-qtd">' + qtd + ' ' + escapar(m.simbolo) + '</span>' +
+                (total !== null ? '<span class="lanc-valor" data-brl="' + total + '"></span>' : '<span class="lanc-valor"></span>') + '</li>';
+        }).join('') + '</ul>' +
+            (lista.length > 8 ? '<p class="painel-sub">Mostrando os 8 mais recentes.</p>' : '') +
+            '<a role="link" tabindex="0" class="voltar" data-rota="/lancamentos">Ver todos os lançamentos &rarr;</a>';
+    }
+    return '<div class="painel"><p class="painel-titulo">Seus lançamentos</p>' + corpo +
+        '<div style="margin-top: 12px;"><button type="button" class="botao botao-neutro" data-lanc-novo data-moeda="' + escapar(m.id) + '">' + icone('mais') + 'Novo lançamento</button></div></div>';
+}
 
 
 /* =================================================================
