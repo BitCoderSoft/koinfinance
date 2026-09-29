@@ -16,7 +16,7 @@ Este documento resume o que foi construído até aqui (etapas 0, 0.1 e 1, feitas
 | Versão | `0.1.0` (vira `1.0.0` ao fechar a Etapa 7) |
 | Etapas concluídas | 0 (fundação), 0.1 (navegação no topo), 1 (mercado) |
 | Próxima etapa | 2 (página da moeda com gráfico interativo) |
-| Pendência aberta | Confirmar no navegador se a CoinGecko responde direto do arquivo (ver "Verificação pendente") |
+| Pendência aberta | Confirmar no navegador (com a chave) que o Mercado sai do modo simplificado (ver "Verificação pendente") |
 
 ---
 
@@ -150,9 +150,11 @@ Qualquer elemento com `data-brl="1234.56"` é preenchido por `preencherValores()
 ### CoinGecko
 - Base: `https://api.coingecko.com/api/v3`
 - `/coins/markets?vs_currency=brl&order=market_cap_desc&per_page=100&page=1&sparkline=true&price_change_percentage=1h,24h,7d` → 1 chamada traz as 100 maiores com ranking, logo, preço em reais, variações, volume, valor de mercado e minigráfico de 7 dias.
-- **Sem chave** funciona (API pública, ~10 a 30 chamadas por minuto por IP). **Chave Demo gratuita** (opcional, colada em Ajustes): 100/min, 10 mil/mês.
+- **Exige chave** (confirmado em 29/09/2026: sem chave o `/coins/markets` responde 403 "Request blocked" do CloudFront). Chave Demo gratuita: 30/min, 10 mil/mês. Por enquanto a chave Demo do autor está embutida em `CG_CHAVE_PADRAO`; a colada em Ajustes tem prioridade. Rever antes de publicar (chave no código é pública).
+- **REGRA: no máximo 1 chamada por dia.** O Koin vive dos dados da Binance (preço, 24h e volume ao vivo). A CoinGecko só entra pro que a Binance não entrega (ranking, logo, valor de mercado, variação 1h/7d, minigráfico), e **só na primeira abertura do dia** (dia local, `diaDeHoje()`). Cache de hoje = não chama. Falhou = espera 30 min (`CG_ESPERA_FALHA`) e usa o cache antigo. Toda chamada nova à CoinGecko (Etapa 2 em diante) deve seguir a mesma regra, com cache longo por moeda.
+- O `sparkline_in_7d` vem em **dólar** mesmo com `vs_currency=brl`. Serve pro formato do minigráfico, não pra valores.
 - A chave vai como **parâmetro na URL** (`x_cg_demo_api_key`), não no cabeçalho: cabeçalho customizado dispara a checagem prévia de CORS, que já bloqueou outra API (bolsai) no Dash Finance.
-- Cache de 5 minutos. Se falhar e houver cache vencido, usa o cache (avisando). Sem cache, cai para o modo simplificado.
+- Cache diário (ver regra acima). Se falhar e houver cache de outro dia, usa o cache (avisando). Sem cache, cai para o modo simplificado.
 
 ### Casamento CoinGecko × Binance
 Pelo símbolo (`btc` → `BTCUSDT`). Como símbolos se repetem entre moedas diferentes, o "ao vivo" só liga se o preço da Binance estiver **a até 10%** do preço da CoinGecko (`DIVERGENCIA_MAX`). Lição herdada do Dash Finance (caso do par ENABRL parado com preço antigo).
@@ -176,9 +178,15 @@ Barra lateral removida. Topo com links, grupo "Análise" (Balanceamento, Objetiv
 - Preço e 24h ao vivo pelo WebSocket, com pisca e deslize. Indicador "Preços ao vivo" na página.
 - Modo simplificado automático (30 principais, só Binance) quando a CoinGecko não responde.
 - Ajustes: campo da chave Demo da CoinGecko (salvar/remover).
+
+### Etapa 1.1 · CoinGecko com chave e 1 chamada por dia
+Chave Demo embutida, cache por dia local, espera de 30 min após falha (`MERCADO_FALHA`). Testado com chamada real: 1ª chamada HTTP, repetições no mesmo dia sem HTTP, cache de ontem renova, falha usa cache velho sem martelar.
 - Rota `/moeda/<id>` criada, ainda com placeholder da Etapa 2.
 
 ### Verificação pendente
+[29/09/2026] Via curl, com a chave Demo, o `/coins/markets` responde 200 com `access-control-allow-origin: *` (CORS liberado). Sem chave dá 403. Falta só ver no navegador o Mercado completo com a chave embutida (etapa 1.1).
+
+Histórico do teste original:
 Testado só com respostas simuladas no formato das documentações. Falta confirmar **no navegador real** se a CoinGecko aceita chamadas direto do arquivo (CORS). Como checar: abrir o Mercado; se a tabela vier com logos e minigráficos, está ok; se aparecer "Modo simplificado", a CoinGecko recusou (ver o motivo no console, F12). Se for bloqueio de origem, testar servindo por servidor local (`python -m http.server`) antes de decidir outro caminho.
 
 ---
