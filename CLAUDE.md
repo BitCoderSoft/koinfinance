@@ -14,8 +14,8 @@ Este documento resume o que foi construído até aqui (etapas 0, 0.1 e 1, feitas
 |---|---|
 | Arquivo principal | `koin.html` (single-file: HTML + CSS + JS, sem build) |
 | Versão | `0.1.0` (vira `1.0.0` ao fechar a Etapa 7) |
-| Etapas concluídas | 0 (fundação), 0.1 (navegação no topo), 1 (mercado), 1.1 (CoinGecko com chave), 1.2 (tabela larga), 2 (página da moeda) |
-| Próxima etapa | 3 (motor e lançamentos) |
+| Etapas concluídas | 0 (fundação), 0.1 (navegação no topo), 1 (mercado), 1.1 (CoinGecko com chave), 1.2 (tabela larga), 2 (página da moeda), 2.1 (sem chave do usuário), 3 (motor e lançamentos) |
+| Próxima etapa | 4 (portfólio) |
 | Pendência aberta | Confirmar no navegador (com a chave) que o Mercado sai do modo simplificado (ver "Verificação pendente") |
 
 ---
@@ -24,7 +24,7 @@ Este documento resume o que foi construído até aqui (etapas 0, 0.1 e 1, feitas
 
 O Koin nasceu da parte cripto do **Dash Finance**, painel pessoal de investimentos (ações, FIIs, BDRs e cripto) do mesmo autor, também single-file. Boa parte da lógica foi testada lá com dados reais. O Dash Finance é de uso pessoal e fica congelado em ~70%; o Koin é o produto publicável.
 
-Recomendação: colocar uma cópia do `dash-finance.html` numa pasta `referencia/` do repositório (sem versionar dados pessoais), para consulta do motor de custo nas etapas 3 a 5.
+O `dash-finance.html` foi anexado no chat na Etapa 3 e o motor cripto já foi portado. **O arquivo original contém tokens reais (brapi e bolsai) no código: nunca colocar ele no repositório.** Se precisar dele de novo (Balanceamento e Objetivos, Etapa 5, e Backup, `[BACKUP v1]`), colocar uma cópia limpa (sem tokens) em `referencia/`.
 
 ---
 
@@ -127,7 +127,7 @@ Qualquer elemento com `data-brl="1234.56"` é preenchido por `preencherValores()
 
 - **Tags nos comentários:** toda mudança leva `[ETAPA N]` (ou `[ETAPA N.x]` para ajuste). Herdado do Dash Finance leva `[HERANÇA]`. O guia no topo do HTML lista o histórico.
 - **Links internos sem `href`:** use `<a role="link" tabindex="0" data-rota="/rota">`. O preview do claude.ai trata qualquer `href` como link externo. Navegar por código: `navegar('/rota')`.
-- **Formulários sem submit nativo:** o preview bloqueia `<form>` antes do evento `submit`. Botões `type="button"` com `data-*` e tratamento no `click`; Enter tratado no `keydown`. (Na Etapa 3, reaproveitar o padrão `processarFormulario` do Dash Finance.)
+- **Formulários sem submit nativo:** o preview bloqueia `<form>` antes do evento `submit`. Botões `type="button"` com `data-*` e tratamento no `click`; Enter tratado no `keydown`. (Na Etapa 3 a gaveta de lançamento seguiu isso: `data-lanc-salvar` no clique e Enter no `keydown`.)
 - **Armazenamento só por `armazem`**, nunca `localStorage` direto. Chaves com prefixo `KOIN_` (automático).
 - **Notação brasileira:** vírgula nos decimais, ponto nos milhares. Sempre pelos formatadores.
 - **Formatação humana do código:** uma propriedade CSS por linha, blocos separados, comentários explicando o porquê. Nada de CSS compactado em uma linha (o código é inspecionável num site publicado).
@@ -197,6 +197,20 @@ Testado só com respostas simuladas no formato das documentações. Falta confir
 
 ---
 
+### Etapa 3 · Motor e lançamentos (entregue)
+Portado do `dash-finance.html` (só a parte cripto: `[CRIPTO v2]`, `[CRIPTO v2.1]`, `[MOTOR v2]`), sem usuário e sem bolsa.
+- **Motor puro** (bloco `[MOTOR:início]`/`[MOTOR:fim]` no HTML): `pernasDaTransacao`, `ordenarTransacoes` (data, prioridade no dia, `criadoEm`, id), `processarCarteira` (custo, `qtdComCusto`, preço médio de compra, resíduo de ponto flutuante), `primeiroFuroDeSaldo`, `verificarCronologia` (salvar, editar e excluir). Recebe listas e devolve resultado, sem ler nem gravar nada.
+- **Lucro realizado (novo):** `processarCarteira` devolve `realizado[idLancamento]` = (qtd x preço, menos taxas) menos o custo baixado, só para vendas. **É calculado na hora, não guardado no lançamento** (diferente do que o plano original dizia): editar ou excluir um lançamento antigo muda o custo das vendas seguintes, e um valor gravado ficaria velho.
+- **Moeda identificada pelo id da CoinGecko** (`moedaId`), com cadastro em `BANCO.moedas` (nome, símbolo, logo) para a tela não depender do pacote diário.
+- **Banco local** (`armazem`, chave `KOIN_BANCO`): `{ moedas, transacoes, proximoId }`. Valores unitários e taxas em reais. Tipos: COMPRA, VENDA, ENTRADA, SAIDA, CONVERSAO.
+- **Gaveta de lançamento** (`#gaveta`, sem `<form>`): operação primeiro (botões), moeda em lista (só as com saldo nas baixas) ou campo com sugestões (compra, entrada, destino), quantidade, preço, taxas, data. Sugestões com `data-auto` (saldo inteiro nas baixas, preço atual da moeda) que a pessoa pode sobrescrever. Campos aceitam `1.234,56` e `1234.56`.
+- **Página Lançamentos** (`/lancamentos`): lista do mais recente para o mais antigo, com editar e excluir, e o lucro realizado total.
+- **Página da moeda:** "Sua posição" (quantidade, quantidade sem custo, preço médio de compra, custo, valor atual e lucro não realizado ao vivo, lucro realizado) e "Seus lançamentos" da moeda. Isso adianta parte da Etapa 4.
+- Só as 100 moedas do pacote diário podem ser escolhidas em lançamento novo. Moeda já lançada continua aparecendo mesmo se sair do top 100.
+- Testes do motor (23 casos, rodados em Node contra o trecho do HTML): entrada gratuita não derruba o preço médio, venda baixa custo proporcional e calcula lucro realizado, conversão leva o custo e a fração com custo, saída sem lucro realizado, ordem no mesmo dia, furo de saldo, excluir/editar barrados, cadeia conversão e venda, resíduo de ponto flutuante.
+- Etiquetas de operação: latão para o que entra, cinza para o que sai, azul para conversão. Verde e vermelho seguem só para alta e queda (inclusive o lucro realizado).
+- Backup (exportar e importar JSON) continua na Etapa 5. O `BANCO` já está em uma chave só, o que facilita.
+
 ### Etapa 2 · Página da moeda (entregue)
 - Rota `/moeda/<id>`: cabeçalho (logo, nome, posição, favorita, preço ao vivo e 24h), gráfico, estatísticas, conversor e espaços de "Sua posição" e "Seus lançamentos" (Etapas 3/4).
 - Gráfico: **Lightweight Charts 4.2.3** (unpkg, com SRI), carregado só ao abrir uma moeda. Linha e velas; períodos 1D, 7D, 1M, 3M, 1A; cursor com data e valores; segue a moeda de exibição (R$/US$/₿). Klines da Binance em USDT convertidas pelas klines do USDTBRL no mesmo instante. A última vela acompanha o preço ao vivo.
@@ -208,16 +222,6 @@ Testado só com respostas simuladas no formato das documentações. Falta confir
 - `sairDaMoeda()` roda em todo `desenhar()` e limpa socket, timers e gráfico.
 
 ## Próximas etapas
-
-### Etapa 3 · Motor e lançamentos
-Portar do Dash Finance (buscar pelas tags `[CRIPTO v2]`, `[CRIPTO v2.1]`, `[MOTOR v2]`):
-- `pernasDaTransacao`: cada transação vira variações de quantidade por ativo. COMPRA/ENTRADA soma; VENDA/SAIDA subtrai; CONVERSAO subtrai da origem e soma no destino.
-- `processarCarteira`: custo e posição. **Entrada sempre custo zero.** Saída baixa custo pelo preço médio. Conversão leva o custo da origem inteiro pro destino, sem cotação. Guarda `qtdComCusto` para o **preço médio de compra** (entrada gratuita não mexe no PM).
-- `ordenarTransacoes`: data → prioridade no dia (entrada/compra, conversão, venda/saída) → criadoEm → id.
-- `primeiroFuroDeSaldo` + `verificarCronologia`: nenhuma baixa pode ficar sem saldo na data; vale para salvar, editar e excluir.
-- Formulário guiado (tipo primeiro, token em lista nas baixas, sugestões com `data-auto`), `processarFormulario` sem submit nativo.
-- **Novo em relação ao Dash Finance:** lucro **realizado** (valor recebido na venda menos o custo baixado), guardado por transação.
-- Identificação de moeda pelo **id da CoinGecko** (não só símbolo), para não confundir moedas homônimas.
 
 ### Etapa 4 · Portfólio
 - Saldo grande (Unbounded) em R$/US$/₿, custo total, lucro realizado e não realizado, variação 24h da carteira.
@@ -246,6 +250,19 @@ Portar do Dash Finance (buscar pelas tags `[CRIPTO v2]`, `[CRIPTO v2.1]`, `[MOTO
 
 ---
 
+## Para a Etapa 7 (PWA): tela de identificação (ideia registrada em 29/09/2026)
+
+O autor pretende, no PWA, mostrar uma **tela inicial de identificação antes do app**, para saber **quem está usando**. Por enquanto é só referência, sem decisão. Pontos levantados ao olhar o login do Dash Finance:
+
+- **O que o login do Dash Finance é:** usuários e senha guardados no navegador (`db.users`), sessão em `SESSION_KEY`, hash caseiro da senha (`hashSenha`, o próprio código avisa que não é segurança), tela dividida (painel da marca à esquerda, formulário à direita), "Olá, fulano" no topo e guarda de rota (sem sessão vai para `/login`). Serve para separar contas no mesmo aparelho, **não** para saber quem usa o app: nada sai do aparelho.
+- **Conflito com uma decisão de produto:** o Koin é "sem login, dados só no aparelho" (e o rodapé diz isso). Para **ter visão de quem usa**, a identificação precisa ir para um servidor (backend próprio, Firebase/Supabase, login com Google etc.). Isso muda a promessa de privacidade, pede aviso de consentimento e política de privacidade (LGPD) e coletar o mínimo (nome e e-mail, por exemplo).
+- **Versões possíveis:** (a) só um nome local para a saudação "Olá, fulano", sem visibilidade; (b) identificação real com servidor, com visibilidade de uso; (c) identificação opcional, com o app funcionando sem ela.
+- **Não reaproveitar** o hash do Dash Finance. Identificação de verdade usa um provedor de autenticação.
+- Aproveitar do Dash Finance: o layout de tela dividida com o painel da marca, a saudação e o padrão de guarda de rota (`renderCurrentRoute`).
+- Decidir também o que acontece com os dados locais (carteira) de quem se identifica: continuam só no aparelho ou passam a sincronizar. Sincronizar resolveria a troca de aparelho, hoje coberta só por backup em arquivo (Etapa 5).
+
+---
+
 ## Sugestão para o repositório
 
 ```
@@ -257,10 +274,3 @@ koin/
 ```
 Um commit por etapa (ou por ajuste `N.x`), com a tag no título: `ETAPA 2: página da moeda com gráfico interativo`.
 
----
-
-## Para começar no VS Code
-
-Com este arquivo na raiz como `CLAUDE.md`, o Claude Code já lê o contexto ao abrir o projeto. Primeira mensagem sugerida:
-
-> Leia o CLAUDE.md e o koin.html. Antes da Etapa 2, preciso confirmar a pendência da CoinGecko: vou abrir o Mercado no navegador e te conto o resultado. Depois seguimos para a página da moeda.
