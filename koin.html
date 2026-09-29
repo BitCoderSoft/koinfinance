@@ -55,6 +55,9 @@
   [ETAPA 5 · 29/09/2026] responsivo para celular (adiantado): menu sanduíche,
                           Mercado enxuto em linhas, tabelas em lista e cartões,
                           gaveta em tela cheia. Vale abaixo de 768px.
+  [ETAPA 4.1 / 5.1 · 29/09/2026] ajustes do relatório de testes no celular: topo fixo,
+                          bolinhas nos destaques, gráficos menores no celular,
+                          escala do portfólio, sinal negativo, rosca com 1 moeda etc.
 -->
 <html lang="pt-BR" data-tema="escuro">
 <head>
@@ -114,6 +117,7 @@
     --r-painel: 18px;
 
     --topo: 64px;
+    --topo-total: calc(var(--topo) + 1px + env(safe-area-inset-top, 0px));
 
     --sombra-flutuante: 0 18px 40px rgba(3, 6, 14, 0.55);
     --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -198,11 +202,17 @@ a[data-rota] {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    padding-top: var(--topo-total);
 }
 
+/* [ETAPA 5.1] topo FIXO em todas as telas: nada de sticky, que para de funcionar
+   quando algum ancestral tem overflow. O conteúdo desce a altura do topo
+   (--topo-total, já com a borda e o notch do celular). */
 .topo {
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
     z-index: 30;
     background: rgba(13, 17, 28, 0.88);
     backdrop-filter: blur(12px);
@@ -1473,16 +1483,19 @@ main#miolo {
     font-weight: 700;
 }
 
+/* [ETAPA 5.1] o latão é da marca e da ação principal, então a compra não usa
+   mais ele: o que entra é cinza cheio, o que sai é só contorno */
 .etiqueta-tipo.t-compra,
 .etiqueta-tipo.t-entrada {
-    background: var(--marca-suave);
-    color: var(--marca);
+    background: var(--superficie-3);
+    color: var(--texto);
 }
 
 .etiqueta-tipo.t-venda,
 .etiqueta-tipo.t-saida {
-    background: var(--superficie-3);
-    color: var(--texto);
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--borda-forte);
+    color: var(--texto-2);
 }
 
 .etiqueta-tipo.t-conversao {
@@ -2065,6 +2078,7 @@ body:has(#gaveta.aberta) .avisos {
         padding: 0 16px;
         overflow-x: auto;
         scroll-snap-type: x mandatory;
+        scroll-padding: 0 16px;
         scrollbar-width: none;
     }
 
@@ -2073,7 +2087,7 @@ body:has(#gaveta.aberta) .avisos {
     }
 
     .destaque {
-        flex: 0 0 66%;
+        flex: 0 0 80%;
         min-height: 0;
         padding: 12px 14px 6px;
         scroll-snap-align: start;
@@ -2116,8 +2130,16 @@ body:has(#gaveta.aberta) .avisos {
         white-space: nowrap;
     }
 
-    .barra-tabela select.ord-mobile {
-        display: block;
+    .barra-tabela label.ord-mobile {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: var(--t-sm);
+        color: var(--texto-3);
+    }
+
+    .barra-tabela label.ord-mobile select {
+        flex: 1;
         height: 40px;
         color: var(--texto-2);
     }
@@ -2458,6 +2480,130 @@ body:has(#gaveta.aberta) .avisos {
         bottom: calc(84px + env(safe-area-inset-bottom));
     }
 }
+
+/* =================================================================
+   AJUSTES DO RELATÓRIO DE TESTES  [ETAPA 5.1 / 4.1 · 29/09/2026]
+   ================================================================= */
+.destaques-pontos,
+.so-celular,
+.ico-graf {
+    display: none;
+}
+
+/* números nunca quebram no meio: "R$ 15,08 tri" fica numa linha só */
+.destaque-numeros strong,
+.destaque-preco {
+    white-space: nowrap;
+}
+
+.destaque-nome {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.destaque-linha > * {
+    min-width: 0;
+}
+
+.destaque-preco {
+    text-align: right;
+}
+
+.destaque-numeros div {
+    align-items: baseline;
+}
+
+.destaque-numeros span {
+    min-width: 0;
+}
+
+.rodape-link {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.rodape-link:hover {
+    color: var(--texto);
+}
+
+/* "sem vendas ainda": legenda, não número */
+.indicador-valor .sem-dado-legenda {
+    font-size: var(--t-sm);
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .so-computador {
+        display: none;
+    }
+
+    .so-celular {
+        display: inline;
+    }
+
+    /* bolinhas dos cartões de destaque */
+    .destaques-pontos {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .destaques-ponto {
+        appearance: none;
+        width: 8px;
+        height: 8px;
+        padding: 0;
+        border: none;
+        border-radius: 50%;
+        background: var(--superficie-3);
+        transition: background-color 160ms ease, width 160ms ease;
+        cursor: pointer;
+    }
+
+    .destaques-ponto.ativo {
+        width: 20px;
+        border-radius: 4px;
+        background: var(--marca);
+    }
+
+    /* moeda: períodos e tipo do gráfico numa linha só (tipo vira ícones) */
+    .grafico-barra:has([data-tipo-grafico]) {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .grafico-barra:has([data-tipo-grafico]) .segmentado {
+        flex-shrink: 0;
+    }
+
+    .grafico-barra:has([data-tipo-grafico]) .segmentado button {
+        padding: 6px 9px;
+    }
+
+    .grafico-barra .rot-longo {
+        display: none;
+    }
+
+    .grafico-barra .ico-graf {
+        display: block;
+        width: 16px;
+        height: 16px;
+    }
+
+    .grafico-barra [data-tipo-grafico] {
+        padding: 6px 10px;
+    }
+
+    .rosca-total {
+        font-size: 22px;
+    }
+}
 </style>
 </head>
 <body>
@@ -2659,7 +2805,15 @@ var MOEDAS = {
 
 var TAXAS_TTL = 5 * 60 * 1000;
 
+// [ETAPA 5.1] sinal ANTES do símbolo, como no Brasil: "-R$ 0,09" (não "R$ -0,09").
+// Vale pra R$, US$ e ₿. Valor que arredonda pra zero não leva sinal.
 function formatarMoeda(brl, tipo, moeda) {
+    var n = Number(brl) || 0;
+    var texto = formatarMoedaSemSinal(Math.abs(n), tipo, moeda);
+    return n < 0 && /[1-9]/.test(texto) ? '-' + texto : texto;
+}
+
+function formatarMoedaSemSinal(brl, tipo, moeda) {
     moeda = moeda || estado.ler('moeda');
     var taxas = estado.ler('taxas') || {};
     brl = Number(brl) || 0;
@@ -3043,6 +3197,8 @@ function cascaHTML() {
         '<footer class="rodape">' +
         '<span><strong>' + APP.nome + '</strong> ' + APP.versao + '</span>' +
         '<span>Seus dados ficam só neste aparelho.</span>' +
+        // [ETAPA 5.1] atribuição pedida pela licença do Lightweight Charts (o logo saiu de cima dos gráficos)
+        '<span>Gráficos: <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer" class="rodape-link">TradingView Lightweight Charts</a></span>' +
         '<span>&copy; ' + APP.ano + ' ' + APP.autor + '</span>' +
         '</footer>' +
         '</div>';
@@ -3138,6 +3294,7 @@ function desenhar() {
     miolo.innerHTML = r.render(r);
     preencherValores(miolo);
     if (typeof r.montar === 'function') r.montar(miolo);
+    atualizarSeletoresMoeda();   // [ETAPA 5.1] o seletor da página (Ajustes) também nasce sincronizado
     window.scrollTo(0, 0);
 }
 
@@ -3877,7 +4034,12 @@ function destaquesHTML() {
     return '<div class="destaques">' +
         '<div class="destaque"><p class="destaque-titulo">Maiores altas em 24h</p>' + altas.map(mini).join('') + '</div>' +
         '<div class="destaque"><p class="destaque-titulo">Maiores quedas em 24h</p>' + quedas.map(mini).join('') + '</div>' +
-        terceiro + '</div>';
+        terceiro + '</div>' +
+        // [ETAPA 5.1] bolinhas: uma por cartão, só no celular (onde eles rolam pro lado)
+        '<div class="destaques-pontos" role="group" aria-label="Cartões de destaque">' +
+        [0, 1, 2].map(function (i) {
+            return '<button type="button" class="destaques-ponto' + (i === 0 ? ' ativo' : '') + '" data-destaque-ir="' + i + '" aria-label="Ir para o cartão ' + (i + 1) + '"></button>';
+        }).join('') + '</div>';
 }
 
 function statusConexaoHTML() {
@@ -3896,7 +4058,7 @@ function atualizarStatusConexao(v) {
 }
 
 var ORDENS_MOBILE = [
-    ['rank:0', 'Posição'],
+    ['rank:0', 'Ranking'],
     ['valorMercado:1', 'Maior valor de mercado'],
     ['var24h:1', 'Maior alta em 24h'],
     ['var24h:0', 'Maior queda em 24h'],
@@ -3933,11 +4095,11 @@ function paginaMercado() {
             return '<button type="button" role="tab" data-aba="' + a[0] + '" aria-pressed="' + (mercado.aba === a[0]) + '">' + a[1] + '</button>';
         }).join('') + '</div>' +
         // [ETAPA 5] no celular o cabeçalho da tabela some; a ordem vem deste seletor
-        '<select class="entrada ord-mobile" id="ord-mobile" aria-label="Ordenar por">' +
+        '<label class="ord-mobile"><span>Ordenar por</span><select class="entrada" id="ord-mobile">' +
         ORDENS_MOBILE.map(function (o) {
             var atual = mercado.ordem.campo + ':' + (mercado.ordem.desc ? 1 : 0);
             return '<option value="' + o[0] + '"' + (o[0] === atual ? ' selected' : '') + '>' + o[1] + '</option>';
-        }).join('') + '</select>' +
+        }).join('') + '</select></label>' +
         '<span class="barra-info" id="mercado-info"></span></div>' +
         '<div class="painel painel-tabela">' +
         '<table class="tabela tabela-mercado" id="tabela-mercado"><thead>' + cabecalhoTabelaHTML() + '</thead>' +
@@ -3953,6 +4115,7 @@ ROTAS['/mercado'].montar = function (miolo) {
         if (rotaAtual !== '/mercado') return;
         document.getElementById('destaques-mercado').innerHTML = destaquesHTML();
         preencherValores(document.getElementById('destaques-mercado'));
+        ligarPaginadorDestaques();
         desenharTabela(true);
         atualizarInfoMercado();
         conectarAoVivo();
@@ -4069,9 +4232,26 @@ function fatorExibicao() {
 function formatarExibido(v) {
     var m = estado.ler('moeda');
     var taxas = estado.ler('taxas') || {};
-    if (m === 'BTC' && taxas.BTC) return '₿ ' + formatarBR(v, Math.abs(v) >= 1 ? 4 : 8);
-    if (m === 'USD' && taxas.USD) return 'US$ ' + formatarPreco(v);
-    return 'R$ ' + formatarPreco(v);
+    var sinal = v < 0 ? '-' : '';
+    v = Math.abs(v);
+    if (m === 'BTC' && taxas.BTC) return sinal + '₿ ' + formatarBR(v, v >= 1 ? 4 : 8);
+    if (m === 'USD' && taxas.USD) return sinal + 'US$ ' + formatarPreco(v);
+    return sinal + 'R$ ' + formatarPreco(v);
+}
+
+// [ETAPA 5.1] escala dos gráficos: no celular, valor grande ocupa menos lugar
+// (sem centavos acima de 1.000 e "447,5 mil" acima de 100 mil). O valor exato
+// segue na leitura do cursor. No computador, o formato completo de sempre.
+function formatarEixo(v) {
+    var m = estado.ler('moeda');
+    var taxas = estado.ler('taxas') || {};
+    if (!ehTelaPequena() || (m === 'BTC' && taxas.BTC)) return formatarExibido(v);
+    var simbolo = m === 'USD' && taxas.USD ? 'US$ ' : 'R$ ';
+    var abs = Math.abs(v);
+    var sinal = v < 0 ? '-' : '';
+    if (abs >= 1e5) return sinal + simbolo + formatarBR(abs / 1e3, 1) + ' mil';
+    if (abs >= 1e3) return sinal + simbolo + formatarBR(abs, 0);
+    return formatarExibido(v);
 }
 
 function carregarLightweight() {
@@ -4137,6 +4317,11 @@ function paginaMoeda(r) {
         '</div></div>';
 }
 
+// [ETAPA 5.1] no celular o seletor Linha/Velas vira dois ícones, pra caber na
+// mesma linha dos períodos
+var ICONE_LINHA = '<svg class="ico-graf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l5-6 4 3 8-9"/></svg>';
+var ICONE_VELAS = '<svg class="ico-graf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 4v3M7 15v4M17 6v2M17 17v3"/><rect x="5" y="7" width="4" height="8" rx="1"/><rect x="15" y="8" width="4" height="9" rx="1"/></svg>';
+
 function estatisticaHTML(rotulo, valorHTML, nota, id) {
     return '<div class="cartao"><p class="indicador-rotulo">' + rotulo + '</p>' +
         '<p class="indicador-valor"' + (id ? ' id="' + id + '"' : '') + '>' + valorHTML + '</p>' +
@@ -4164,7 +4349,7 @@ function moedaHTML(m) {
     }).join('');
     return '<div class="moeda-topo">' + logoHTML(m) +
         '<div class="moeda-nome"><h1>' + escapar(m.nome) + '<span>' + escapar(m.simbolo) + '</span></h1>' +
-        (m.rank ? '<span class="moeda-etiqueta">Posição #' + m.rank + '</span>' : '') + '</div>' +
+        (m.rank ? '<span class="moeda-etiqueta">#' + m.rank + ' no ranking</span>' : '') + '</div>' +
         '<button type="button" class="estrela' + (fav ? ' marcada' : '') + '" data-favorito="' + escapar(m.id) + '" aria-pressed="' + fav + '" aria-label="' +
         (fav ? 'Tirar das favoritas' : 'Marcar como favorita') + '">' + ICONE_ESTRELA + '</button>' +
         '<div class="moeda-preco"><span class="moeda-preco-valor" id="moeda-preco" data-brl="' + m.preco + '" data-tipo="preco"></span>' +
@@ -4175,8 +4360,8 @@ function moedaHTML(m) {
         '<div class="grafico-barra">' +
         '<div class="segmentado" role="group" aria-label="Período">' + periodos + '</div>' +
         '<div class="segmentado" role="group" aria-label="Tipo de gráfico">' +
-        '<button type="button" data-tipo-grafico="linha" aria-pressed="' + (moedaPg.tipo === 'linha') + '">Linha</button>' +
-        '<button type="button" data-tipo-grafico="velas" aria-pressed="' + (moedaPg.tipo === 'velas') + '">Velas</button></div>' +
+        '<button type="button" data-tipo-grafico="linha" aria-pressed="' + (moedaPg.tipo === 'linha') + '" aria-label="Linha">' + ICONE_LINHA + '<span class="rot-longo">Linha</span></button>' +
+        '<button type="button" data-tipo-grafico="velas" aria-pressed="' + (moedaPg.tipo === 'velas') + '" aria-label="Velas">' + ICONE_VELAS + '<span class="rot-longo">Velas</span></button></div>' +
         '</div>' +
         '<div class="grafico-area"><div class="grafico" id="grafico"></div>' +
         '<div class="grafico-legenda" id="grafico-legenda"></div>' +
@@ -4219,7 +4404,7 @@ function criarGrafico() {
     var LW = window.LightweightCharts;
     var chart = LW.createChart(el, {
         autoSize: true,
-        layout: { background: { type: 'solid', color: 'transparent' }, textColor: corCss('--texto-2'), fontFamily: 'Manrope, system-ui, sans-serif', fontSize: 12 },
+        layout: { attributionLogo: false, background: { type: 'solid', color: 'transparent' }, textColor: corCss('--texto-2'), fontFamily: 'Manrope, system-ui, sans-serif', fontSize: ehTelaPequena() ? 10 : 12 },
         grid: { vertLines: { color: corCss('--borda') }, horzLines: { color: corCss('--borda') } },
         rightPriceScale: { borderColor: corCss('--borda'), scaleMargins: { top: 0.12, bottom: 0.08 } },
         timeScale: { borderColor: corCss('--borda'), timeVisible: true, secondsVisible: false },
@@ -4228,7 +4413,7 @@ function criarGrafico() {
             vertLine: { color: corCss('--texto-3'), labelBackgroundColor: corCss('--superficie-3') },
             horzLine: { color: corCss('--texto-3'), labelBackgroundColor: corCss('--superficie-3') },
         },
-        localization: { priceFormatter: formatarExibido },
+        localization: { priceFormatter: formatarEixo },
     });
     moedaPg.chart = chart;
     chart.subscribeCrosshairMove(function (param) {
@@ -4260,7 +4445,7 @@ function desenharSerie(ajustar) {
     if (!pg || !pg.chart || !pg.dados) return;
     var LW = window.LightweightCharts;
     if (pg.serie) { pg.chart.removeSeries(pg.serie); pg.serie = null; }
-    var formato = { type: 'custom', formatter: formatarExibido, minMove: 1e-10 };
+    var formato = { type: 'custom', formatter: formatarEixo, minMove: 1e-10 };
     var alta = corCss('--alta'), queda = corCss('--queda');
     if (pg.tipo === 'linha') {
         var subiu = pg.dados.length < 2 || pg.dados[pg.dados.length - 1].close >= pg.dados[0].close;
@@ -5327,7 +5512,7 @@ function paginaLancamentos() {
         '<button type="button" class="botao botao-marca" data-lanc-novo>' + icone('mais') + 'Novo lançamento</button></div>' +
         (lista.length ? '<div class="grade-2 lanc-resumo"><div class="cartao"><p class="indicador-rotulo">Lançamentos</p><p class="indicador-valor">' + lista.length + '</p></div>' +
             '<div class="cartao"><p class="indicador-rotulo">Lucro realizado</p><p class="indicador-valor">' +
-            (temVenda ? '<span class="var ' + (realizadoTotal >= 0 ? 'alta' : 'queda') + '" data-brl="' + realizadoTotal + '"></span>' : '<span class="sem-dado">sem vendas ainda</span>') +
+            (temVenda ? '<span class="var ' + (realizadoTotal >= 0 ? 'alta' : 'queda') + '" data-brl="' + realizadoTotal + '"></span>' : '<span class="sem-dado sem-dado-legenda">sem vendas ainda</span>') +
             '</p></div></div>' : '') +
         corpo + '</div>';
 }
@@ -5609,11 +5794,16 @@ function baseDaFatia(r, f) {
 var ROSCA_R = 70;
 var ROSCA_C = 2 * Math.PI * ROSCA_R;
 
+// [ETAPA 4.1] 2px de respiro entre fatias; com uma fatia só, anel inteiro (sem fenda)
+function respiroRosca(qtdFatias) {
+    return qtdFatias > 1 ? 2 : 0;
+}
+
 function roscaHTML(r, fatias) {
     var acumulado = 0;
     var segmentos = fatias.map(function (f, i) {
         var frac = r.saldo > 0 ? baseDaFatia(r, f) / r.saldo : 0;
-        var comp = Math.max(frac * ROSCA_C - 2, 0);        // 2px de respiro entre as fatias
+        var comp = Math.max(frac * ROSCA_C - respiroRosca(fatias.length), 0);
         var seg = '<circle class="rosca-fatia" data-fatia="' + i + '" cx="90" cy="90" r="' + ROSCA_R + '" fill="none" stroke="' + f.cor + '" stroke-width="22" ' +
             'stroke-dasharray="' + comp.toFixed(2) + ' ' + (ROSCA_C - comp).toFixed(2) + '" stroke-dashoffset="' + (-acumulado).toFixed(2) + '" transform="rotate(-90 90 90)">' +
             '<title>' + escapar(f.nome) + ': ' + formatarBR(frac * 100, 1) + '%</title></circle>';
@@ -5666,12 +5856,18 @@ function cartaoResumoHTML(rotulo, id, nota) {
 }
 
 function paginaPortfolio() {
+    // [ETAPA 4.1] carteira vazia: sem indicador "ao vivo" (não há o que conectar) e
+    // sem o botão de novo lançamento no topo (fica só o do cartão vazio)
+    var temLancamentos = lerBanco().transacoes.length > 0;
     return '<div class="pagina">' +
         '<div class="pagina-cabecalho"><div><h1>Portfólio</h1>' +
         '<p>Quanto você tem, quanto pagou e quanto ganhou, moeda por moeda.</p></div>' +
-        '<div class="cabecalho-acoes">' + statusConexaoHTML() +
+        '<div class="cabecalho-acoes">' + (temLancamentos ? statusConexaoHTML() : '') +
         '<button type="button" class="botao botao-neutro" data-rota="/lancamentos">' + icone('lancamentos') + 'Lançamentos</button>' +
-        '<button type="button" class="botao botao-marca" data-lanc-novo>' + icone('mais') + 'Novo lançamento</button></div></div>' +
+        (temLancamentos
+            ? '<button type="button" class="botao botao-marca" data-lanc-novo>' + icone('mais') +
+              '<span class="so-computador">Novo lançamento</span><span class="so-celular">Lançar</span></button>'
+            : '') + '</div></div>' +
         '<div id="pf-conteudo"><div class="painel"><span class="esqueleto" style="width: 40%; height: 42px;"></span>' +
         '<span class="esqueleto" style="margin-top: 20px; height: 80px; border-radius: 12px;"></span></div></div></div>';
 }
@@ -5846,7 +6042,7 @@ function atualizarPortfolioTela() {
     pg.fatias.forEach(function (f, i) {
         var base = baseDaFatia(r, f);
         var frac = r.saldo > 0 ? base / r.saldo : 0;
-        var comp = Math.max(frac * ROSCA_C - 2, 0);
+        var comp = Math.max(frac * ROSCA_C - respiroRosca(pg.fatias.length), 0);
         var seg = document.querySelector('.rosca-fatia[data-fatia="' + i + '"]');
         if (seg) {
             seg.setAttribute('stroke-dasharray', comp.toFixed(2) + ' ' + (ROSCA_C - comp).toFixed(2));
@@ -5956,12 +6152,37 @@ function atualizarUltimoPontoPortfolio(r) {
     pg.serieCusto.update({ time: ultimo.time, value: escalarPonto(ultimo.custo) });
 }
 
+// [ETAPA 4.1] a escala enquadra as DUAS linhas (patrimônio e custo). Antes só
+// a do patrimônio contava e o custo podia ficar fora do gráfico. Também impõe
+// uma faixa mínima (2% do valor): com carteira pequena, uma variação de
+// centavos não pode parecer uma queda enorme.
+function autoscalePortfolio(original) {
+    var pg = portfolioPg;
+    if (!pg || !pg.evolucao) return original();
+    var f = fatorExibicao();
+    var min = Infinity, max = -Infinity;
+    pontosDoPeriodo(pg).forEach(function (p) {
+        [p.valor * f, p.custo * f].forEach(function (v) {
+            if (v < min) min = v;
+            if (v > max) max = v;
+        });
+    });
+    if (!isFinite(min)) return original();
+    var faixaMinima = Math.abs(max) * 0.02;
+    if (max - min < faixaMinima) {
+        var meio = (max + min) / 2;
+        min = meio - faixaMinima / 2;
+        max = meio + faixaMinima / 2;
+    }
+    return { priceRange: { minValue: min, maxValue: max }, margins: { above: 0.12, below: 0.08 } };
+}
+
 function criarGraficoPortfolio() {
     var pg = portfolioPg;
     var LW = window.LightweightCharts;
     var chart = LW.createChart(document.getElementById('pf-grafico'), {
         autoSize: true,
-        layout: { background: { type: 'solid', color: 'transparent' }, textColor: corCss('--texto-2'), fontFamily: 'Manrope, system-ui, sans-serif', fontSize: 12 },
+        layout: { attributionLogo: false, background: { type: 'solid', color: 'transparent' }, textColor: corCss('--texto-2'), fontFamily: 'Manrope, system-ui, sans-serif', fontSize: ehTelaPequena() ? 10 : 12 },
         grid: { vertLines: { color: corCss('--borda') }, horzLines: { color: corCss('--borda') } },
         rightPriceScale: { borderColor: corCss('--borda'), scaleMargins: { top: 0.12, bottom: 0.08 } },
         timeScale: { borderColor: corCss('--borda') },
@@ -5970,12 +6191,12 @@ function criarGraficoPortfolio() {
             vertLine: { color: corCss('--texto-3'), labelBackgroundColor: corCss('--superficie-3') },
             horzLine: { color: corCss('--texto-3'), labelBackgroundColor: corCss('--superficie-3') },
         },
-        localization: { priceFormatter: formatarExibido },
+        localization: { priceFormatter: formatarEixo },
     });
     pg.chart = chart;
-    var formato = { type: 'custom', formatter: formatarExibido, minMove: 1e-10 };
-    pg.serieCusto = chart.addLineSeries({ color: corCss('--texto-3'), lineWidth: 2, lineStyle: LW.LineStyle.Dashed, priceFormat: formato, lastValueVisible: false, priceLineVisible: false });
-    pg.serieValor = chart.addLineSeries({ color: '#3987e5', lineWidth: 2, priceFormat: formato, lastValueVisible: true, priceLineVisible: true });
+    var formato = { type: 'custom', formatter: formatarEixo, minMove: 1e-10 };
+    pg.serieCusto = chart.addLineSeries({ color: corCss('--texto-3'), lineWidth: 2, lineStyle: LW.LineStyle.Dashed, priceFormat: formato, lastValueVisible: false, priceLineVisible: false, autoscaleInfoProvider: autoscalePortfolio });
+    pg.serieValor = chart.addLineSeries({ color: '#3987e5', lineWidth: 2, priceFormat: formato, lastValueVisible: true, priceLineVisible: true, autoscaleInfoProvider: autoscalePortfolio });
     chart.subscribeCrosshairMove(function (param) {
         var leg = document.getElementById('pf-grafico-legenda');
         if (!leg || !portfolioPg) return;
@@ -6047,6 +6268,8 @@ ROTAS['/portfolio'].montar = function () {
             pg.fatias = montarFatias(r);
             raiz.innerHTML = portfolioHTML(pg, r, pg.fatias);
             preencherValores(raiz);
+            // [ETAPA 4.1] tudo vendido: nada pra conectar, sem indicador
+            if (!pg.linhas.length) { var indicador = document.getElementById('conexao'); if (indicador) indicador.remove(); }
             estado.ouvir('conexao', atualizarStatusConexao, true);
             atualizarStatusConexao(estado.ler('conexao') || 'conectando');
             atualizarPortfolioTela();
@@ -6138,6 +6361,35 @@ document.addEventListener('click', function (ev) {
 
 document.addEventListener('keydown', function (ev) {
     if (ev.key === 'Escape') { fecharMenuMobile(); fecharBuscaMobile(); }
+});
+
+// [ETAPA 5.1] bolinhas dos cartões de destaque: acende a do cartão que está à
+// vista (IntersectionObserver) e o toque numa bolinha leva ao cartão
+var observadorDestaques = null;
+
+function ligarPaginadorDestaques() {
+    var faixa = document.querySelector('#destaques-mercado .destaques');
+    if (!faixa || !('IntersectionObserver' in window)) return;
+    var cartoes = Array.prototype.slice.call(faixa.querySelectorAll('.destaque'));
+    var pontos = document.querySelectorAll('[data-destaque-ir]');
+    if (observadorDestaques) observadorDestaques.disconnect();
+    observadorDestaques = new IntersectionObserver(function (itens) {
+        itens.forEach(function (it) {
+            if (!it.isIntersecting) return;
+            var i = cartoes.indexOf(it.target);
+            pontos.forEach(function (p, k) { p.classList.toggle('ativo', k === i); });
+        });
+    }, { root: faixa, threshold: 0.6 });
+    cartoes.forEach(function (c) { observadorDestaques.observe(c); });
+}
+
+document.addEventListener('click', function (ev) {
+    var ponto = ev.target.closest('[data-destaque-ir]');
+    if (!ponto) return;
+    var faixa = document.querySelector('#destaques-mercado .destaques');
+    var cartao = faixa && faixa.querySelectorAll('.destaque')[Number(ponto.getAttribute('data-destaque-ir'))];
+    if (!cartao) return;
+    faixa.scrollTo({ left: faixa.scrollLeft + cartao.getBoundingClientRect().left - faixa.getBoundingClientRect().left - 16, behavior: 'smooth' });
 });
 
 document.addEventListener('change', function (ev) {

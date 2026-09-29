@@ -14,7 +14,7 @@ Este documento resume o que foi construído até aqui (etapas 0, 0.1 e 1, feitas
 |---|---|
 | Arquivo principal | `koin.html` (single-file: HTML + CSS + JS, sem build) |
 | Versão | `0.1.0` (vira `1.0.0` ao fechar a Etapa 7) |
-| Etapas concluídas | 0 (fundação), 0.1 (navegação no topo), 1 (mercado), 1.1 (CoinGecko com chave), 1.2 (tabela larga), 2 (página da moeda), 2.1 (sem chave do usuário), 3 (motor e lançamentos), 4 (portfólio), 5 (responsivo no celular) |
+| Etapas concluídas | 0 (fundação), 0.1 (navegação no topo), 1 (mercado), 1.1 (CoinGecko com chave), 1.2 (tabela larga), 2 (página da moeda), 2.1 (sem chave do usuário), 3 (motor e lançamentos), 4 (portfólio), 4.1 e 5.1 (ajustes do relatório de testes), 5 (responsivo no celular) |
 | Próxima etapa | 6 (extras: balanceamento, objetivos, alertas, backup), depois 7 (PWA) |
 | Pendência aberta | Confirmar no navegador (com a chave) que o Mercado sai do modo simplificado (ver "Verificação pendente") |
 
@@ -191,12 +191,29 @@ Chave Demo embutida, cache por dia local, espera de 30 min após falha (`MERCADO
 - Rota `/moeda/<id>` criada (preenchida na Etapa 2).
 
 ### Verificação pendente
-[29/09/2026] Via curl, com a chave Demo, o `/coins/markets` responde 200 com `access-control-allow-origin: *` (CORS liberado). Sem chave dá 403. Falta só ver no navegador o Mercado completo com a chave embutida (etapa 1.1).
+[29/09/2026] Via curl, com a chave Demo, o `/coins/markets` responde 200 com `access-control-allow-origin: *` (CORS liberado). Sem chave dá 403. **Confirmado no navegador real** (relatório de 29/09/2026, Android): a CoinGecko responde direto do arquivo, com logos e minigráficos, e o WebSocket da Binance atualiza o preço ao vivo. O risco que sobra é só o de **cota** (ver "Antes de publicar"), não o de acesso.
 
 Histórico do teste original:
 Testado só com respostas simuladas no formato das documentações. Falta confirmar **no navegador real** se a CoinGecko aceita chamadas direto do arquivo (CORS). Como checar: abrir o Mercado; se a tabela vier com logos e minigráficos, está ok; se aparecer "Modo simplificado", a CoinGecko recusou (ver o motivo no console, F12). Se for bloqueio de origem, testar servindo por servidor local (`python -m http.server`) antes de decidir outro caminho.
 
 ---
+
+### Etapas 4.1 e 5.1 · Ajustes do relatório de testes (entregues)
+Origem: relatório de testes de 29/09/2026 (prints do Junior num Android, Chrome, e análise do arquivo). Nenhum erro de JavaScript nos testes. Ajustes de portfólio levam `[ETAPA 4.1]` e os de celular e visual `[ETAPA 5.1]`. O relatório usava a numeração antiga (6.1 e 4.1); vale a numeração deste documento.
+- **Topo fixo** em todas as telas e tamanhos: `position: fixed` com `--topo-total` (altura, borda e notch) como `padding-top` da casca. Sticky foi abandonado porque para de funcionar quando um ancestral tem `overflow`. Menu sanduíche e gaveta seguem por cima (z-index maior).
+- **Bolinhas nos cartões de destaque** (celular): uma por cartão, a do cartão à vista acende em latão (`IntersectionObserver`), toque leva ao cartão. Rolagem com encaixe (`scroll-snap`, `scroll-padding`). Somem no computador.
+- **Gráficos no celular:** fonte dos eixos 10px (12px no computador) e escala compacta (`formatarEixo`: sem centavos acima de 1.000, "447,5 mil" acima de 100 mil). O valor exato segue na leitura do cursor.
+- **Escala do gráfico do portfólio** (`autoscalePortfolio`): enquadra as duas linhas (patrimônio e custo) e impõe faixa mínima de 2% do valor. Corrige a linha de custo que sumia e a queda "dramática" de centavos em carteira pequena.
+- **Seletor de moeda em Ajustes** sempre sincronizado (`atualizarSeletoresMoeda()` no fim de `desenhar`).
+- **Destaques do Mercado:** símbolo com reticências e preço sem quebra (nada se sobrepõe), valores do cartão "As 100 maiores" em uma linha só (`nowrap`).
+- **Rosca com uma moeda:** anel inteiro, sem fenda (`respiroRosca`).
+- **Portfólio vazio:** sem indicador "Conectando…" (também some quando tudo foi vendido) e só o botão "Novo lançamento" do cartão vazio.
+- **Sinal negativo antes do símbolo:** "-R$ 0,09" (`formatarMoeda`, R$, US$ e ₿; valor que arredonda para zero não leva sinal).
+- **Textos:** "#1 no ranking" no lugar de "Posição #1"; seletor de ordem com rótulo "Ordenar por" e opção "Ranking"; botão do Portfólio vira "Lançar" no celular; "sem vendas ainda" como legenda pequena.
+- **Etiquetas de operação:** compra e entrada em cinza cheio, venda e saída só com contorno, conversão azul. O latão fica só para marca e ação principal. **Decisão:** o relatório sugeria verde e vermelho (como no Dash Finance), mas isso contraria a regra do Koin (verde e vermelho só para alta e queda).
+- **Página da moeda no celular:** períodos e tipo do gráfico na mesma linha (Linha e Velas viram ícones).
+- **Logo do TradingView** removido de cima dos gráficos (`layout.attributionLogo: false`, existe na 4.2.3) e a **atribuição** foi para o rodapé ("Gráficos: TradingView Lightweight Charts", com link), como a licença pede.
+- **Não feito, de propósito:** o relatório pediu trocar o azul do gráfico e da rosca (item 3.6). O azul é o slot 1 da paleta categórica **validada** com o validador da skill `dataviz` no fundo escuro (não é acidente). Reavaliar só se o autor quiser: patrimônio em latão ou texto exigiria revalidar a rosca.
 
 ### Etapa 5 · Responsivo no celular (entregue, adiantada)
 Pedido do autor: testar o app no navegador do celular antes dos extras. Ainda **não é PWA**. Vale abaixo de **768px** (mesmo ponto do Dash Finance, `[MOBILE v1]`); o computador não mudou. Bloco `CELULAR` no fim do `<style>` (precisa vir depois das regras do computador).
@@ -258,6 +275,16 @@ Portado do `dash-finance.html` (só a parte cripto: `[CRIPTO v2]`, `[CRIPTO v2.1
 - Tela de instalação, splash, `theme-color`, modo standalone.
 - Hospedagem: GitHub Pages do repositório da BitCoderSoft.
 - Versão `1.0.0`.
+
+---
+
+## Antes de publicar (do relatório de testes de 29/09/2026)
+
+Nada disso foi feito ainda. Fazer junto com a Etapa 7 (PWA) ou antes de qualquer publicação:
+1. **Chave da CoinGecko no código** (`CG_CHAVE_PADRAO`): publicada, qualquer um copia a chave e todos dividem a cota de 10 mil chamadas por mês do plano Demo (com 1 chamada por dia por aparelho, ~330 usuários diários esgotam o mês). Solução: um intermediário (Cloudflare Worker gratuito) que guarda a chave, busca `/coins/markets` a cada poucos minutos e entrega a resposta em cache; o app chama o Worker, nunca a CoinGecko. **Ao montar o Worker, gerar chave nova e apagar a atual** (ela já apareceu fora do repositório).
+2. **Biblioteca de gráficos por CDN** (`LW_URL`, unpkg, já com SRI): para o PWA, incluir o arquivo no cache do service worker (ou servir junto do app), senão o gráfico some offline.
+3. **Testar pelo endereço publicado**, não pelo arquivo: abrindo por `content://downloads` cada download novo pode virar outra origem e os lançamentos "somem". Publicar no GitHub Pages (mesmo em rascunho) e testar pela URL. É também pré-requisito do PWA.
+4. **Página "Sistema visual":** tirar do menu (Projeto) antes de publicar; a rota pode ficar só pelo endereço.
 
 ---
 
