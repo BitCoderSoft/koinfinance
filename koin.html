@@ -36,6 +36,8 @@
   [ETAPA 1 · 29/09/2026] mercado: CoinGecko (100 maiores, 5 min de cache,
                           chave opcional) + Binance WebSocket ao vivo,
                           destaques, abas, ordenação, favoritos, busca.
+  [ETAPA 1.1 · 29/09/2026] CoinGecko exige chave (403 sem ela): chave Demo
+                          embutida + regra de no máximo 1 chamada por dia.
 -->
 <html lang="pt-BR" data-tema="escuro">
 <head>
@@ -1979,8 +1981,8 @@ function paginaAjustes() {
         // [ETAPA 1] chave Demo da CoinGecko (opcional)
         '<div class="painel">' +
         '<p class="painel-titulo">Chave da CoinGecko</p>' +
-        '<p class="painel-sub">Opcional. Sem chave, o mercado usa a API pública, que aceita poucas consultas por minuto. ' +
-        'Com a chave Demo gratuita, o limite sobe pra 100 por minuto. Ela fica salva só neste aparelho.</p>' +
+        '<p class="painel-sub">O Koin já traz uma chave Demo embutida. Se quiser usar a sua, cole aqui: ela tem prioridade e fica salva só neste aparelho. ' +
+        'A CoinGecko é consultada no máximo uma vez por dia; o preço ao vivo vem da Binance.</p>' +
         '<div class="linha-botoes">' +
         '<input class="entrada" id="cg-chave" type="text" autocomplete="off" spellcheck="false" placeholder="CG-xxxxxxxxxxxxxxxx" style="flex: 1; min-width: 240px;" value="' + escapar(prefs.cgChave || '') + '">' +
         '<button type="button" class="botao botao-neutro" data-salvar-chave>Salvar chave</button>' +
@@ -2092,6 +2094,7 @@ document.addEventListener('click', function (ev) {
         prefs.cgChave = v || null;
         salvarPrefs();
         armazem.remove('MERCADO');   // força buscar de novo com a chave
+        armazem.remove('MERCADO_FALHA');
         avisar(v ? 'Chave salva.' : 'Chave removida.', 'sucesso');
         desenhar();
     }
@@ -2099,6 +2102,7 @@ document.addEventListener('click', function (ev) {
         prefs.cgChave = null;
         salvarPrefs();
         armazem.remove('MERCADO');
+        armazem.remove('MERCADO_FALHA');
         avisar('Chave removida.', 'sucesso');
         desenhar();
     }
@@ -2136,9 +2140,9 @@ ROTAS['/sistema'].montar = function (miolo) {
 // DE ONDE VEM CADA DADO
 //   CoinGecko /coins/markets (1 chamada, 100 moedas, já em reais):
 //     ranking, nome, logo, preço, variação 1h/24h/7d, volume, valor de
-//     mercado e o minigráfico de 7 dias. Funciona SEM chave (API pública,
-//     ~10 a 30 chamadas por minuto por IP). Com a chave Demo gratuita
-//     (colada em Ajustes) o limite sobe pra 100/min. Cache de 5 minutos.
+//     mercado e o minigráfico de 7 dias. EXIGE chave (sem ela a API devolve
+//     403). Usa a chave Demo embutida (CG_CHAVE_PADRAO) ou a de Ajustes.
+//     [ETAPA 1.1] No máximo 1 chamada por dia (ver CG_CHAVE_PADRAO).
 //     A chave vai como parâmetro na URL e não no cabeçalho: cabeçalho
 //     customizado obriga o navegador a uma checagem prévia (CORS) que já
 //     nos barrou na bolsai, no Dash Finance.
@@ -2161,7 +2165,22 @@ ROTAS['/sistema'].montar = function (miolo) {
 
 var COINGECKO = 'https://api.coingecko.com/api/v3';
 var BINANCE_WS = 'wss://data-stream.binance.vision/stream?streams=';
-var MERCADO_TTL = 5 * 60 * 1000;
+
+// [ETAPA 1.1] REGRA DA COINGECKO: no máximo 1 chamada por dia.
+// O app vive dos dados da Binance (preço, variação 24h e volume ao vivo).
+// A CoinGecko só entra pro que a Binance não entrega (ranking, logo, valor
+// de mercado, variação 1h/7d e minigráfico), e só na primeira abertura do
+// dia. Nas demais, usa o pacote guardado. Se a chamada falhar, espera
+// CG_ESPERA_FALHA antes de tentar de novo, pra não martelar a API.
+// Chave Demo do autor embutida por enquanto (Ajustes ainda pode trocar).
+var CG_CHAVE_PADRAO = 'CG-1HzJE9XM9LdMbZAEzFZbohoH';
+var CG_ESPERA_FALHA = 30 * 60 * 1000;
+
+// dia local no formato AAAA-MM-DD ("primeira chamada do dia" segue o relógio de quem usa)
+function diaDeHoje(quando) {
+    var d = quando ? new Date(quando) : new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
 var DIVERGENCIA_MAX = 0.10;
 
 // modo simplificado: principais moedas negociadas na Binance
@@ -2222,12 +2241,27 @@ function normalizarCoinGecko(c) {
 
 function buscarMercadoCoinGecko() {
     var cache = armazem.json('MERCADO', null);
-    if (cache && Date.now() - cache.em < MERCADO_TTL && cache.modo === 'completo') {
+    var completo = cache && cache.modo === 'completo';
+
+    // [ETAPA 1.1] já chamou hoje? então não chama de novo
+    if (completo && diaDeHoje(cache.em) === diaDeHoje()) {
         return Promise.resolve(cache);
     }
+
+    // [ETAPA 1.1] última tentativa falhou há pouco? usa o que tem
+    var falha = Number(armazem.get('MERCADO_FALHA')) || 0;
+    if (falha && Date.now() - falha < CG_ESPERA_FALHA) {
+        if (completo) {
+            cache.velho = true;
+            return Promise.resolve(cache);
+        }
+        return Promise.reject(new Error('em espera'));
+    }
+
     var url = COINGECKO + '/coins/markets?vs_currency=brl&order=market_cap_desc&per_page=100&page=1' +
         '&sparkline=true&price_change_percentage=1h,24h,7d';
-    if (prefs.cgChave) url += '&x_cg_demo_api_key=' + encodeURIComponent(prefs.cgChave);
+    var chave = prefs.cgChave || CG_CHAVE_PADRAO;
+    if (chave) url += '&x_cg_demo_api_key=' + encodeURIComponent(chave);
 
     return fetch(url)
         .then(function (r) {
@@ -2237,12 +2271,16 @@ function buscarMercadoCoinGecko() {
         })
         .then(function (dados) {
             var pacote = { em: Date.now(), modo: 'completo', lista: dados.map(normalizarCoinGecko) };
-            try { armazem.set('MERCADO', JSON.stringify(pacote)); } catch (e) { /* cache é opcional */ }
+            try {
+                armazem.set('MERCADO', JSON.stringify(pacote));
+                armazem.remove('MERCADO_FALHA');
+            } catch (e) { /* cache é opcional */ }
             return pacote;
         })
         .catch(function (erro) {
-            // cache vencido ainda serve melhor que o modo simplificado
-            if (cache && cache.modo === 'completo') {
+            try { armazem.set('MERCADO_FALHA', String(Date.now())); } catch (e) {}
+            // cache de outro dia ainda serve melhor que o modo simplificado
+            if (completo) {
                 cache.velho = true;
                 return cache;
             }
@@ -2554,7 +2592,7 @@ function destaquesHTML() {
             '</div></div>';
     } else {
         terceiro = '<div class="destaque"><p class="destaque-titulo">Modo simplificado</p>' +
-            '<p class="destaque-aviso">A CoinGecko não respondeu agora, então os dados vêm só da Binance: sem valor de mercado, logos e gráfico de 7 dias. Tenta de novo em alguns minutos.</p></div>';
+            '<p class="destaque-aviso">A CoinGecko não respondeu agora, então os dados vêm só da Binance: sem valor de mercado, logos e gráfico de 7 dias. Ele tenta de novo mais tarde.</p></div>';
     }
 
     return '<div class="destaques">' +
@@ -2638,7 +2676,7 @@ function atualizarInfoMercado() {
     var d = new Date(mercado.atualizadoEm);
     var hora = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
     el.textContent = (mercado.modo === 'completo' ? 'Dados de mercado da CoinGecko' : 'Dados da Binance') +
-        ' de ' + hora + (mercado.velho ? ' (sem atualizar: limite de consultas)' : '') + '. Preço ao vivo pela Binance.';
+        ' de ' + hora + (mercado.velho ? ' (sem atualizar: a CoinGecko não respondeu)' : '') + '. Preço ao vivo pela Binance.';
 }
 
 // ---------- interações ----------
