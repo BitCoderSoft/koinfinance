@@ -1,0 +1,2712 @@
+<!DOCTYPE html>
+<!--
+  Koin · gestor de portfólio cripto (nome provisório)
+  BitCoderSoft · single-file (HTML + CSS + JS), sem etapa de build
+
+  ==================================================================
+  GUIA DE MANUTENÇÃO
+  ==================================================================
+  Toda mudança leva uma tag no comentário do código ([ETAPA 0], [ETAPA 1]...).
+  Busque pela tag pra achar tudo o que uma etapa mexeu.
+
+  Plano (combinado em 29/09/2026):
+    0. Fundação      design system, casca, roteador, estado, armazenamento
+                     (0.1: navegação no topo com menus suspensos, sem lateral)
+    1. Mercado       tabela de moedas, busca, favoritos, preços ao vivo
+    2. Moeda         página de detalhe com gráfico interativo
+    3. Motor         compra, venda, entrada, saída, conversão + validação
+    4. Portfólio     resumo, evolução real, alocação, tabela
+    5. Extras        balanceamento, objetivos, alertas, backup
+    6. Responsivo    barra inferior, telas de app
+    7. PWA           manifest, service worker, instalação
+
+  Decisões de base:
+    - Tema ESCURO primeiro. O claro já tem os tokens mapeados (comentados
+      em :root[data-tema="claro"]), ativa numa etapa futura.
+    - Moeda de exibição: Real (padrão), Dólar ou Bitcoin. Todo valor do
+      app é guardado e calculado em REAIS; a conversão acontece só na hora
+      de mostrar (ver formatarMoeda e o atributo data-brl).
+    - Sem login: os dados ficam no dispositivo de quem usa. Backup em
+      arquivo cobre a troca de aparelho (Etapa 5).
+    - Herança do Dash Finance: armazenamento com fallback pro preview do
+      claude.ai, navegação sem href, formulários sem submit nativo,
+      formatação pt-BR. Tudo reaproveitado e marcado como [HERANÇA].
+
+  [ETAPA 0 · 29/09/2026] fundação entregue.
+  [ETAPA 1 · 29/09/2026] mercado: CoinGecko (100 maiores, 5 min de cache,
+                          chave opcional) + Binance WebSocket ao vivo,
+                          destaques, abas, ordenação, favoritos, busca.
+-->
+<html lang="pt-BR" data-tema="escuro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0D111C">
+<title>Koin</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
+
+<style>
+/* =================================================================
+   TOKENS  [ETAPA 0]
+   Tinta azul em vez de preto puro, latão como cor da marca (moeda é
+   metal), verde e vermelho só pra alta e queda.
+   ================================================================= */
+:root {
+    --bg: #0D111C;
+    --superficie: #131A29;
+    --superficie-2: #1A2334;
+    --superficie-3: #212C41;
+    --borda: #232E44;
+    --borda-forte: #2F3C57;
+
+    --texto: #E7ECF5;
+    --texto-2: #A3AEC4;
+    --texto-3: #6B7791;
+
+    --marca: #E9B949;
+    --marca-escura: #B98A24;
+    --marca-tinta: #1F1706;
+    --marca-suave: rgba(233, 185, 73, 0.12);
+
+    --alta: #22C38E;
+    --alta-suave: rgba(34, 195, 142, 0.13);
+    --queda: #F2555A;
+    --queda-suave: rgba(242, 85, 90, 0.13);
+    --info: #6E9BF5;
+
+    --fonte: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --fonte-marca: 'Unbounded', 'Manrope', system-ui, sans-serif;
+
+    /* escala tipográfica (razão ~1,2) */
+    --t-xs: 12px;
+    --t-sm: 13px;
+    --t-md: 15px;
+    --t-lg: 18px;
+    --t-xl: 22px;
+    --t-2xl: 28px;
+    --t-3xl: 40px;
+
+    /* raios por hierarquia: controle pequeno, cartão médio, painel grande */
+    --r-controle: 8px;
+    --r-cartao: 14px;
+    --r-painel: 18px;
+
+    --topo: 64px;
+
+    --sombra-flutuante: 0 18px 40px rgba(3, 6, 14, 0.55);
+    --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Tema claro: mapeado, AINDA NÃO LIGADO (sem seletor no app).
+   Quando entrar, é só descomentar e oferecer o botão em Ajustes.
+:root[data-tema="claro"] {
+    --bg: #F4F6FA;
+    --superficie: #FFFFFF;
+    --superficie-2: #F1F4F9;
+    --superficie-3: #E7ECF4;
+    --borda: #E1E6EF;
+    --borda-forte: #CBD3E1;
+    --texto: #111827;
+    --texto-2: #4B5568;
+    --texto-3: #7C879B;
+    --marca: #B98A24;
+    --marca-tinta: #FFFFFF;
+    --alta: #0E9F6E;
+    --queda: #DC3B42;
+}
+*/
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    height: 100%;
+}
+
+body {
+    background: var(--bg);
+    color: var(--texto);
+    font-family: var(--fonte);
+    font-size: var(--t-md);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "tnum" 1, "lnum" 1;   /* números com largura fixa: preço não dança */
+}
+
+h1, h2, h3, h4, p {
+    margin: 0;
+}
+
+button {
+    font-family: inherit;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+a[data-rota] {
+    cursor: pointer;
+}
+
+:focus-visible {
+    outline: 2px solid var(--marca);
+    outline-offset: 2px;
+}
+
+::selection {
+    background: var(--marca-suave);
+}
+
+
+/* =================================================================
+   CASCA: navegação no topo  [ETAPA 0.1 · 29/09/2026]
+   Pedido do Junior: nada de barra lateral (virou assinatura visual de
+   projeto feito com IA). A navegação fica numa barra horizontal, como no
+   CoinMarketCap; o que for agrupado abre um menu suspenso com seções e
+   uma linha de descrição por item. Crescer = novo grupo, não nova coluna.
+   ================================================================= */
+.casca {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.topo {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: rgba(13, 17, 28, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--borda);
+}
+
+/* mesma largura e alinhamento do conteúdo das páginas */
+.topo-interno {
+    max-width: 1240px;
+    margin: 0 auto;
+    height: var(--topo);
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    gap: 28px;
+}
+
+.marca {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+/* a moeda da marca: disco de latão com o recorte do K */
+.marca-moeda {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+}
+
+.marca-nome {
+    font-family: var(--fonte-marca);
+    font-weight: 700;
+    font-size: 19px;
+    letter-spacing: -0.02em;
+}
+
+.nav {
+    display: flex;
+    align-items: stretch;
+    align-self: stretch;
+    gap: 4px;
+}
+
+.nav-link,
+.nav-grupo-botao {
+    appearance: none;
+    background: none;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px;
+    color: var(--texto-2);
+    font-size: var(--t-sm);
+    font-weight: 700;
+    cursor: pointer;
+    position: relative;
+    transition: color 120ms ease;
+}
+
+.nav-link:hover,
+.nav-grupo-botao:hover,
+.nav-grupo.aberto .nav-grupo-botao {
+    color: var(--texto);
+}
+
+/* item ativo: fio de latão colado na borda de baixo do topo */
+.nav-link.ativo,
+.nav-grupo-botao.ativo {
+    color: var(--texto);
+}
+
+.nav-link.ativo::after,
+.nav-grupo-botao.ativo::after {
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: -1px;
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+    background: var(--marca);
+}
+
+.nav-grupo-botao .chevron {
+    width: 14px;
+    height: 14px;
+    transition: transform 160ms ease;
+}
+
+.nav-grupo.aberto .chevron {
+    transform: rotate(180deg);
+}
+
+.nav-grupo {
+    position: relative;
+    display: flex;
+}
+
+/* menu suspenso (estilo CoinMarketCap: seções com título e itens com
+   ícone em círculo + nome + uma linha dizendo o que tem ali) */
+.menu-suspenso {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 300px;
+    padding: 10px;
+    background: var(--superficie-2);
+    border: 1px solid var(--borda-forte);
+    border-radius: var(--r-cartao);
+    box-shadow: var(--sombra-flutuante);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    transition: opacity 140ms ease, transform 140ms ease, visibility 140ms;
+}
+
+.menu-suspenso.direita {
+    left: auto;
+    right: 0;
+}
+
+.nav-grupo.aberto .menu-suspenso {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+}
+
+.menu-secao + .menu-secao {
+    margin-top: 6px;
+    padding-top: 8px;
+    border-top: 1px solid var(--borda);
+}
+
+.menu-secao-titulo {
+    font-size: var(--t-xs);
+    color: var(--texto-3);
+    padding: 6px 10px 4px;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    transition: background-color 120ms ease;
+}
+
+.menu-item:hover,
+.menu-item:focus-visible {
+    background: var(--superficie-3);
+}
+
+.menu-item-icone {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--marca-suave);
+    color: var(--marca);
+}
+
+.menu-item-icone svg {
+    width: 17px;
+    height: 17px;
+}
+
+.menu-item-texto strong {
+    display: block;
+    font-size: var(--t-sm);
+    font-weight: 700;
+    color: var(--texto);
+}
+
+.menu-item-texto span {
+    display: block;
+    font-size: var(--t-xs);
+    color: var(--texto-2);
+    line-height: 1.4;
+}
+
+.menu-item.ativo .menu-item-icone {
+    background: var(--marca);
+    color: var(--marca-tinta);
+}
+
+.topo-direita {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* botão redondo do menu de conta (engrenagem) */
+.botao-icone {
+    appearance: none;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--borda);
+    background: var(--superficie);
+    color: var(--texto-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: color 120ms ease, border-color 120ms ease;
+}
+
+.botao-icone:hover,
+.nav-grupo.aberto .botao-icone,
+.botao-icone.ativo {
+    color: var(--texto);
+    border-color: var(--borda-forte);
+}
+
+.botao-icone svg {
+    width: 18px;
+    height: 18px;
+}
+
+main#miolo {
+    flex: 1;
+}
+
+/* rodapé: versão, autoria e o aviso de privacidade */
+.rodape {
+    max-width: 1240px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 20px 28px 28px;
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--borda);
+    font-size: var(--t-xs);
+    color: var(--texto-3);
+}
+
+.rodape strong {
+    color: var(--texto-2);
+    font-weight: 600;
+}
+
+/* pulso do mercado: BTC ao vivo no topo */
+.pulso {
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border: 1px solid var(--borda);
+    border-radius: 999px;
+    font-size: var(--t-sm);
+    color: var(--texto-2);
+}
+
+.pulso[hidden] {
+    display: none;
+}
+
+.pulso-ponto {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--alta);
+    box-shadow: 0 0 0 0 var(--alta-suave);
+    animation: pulsar 2.4s ease-out infinite;
+}
+
+@keyframes pulsar {
+    0%   { box-shadow: 0 0 0 0 rgba(34, 195, 142, 0.45); }
+    70%  { box-shadow: 0 0 0 7px rgba(34, 195, 142, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(34, 195, 142, 0); }
+}
+
+.pulso strong {
+    color: var(--texto);
+    font-weight: 700;
+}
+
+
+/* ---------- seletor segmentado (moeda de exibição, abas) ---------- */
+.segmentado {
+    display: inline-flex;
+    padding: 3px;
+    gap: 2px;
+    background: var(--superficie);
+    border: 1px solid var(--borda);
+    border-radius: 10px;
+}
+
+.segmentado button {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: var(--texto-2);
+    font-size: var(--t-sm);
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background-color 140ms ease, color 140ms ease;
+}
+
+.segmentado button:hover {
+    color: var(--texto);
+}
+
+.segmentado button[aria-pressed="true"] {
+    background: var(--superficie-3);
+    color: var(--texto);
+}
+
+.segmentado button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+
+/* ---------- página ---------- */
+.pagina {
+    width: 100%;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 28px 28px 48px;
+}
+
+.pagina-cabecalho {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.pagina-cabecalho h1 {
+    font-size: var(--t-2xl);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.pagina-cabecalho p {
+    color: var(--texto-2);
+    margin-top: 4px;
+    max-width: 62ch;
+}
+
+
+/* =================================================================
+   COMPONENTES
+   ================================================================= */
+.painel {
+    background: var(--superficie);
+    border: 1px solid var(--borda);
+    border-radius: var(--r-painel);
+    padding: 22px 24px;
+}
+
+.pagina > .painel + .painel {
+    margin-top: 16px;
+}
+
+.painel-titulo {
+    font-size: var(--t-md);
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.painel-sub {
+    font-size: var(--t-sm);
+    color: var(--texto-2);
+    margin-bottom: 16px;
+}
+
+.cartao {
+    background: var(--superficie-2);
+    border-radius: var(--r-cartao);
+    padding: 16px 18px;
+}
+
+/* botões */
+.botao {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: var(--r-controle);
+    border: 1px solid transparent;
+    font-size: var(--t-sm);
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 140ms ease, border-color 140ms ease, transform 80ms ease;
+}
+
+.botao:active {
+    transform: translateY(1px);
+}
+
+.botao-marca {
+    background: var(--marca);
+    color: var(--marca-tinta);
+}
+
+.botao-marca:hover {
+    background: #F2C861;
+}
+
+.botao-neutro {
+    background: var(--superficie-2);
+    border-color: var(--borda-forte);
+    color: var(--texto);
+}
+
+.botao-neutro:hover {
+    background: var(--superficie-3);
+}
+
+.botao-fantasma {
+    background: transparent;
+    color: var(--texto-2);
+}
+
+.botao-fantasma:hover {
+    color: var(--texto);
+    background: var(--superficie);
+}
+
+.botao svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* variação (alta/queda) */
+.var {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-weight: 700;
+    font-size: var(--t-sm);
+}
+
+.var.alta { color: var(--alta); }
+.var.queda { color: var(--queda); }
+.var.neutra { color: var(--texto-3); }
+
+.var-pilula {
+    padding: 3px 8px;
+    border-radius: 6px;
+}
+
+.var-pilula.alta { background: var(--alta-suave); }
+.var-pilula.queda { background: var(--queda-suave); }
+
+.var svg {
+    width: 10px;
+    height: 10px;
+}
+
+/* campos */
+.campo {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.campo label {
+    font-size: var(--t-sm);
+    font-weight: 600;
+    color: var(--texto-2);
+}
+
+.entrada {
+    height: 42px;
+    padding: 0 14px;
+    background: var(--bg);
+    border: 1px solid var(--borda-forte);
+    border-radius: var(--r-controle);
+    color: var(--texto);
+    font-family: inherit;
+    font-size: var(--t-md);
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.entrada::placeholder {
+    color: var(--texto-3);
+}
+
+.entrada:focus {
+    outline: none;
+    border-color: var(--marca);
+    box-shadow: 0 0 0 3px var(--marca-suave);
+}
+
+.busca {
+    position: relative;
+}
+
+.busca svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    width: 16px;
+    height: 16px;
+    transform: translateY(-50%);
+    color: var(--texto-3);
+    pointer-events: none;
+}
+
+.busca .entrada {
+    padding-left: 38px;
+    width: 240px;
+    height: 38px;
+    background: var(--superficie);
+}
+
+/* ícone de moeda (logo real chega na Etapa 1; por ora, iniciais) */
+.moeda-icone {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--bg);
+    flex-shrink: 0;
+}
+
+/* tabela de mercado */
+.tabela {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--t-sm);
+}
+
+.tabela th {
+    text-align: right;
+    font-size: var(--t-xs);
+    font-weight: 600;
+    color: var(--texto-3);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--borda);
+    white-space: nowrap;
+}
+
+.tabela td {
+    text-align: right;
+    padding: 14px;
+    border-bottom: 1px solid var(--borda);
+    white-space: nowrap;
+}
+
+.tabela th:first-child,
+.tabela td:first-child,
+.tabela th:nth-child(2),
+.tabela td:nth-child(2) {
+    text-align: left;
+}
+
+.tabela tbody tr {
+    transition: background-color 120ms ease;
+}
+
+.tabela tbody tr:hover {
+    background: var(--superficie-2);
+}
+
+.tabela tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.celula-moeda {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.celula-moeda strong {
+    font-weight: 700;
+}
+
+.celula-moeda span {
+    color: var(--texto-3);
+    font-size: var(--t-xs);
+}
+
+.rank {
+    color: var(--texto-3);
+    width: 32px;
+}
+
+/* PISCA DE PREÇO (estilo Binance): o fundo acende e apaga */
+.pisca-alta {
+    animation: piscaAlta 900ms var(--ease);
+}
+
+.pisca-queda {
+    animation: piscaQueda 900ms var(--ease);
+}
+
+@keyframes piscaAlta {
+    0%   { background-color: rgba(34, 195, 142, 0.28); color: var(--alta); }
+    100% { background-color: transparent; }
+}
+
+@keyframes piscaQueda {
+    0%   { background-color: rgba(242, 85, 90, 0.28); color: var(--queda); }
+    100% { background-color: transparent; }
+}
+
+.preco-vivo {
+    border-radius: 5px;
+    padding: 2px 6px;
+    margin: -2px -6px;
+}
+
+/* esqueleto de carregamento */
+.esqueleto {
+    display: block;
+    height: 12px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--superficie-2) 0%, var(--superficie-3) 45%, var(--superficie-2) 90%);
+    background-size: 220% 100%;
+    animation: brilho 1.4s linear infinite;
+}
+
+@keyframes brilho {
+    from { background-position: 120% 0; }
+    to   { background-position: -120% 0; }
+}
+
+/* saldo em destaque: o único lugar com a fonte da marca */
+.saldo {
+    font-family: var(--fonte-marca);
+    font-weight: 500;
+    font-size: var(--t-3xl);
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+}
+
+.saldo-rotulo {
+    color: var(--texto-2);
+    font-size: var(--t-sm);
+    margin-bottom: 8px;
+}
+
+/* aviso de etapa futura */
+.em-breve {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    border: 1px dashed var(--borda-forte);
+    border-radius: var(--r-cartao);
+    color: var(--texto-2);
+    font-size: var(--t-sm);
+}
+
+.em-breve strong {
+    color: var(--texto);
+}
+
+.em-breve svg {
+    width: 22px;
+    height: 22px;
+    color: var(--marca);
+    flex-shrink: 0;
+}
+
+/* grade de cartões de indicador */
+.grade-4 {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.grade-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.indicador-rotulo {
+    font-size: var(--t-xs);
+    color: var(--texto-2);
+}
+
+.indicador-valor {
+    font-size: var(--t-lg);
+    font-weight: 700;
+    margin-top: 6px;
+}
+
+/* avisos rápidos (toast) */
+.avisos {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+}
+
+.aviso {
+    pointer-events: auto;
+    min-width: 260px;
+    max-width: 380px;
+    padding: 12px 16px;
+    border-radius: var(--r-cartao);
+    background: var(--superficie-3);
+    border: 1px solid var(--borda-forte);
+    box-shadow: var(--sombra-flutuante);
+    font-size: var(--t-sm);
+    animation: avisoEntra 260ms var(--ease);
+}
+
+.aviso.sucesso { border-left: 3px solid var(--alta); }
+.aviso.erro { border-left: 3px solid var(--queda); }
+
+@keyframes avisoEntra {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: none; }
+}
+
+
+/* ---------- página "Sistema" (vitrine do design) ---------- */
+.amostras-cor {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.amostra {
+    border-radius: var(--r-cartao);
+    border: 1px solid var(--borda);
+    overflow: hidden;
+    font-size: var(--t-xs);
+}
+
+.amostra-cor {
+    height: 64px;
+}
+
+.amostra-info {
+    padding: 8px 10px;
+    background: var(--superficie);
+    color: var(--texto-2);
+}
+
+.amostra-info strong {
+    display: block;
+    color: var(--texto);
+    font-size: var(--t-sm);
+}
+
+.escala-tipo p + p {
+    margin-top: 10px;
+}
+
+.linha-botoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+
+/* =================================================================
+   MERCADO  [ETAPA 1]
+   ================================================================= */
+.conexao {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--t-sm);
+    color: var(--texto-2);
+    white-space: nowrap;
+}
+
+.conexao-ponto {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--texto-3);
+}
+
+.conexao[data-estado="ao-vivo"] .conexao-ponto {
+    background: var(--alta);
+    animation: pulsar 2.4s ease-out infinite;
+}
+
+.conexao[data-estado="conectando"] .conexao-ponto {
+    background: var(--marca);
+    opacity: 0.8;
+}
+
+.voltar {
+    display: inline-block;
+    margin-bottom: 14px;
+    font-size: var(--t-sm);
+    font-weight: 600;
+    color: var(--texto-2);
+}
+
+.voltar:hover { color: var(--texto); }
+
+/* faixa de destaques */
+.destaques {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 22px;
+}
+
+.destaque {
+    background: var(--superficie);
+    border: 1px solid var(--borda);
+    border-radius: var(--r-cartao);
+    padding: 16px 16px 10px;
+    min-height: 158px;
+}
+
+.destaque-titulo {
+    font-size: var(--t-sm);
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.destaque-linha {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 6px;
+    margin: 0 -6px;
+    border-radius: 8px;
+    font-size: var(--t-sm);
+}
+
+.destaque-linha:hover {
+    background: var(--superficie-2);
+}
+
+.destaque-linha .moeda-logo,
+.destaque-linha .moeda-icone {
+    width: 22px;
+    height: 22px;
+    font-size: 8px;
+}
+
+.destaque-nome { font-weight: 700; }
+.destaque-preco { color: var(--texto-2); }
+
+.destaque-numeros {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.destaque-numeros div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: var(--t-sm);
+}
+
+.destaque-numeros span { color: var(--texto-2); }
+.destaque-numeros strong { font-weight: 700; }
+
+.destaque-aviso {
+    font-size: var(--t-sm);
+    color: var(--texto-2);
+    line-height: 1.55;
+}
+
+/* barra acima da tabela: abas e origem dos dados */
+.barra-tabela {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.barra-info {
+    font-size: var(--t-xs);
+    color: var(--texto-3);
+}
+
+.painel-tabela {
+    padding: 6px 8px;
+    overflow-x: auto;
+}
+
+.tabela-mercado th:nth-child(3),
+.tabela-mercado td:nth-child(3) {
+    text-align: left;
+}
+
+.tabela-mercado td {
+    padding: 12px 14px;
+}
+
+.tabela-mercado .col-fav {
+    width: 36px;
+    padding-left: 10px;
+    padding-right: 0;
+}
+
+.tabela-mercado .rank {
+    width: 40px;
+}
+
+.celula-moeda {
+    cursor: pointer;
+}
+
+.celula-moeda:hover strong {
+    color: var(--marca);
+}
+
+.moeda-logo {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--superficie-3);
+}
+
+.sem-dado {
+    color: var(--texto-3);
+}
+
+/* estrela de favorito */
+.estrela {
+    appearance: none;
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    color: var(--texto-3);
+    transition: color 120ms ease, transform 120ms ease;
+}
+
+.estrela svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linejoin: round;
+}
+
+.estrela:hover { color: var(--texto-2); }
+
+.estrela.marcada {
+    color: var(--marca);
+}
+
+.estrela.marcada svg { fill: currentColor; }
+.estrela:active { transform: scale(0.88); }
+
+/* cabeçalho ordenável */
+.tabela th.ordenavel button {
+    appearance: none;
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.tabela th.ordenavel button:hover,
+.tabela th.ordenavel.ativa button {
+    color: var(--texto);
+}
+
+.seta-ordem {
+    font-size: 8px;
+    color: var(--marca);
+    min-width: 8px;
+}
+
+/* minigráfico de 7 dias: se desenha da esquerda pra direita na 1ª carga */
+.col-grafico {
+    width: 140px;
+}
+
+.sparkline {
+    width: 120px;
+    height: 36px;
+    display: block;
+    margin-left: auto;
+}
+
+.col-grafico.desenhar .sparkline path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: tracar 900ms var(--ease) forwards;
+}
+
+.tabela-mercado tbody tr:nth-child(n+12) .col-grafico.desenhar .sparkline path {
+    animation-delay: 150ms;
+}
+
+@keyframes tracar {
+    to { stroke-dashoffset: 0; }
+}
+
+.tabela-vazia {
+    text-align: center !important;
+    padding: 40px 20px !important;
+    color: var(--texto-2);
+}
+
+/* moeda sem cotação ao vivo: preço um tom abaixo, sem pisca */
+.tabela-mercado tbody tr:not(.ao-vivo) .preco-vivo {
+    color: var(--texto-2);
+}
+
+@media (max-width: 1000px) {
+    .destaques { grid-template-columns: minmax(0, 1fr); }
+}
+
+
+/* movimento reduzido: sem pisca, sem brilho, sem deslize */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+    }
+}
+
+/* topo apertado: o pulso do BTC sai antes de tudo */
+@media (max-width: 1320px) {
+    .pulso { display: none !important; }
+}
+
+/* telas médias: a Etapa 6 cuida do celular de verdade (barra inferior).
+   Aqui só evitamos quebrar abaixo de 1000px. */
+@media (max-width: 1000px) {
+    .grade-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grade-2 { grid-template-columns: minmax(0, 1fr); }
+    .busca .entrada { width: 180px; }
+}
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+<div class="avisos" id="avisos" aria-live="polite"></div>
+
+<script>
+(function () {
+'use strict';
+
+/* =================================================================
+   CONFIGURAÇÃO
+   ================================================================= */
+var APP = {
+    nome: 'Koin',
+    versao: '0.1.0',        // 1.0.0 quando fechar a Etapa 7 (PWA)
+    ano: 2026,
+    autor: 'BitCoderSoft',
+};
+
+var BINANCE = 'https://data-api.binance.vision';   // dados públicos, sem chave
+
+
+/* =================================================================
+   ARMAZENAMENTO  [HERANÇA Dash Finance · STORE v1]
+   localStorage quando dá; no preview do claude.ai (onde ele é bloqueado)
+   cai pra memória, e usa window.storage se existir. Todo acesso passa
+   por `armazem`, nunca por localStorage direto.
+   ================================================================= */
+var PREFIXO = 'KOIN_';
+var espelho = {};
+var modoArmazenamento = 'memoria';
+
+try {
+    localStorage.setItem(PREFIXO + 'teste', '1');
+    localStorage.removeItem(PREFIXO + 'teste');
+    modoArmazenamento = 'local';
+} catch (e) {
+    if (window.storage && typeof window.storage.get === 'function') modoArmazenamento = 'claude';
+}
+
+var armazem = {
+    get: function (k) {
+        k = PREFIXO + k;
+        if (modoArmazenamento === 'local') return localStorage.getItem(k);
+        return Object.prototype.hasOwnProperty.call(espelho, k) ? espelho[k] : null;
+    },
+    set: function (k, v) {
+        k = PREFIXO + k;
+        if (modoArmazenamento === 'local') { localStorage.setItem(k, v); return; }
+        espelho[k] = String(v);
+        if (modoArmazenamento === 'claude') {
+            Promise.resolve().then(function () { return window.storage.set(k, String(v), false); }).catch(function () {});
+        }
+    },
+    remove: function (k) {
+        k = PREFIXO + k;
+        if (modoArmazenamento === 'local') { localStorage.removeItem(k); return; }
+        delete espelho[k];
+    },
+    json: function (k, padrao) {
+        try {
+            var raw = this.get(k);
+            return raw ? JSON.parse(raw) : padrao;
+        } catch (e) {
+            return padrao;
+        }
+    },
+};
+
+// no preview, puxa as preferências salvas antes do primeiro desenho
+function carregarArmazenamento() {
+    if (modoArmazenamento !== 'claude') return Promise.resolve();
+    var chaves = ['PREFS'];
+    return Promise.all(chaves.map(function (c) {
+        return window.storage.get(PREFIXO + c, false)
+            .then(function (r) { if (r && r.value != null) espelho[PREFIXO + c] = r.value; })
+            .catch(function () {});
+    }));
+}
+
+
+/* =================================================================
+   ESTADO CENTRAL  [ETAPA 0]
+   A diferença principal pro Dash Finance: lá cada mudança redesenhava
+   a página inteira. Aqui as telas são desenhadas UMA vez e os pedaços
+   que mudam (preço, moeda de exibição) se atualizam no lugar, ouvindo
+   o estado. Isso é o que permite preço ao vivo a cada segundo.
+
+   estado.definir('moeda', 'USD')  -> avisa quem ouve 'moeda'
+   estado.ouvir('moeda', fn)       -> fn(novoValor, antigo); devolve
+                                      uma função pra parar de ouvir
+   Ouvintes de página são removidos sozinhos ao trocar de rota.
+   ================================================================= */
+var estado = (function () {
+    var dados = {};
+    var ouvintes = {};
+    var daPagina = [];
+
+    return {
+        ler: function (k) { return dados[k]; },
+        definir: function (k, v) {
+            var antigo = dados[k];
+            dados[k] = v;
+            (ouvintes[k] || []).slice().forEach(function (fn) { fn(v, antigo); });
+        },
+        ouvir: function (k, fn, daPaginaAtual) {
+            (ouvintes[k] = ouvintes[k] || []).push(fn);
+            var parar = function () {
+                ouvintes[k] = (ouvintes[k] || []).filter(function (f) { return f !== fn; });
+            };
+            if (daPaginaAtual) daPagina.push(parar);
+            return parar;
+        },
+        limparPagina: function () {
+            daPagina.forEach(function (p) { p(); });
+            daPagina = [];
+        },
+    };
+})();
+
+// preferências persistidas
+var prefs = armazem.json('PREFS', { moeda: 'BRL' });
+
+function salvarPrefs() {
+    armazem.set('PREFS', JSON.stringify(prefs));
+}
+
+
+/* =================================================================
+   FORMATAÇÃO  [HERANÇA Dash Finance · FMT v1 + fmtPreco]
+   ================================================================= */
+function agruparMilhar(inteiro) {
+    return inteiro.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+function formatarBR(n, casas) {
+    n = Number(n) || 0;
+    var s = Math.abs(n).toFixed(casas);
+    var partes = s.split('.');
+    partes[0] = agruparMilhar(partes[0]);
+    return (n < 0 && Number(s) !== 0 ? '-' : '') + partes.join(',');
+}
+
+// preço com casas adaptativas: 612.345,67 · 0,8712 · 0,00001234
+function formatarPreco(n) {
+    n = Number(n) || 0;
+    var abs = Math.abs(n);
+    if (abs >= 1 || abs === 0) return formatarBR(n, 2);
+    var casas = Math.min(10, Math.max(2, 3 - Math.floor(Math.log10(abs))));
+    var s = n.toFixed(casas).replace(/0+$/, '');
+    if ((s.split('.')[1] || '').length < 2) s = n.toFixed(2);
+    return s.replace('.', ',');
+}
+
+function formatarPct(n) {
+    n = Number(n) || 0;
+    return (n > 0 ? '+' : '') + formatarBR(n, 2) + '%';
+}
+
+// valores grandes: 1,23 tri · 845,6 bi · 12,3 mi
+function formatarCompacto(n) {
+    var abs = Math.abs(n);
+    if (abs >= 1e12) return formatarBR(n / 1e12, 2) + ' tri';
+    if (abs >= 1e9) return formatarBR(n / 1e9, 2) + ' bi';
+    if (abs >= 1e6) return formatarBR(n / 1e6, 2) + ' mi';
+    if (abs >= 1e3) return formatarBR(n / 1e3, 1) + ' mil';
+    return formatarBR(n, 2);
+}
+
+function escapar(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+
+/* =================================================================
+   MOEDA DE EXIBIÇÃO  [ETAPA 0]
+   Tudo é guardado em REAIS. Na hora de mostrar:
+     BRL -> R$ 1.234,56
+     USD -> US$ 228,61      (R$ ÷ USDTBRL da Binance)
+     BTC -> ₿ 0,00201523    (R$ ÷ BTCBRL da Binance)
+   As taxas vêm juntas numa chamada e ficam 5 min em cache. Sem taxa
+   (offline, preview bloqueando), o seletor desativa US$ e ₿ e tudo
+   continua em reais.
+
+   COMO USAR NAS TELAS: marque o elemento com data-brl="1234.56" (e,
+   opcional, data-tipo="preco" pra casas adaptativas). Ele é preenchido
+   sozinho e se reescreve quando a moeda muda. Nada de redesenhar a tela.
+   ================================================================= */
+var MOEDAS = {
+    BRL: { rotulo: 'R$', nome: 'Real' },
+    USD: { rotulo: 'US$', nome: 'Dólar' },
+    BTC: { rotulo: '₿', nome: 'Bitcoin' },
+};
+
+var TAXAS_TTL = 5 * 60 * 1000;
+
+function formatarMoeda(brl, tipo, moeda) {
+    moeda = moeda || estado.ler('moeda');
+    var taxas = estado.ler('taxas') || {};
+    brl = Number(brl) || 0;
+
+    // tipo: 'preco' (casas adaptativas), 'compacto' (1,23 bi) ou vazio (2 casas)
+    function no(valor) {
+        if (tipo === 'preco') return formatarPreco(valor);
+        if (tipo === 'compacto') return formatarCompacto(valor);
+        return formatarBR(valor, 2);
+    }
+    if (moeda === 'USD' && taxas.USD) {
+        return 'US$ ' + no(brl / taxas.USD);
+    }
+    if (moeda === 'BTC' && taxas.BTC) {
+        var btc = brl / taxas.BTC;
+        if (tipo === 'compacto' && Math.abs(btc) >= 1000) return '₿ ' + formatarCompacto(btc);
+        // bitcoin: 8 casas até 1 ₿; acima disso, 4 bastam
+        return '₿ ' + formatarBR(btc, Math.abs(btc) >= 1 ? 4 : 8);
+    }
+    return 'R$ ' + no(brl);
+}
+
+function preencherValores(raiz) {
+    (raiz || document).querySelectorAll('[data-brl]').forEach(function (el) {
+        el.textContent = formatarMoeda(el.getAttribute('data-brl'), el.getAttribute('data-tipo'));
+    });
+}
+
+function buscarTaxas() {
+    var cache = armazem.json('TAXAS', null);
+    if (cache && Date.now() - cache.em < TAXAS_TTL) {
+        estado.definir('taxas', cache);
+        return Promise.resolve(cache);
+    }
+    var simbolos = encodeURIComponent(JSON.stringify(['USDTBRL', 'BTCBRL']));
+    return fetch(BINANCE + '/api/v3/ticker/price?symbols=' + simbolos)
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function (lista) {
+            var t = { em: Date.now() };
+            lista.forEach(function (p) {
+                if (p.symbol === 'USDTBRL') t.USD = Number(p.price);
+                if (p.symbol === 'BTCBRL') t.BTC = Number(p.price);
+            });
+            armazem.set('TAXAS', JSON.stringify(t));
+            estado.definir('taxas', t);
+            return t;
+        })
+        .catch(function () {
+            estado.definir('taxas', cache || {});   // cache velho é melhor que nada
+            return cache;
+        });
+}
+
+function trocarMoeda(m) {
+    if (!MOEDAS[m]) return;
+    prefs.moeda = m;
+    salvarPrefs();
+    estado.definir('moeda', m);
+}
+
+// a moeda muda -> todos os [data-brl] da tela se reescrevem
+estado.ouvir('moeda', function () { preencherValores(); atualizarSeletoresMoeda(); });
+estado.ouvir('taxas', function () { preencherValores(); atualizarSeletoresMoeda(); });
+
+function seletorMoedaHTML() {
+    return '<div class="segmentado" role="group" aria-label="Moeda de exibição" data-seletor-moeda>' +
+        Object.keys(MOEDAS).map(function (m) {
+            return '<button type="button" data-moeda="' + m + '" title="Mostrar valores em ' + MOEDAS[m].nome + '">' + MOEDAS[m].rotulo + '</button>';
+        }).join('') + '</div>';
+}
+
+function atualizarSeletoresMoeda() {
+    var atual = estado.ler('moeda');
+    var taxas = estado.ler('taxas') || {};
+    document.querySelectorAll('[data-seletor-moeda] button').forEach(function (b) {
+        var m = b.getAttribute('data-moeda');
+        b.setAttribute('aria-pressed', m === atual ? 'true' : 'false');
+        // sem taxa, não dá pra converter: desativa e explica
+        b.disabled = m !== 'BRL' && !taxas[m];
+        if (b.disabled) b.title = 'Sem cotação de ' + MOEDAS[m].nome + ' agora (sem conexão com a Binance).';
+    });
+}
+
+
+/* =================================================================
+   MOVIMENTO  [ETAPA 0]
+   ================================================================= */
+var menosMovimento = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// número desliza do valor antigo até o novo (~600ms)
+function animarNumero(el, de, para, formatador, duracao) {
+    if (menosMovimento || de === para) { el.textContent = formatador(para); return; }
+    duracao = duracao || 600;
+    var inicio = null;
+    if (el._animacao) cancelAnimationFrame(el._animacao);
+    function passo(t) {
+        if (!inicio) inicio = t;
+        var p = Math.min((t - inicio) / duracao, 1);
+        var suave = 1 - Math.pow(1 - p, 3);          // desacelera no fim
+        el.textContent = formatador(de + (para - de) * suave);
+        if (p < 1) el._animacao = requestAnimationFrame(passo);
+    }
+    el._animacao = requestAnimationFrame(passo);
+}
+
+// pisca verde/vermelho quando o preço muda (estilo Binance)
+function piscar(el, subiu) {
+    el.classList.remove('pisca-alta', 'pisca-queda');
+    void el.offsetWidth;                            // reinicia a animação
+    el.classList.add(subiu ? 'pisca-alta' : 'pisca-queda');
+}
+
+function avisar(texto, tipo) {
+    var caixa = document.getElementById('avisos');
+    var el = document.createElement('div');
+    el.className = 'aviso ' + (tipo || '');
+    el.textContent = texto;
+    caixa.appendChild(el);
+    setTimeout(function () {
+        el.style.transition = 'opacity 200ms ease';
+        el.style.opacity = '0';
+        setTimeout(function () { el.remove(); }, 220);
+    }, 3200);
+}
+
+
+/* =================================================================
+   ÍCONES (traço simples, 24x24)
+   ================================================================= */
+var ICONES = {
+    mercado: '<path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/>',
+    portfolio: '<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5V12l6 4.5"/>',
+    lancamentos: '<path d="M7 7h13M7 12h13M7 17h13"/><circle cx="3.5" cy="7" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="17" r="1"/>',
+    balanceamento: '<path d="M12 4v16M5 8l-3 6h6zM19 8l-3 6h6zM5 8h14"/>',
+    objetivos: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="0.8"/>',
+    ajustes: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M4.2 6.2l2.1 2.1M17.7 15.7l2.1 2.1M2.5 12h3M18.5 12h3M4.2 17.8l2.1-2.1M17.7 8.3l2.1-2.1"/>',
+    sistema: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="3.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="3.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>',
+    busca: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>',
+    construcao: '<path d="M3 21h18M6 21V10l6-5 6 5v11M10 21v-6h4v6"/>',
+    mais: '<path d="M12 5v14M5 12h14"/>',
+    alta: '<path d="M5 15l7-7 7 7"/>',
+    queda: '<path d="M5 9l7 7 7-7"/>',
+};
+
+function icone(nome) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        (ICONES[nome] || '') + '</svg>';
+}
+
+function setaVar(n) {
+    if (!n) return '';
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        ICONES[n > 0 ? 'alta' : 'queda'] + '</svg>';
+}
+
+function varHTML(pct, pilula) {
+    var cls = pct > 0 ? 'alta' : pct < 0 ? 'queda' : 'neutra';
+    return '<span class="var ' + cls + (pilula ? ' var-pilula' : '') + '">' + setaVar(pct) + formatarBR(Math.abs(pct), 2) + '%</span>';
+}
+
+// a moeda da marca: disco de latão, borda serrilhada e o K vazado
+var MARCA_SVG = '<svg class="marca-moeda" viewBox="0 0 32 32" aria-hidden="true">' +
+    '<defs><linearGradient id="latao" x1="0" y1="0" x2="1" y2="1">' +
+    '<stop offset="0" stop-color="#F6D27A"/><stop offset="0.55" stop-color="#E9B949"/><stop offset="1" stop-color="#B98A24"/></linearGradient></defs>' +
+    '<circle cx="16" cy="16" r="15" fill="url(#latao)"/>' +
+    '<circle cx="16" cy="16" r="12" fill="none" stroke="#1F1706" stroke-opacity="0.25" stroke-width="1" stroke-dasharray="1.2 1.6"/>' +
+    '<path d="M12 9.5v13M12 16l6.5-6.5M13.8 14.4L19 22.5" fill="none" stroke="#1F1706" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '</svg>';
+
+
+/* =================================================================
+   ROTEADOR  [HERANÇA Dash Finance · NAV v1]
+   Rota em memória, links com data-rota (sem href: o preview trata href
+   como link externo). A URL recebe #/rota quando o navegador deixa.
+   ================================================================= */
+var ROTAS = {
+    '/mercado':       { titulo: 'Mercado',        icone: 'mercado',       etapa: 1, render: paginaMercado },
+    '/portfolio':     { titulo: 'Portfólio',      icone: 'portfolio',     etapa: 4, render: paginaPortfolio },
+    '/lancamentos':   { titulo: 'Lançamentos',    icone: 'lancamentos',   etapa: 3, render: paginaEmBreve },
+    '/balanceamento': { titulo: 'Balanceamento',  icone: 'balanceamento', etapa: 5, render: paginaEmBreve },
+    '/objetivos':     { titulo: 'Objetivos',      icone: 'objetivos',     etapa: 5, render: paginaEmBreve },
+    '/ajustes':       { titulo: 'Ajustes',        icone: 'ajustes',       render: paginaAjustes },
+    '/sistema':       { titulo: 'Sistema visual', icone: 'sistema',       render: paginaSistema },
+    // [ETAPA 1] rota com parâmetro: /moeda/bitcoin, /moeda/ethereum...
+    '/moeda':         { titulo: 'Moeda',          icone: 'mercado',       etapa: 2, render: paginaMoeda, dinamica: true },
+};
+
+// '/moeda/bitcoin' -> { base: '/moeda', param: 'bitcoin' }
+function resolverRota(rota) {
+    if (ROTAS[rota] && !ROTAS[rota].dinamica) return { base: rota, param: null };
+    var m = /^(\/[a-z]+)\/(.+)$/.exec(rota || '');
+    if (m && ROTAS[m[1]] && ROTAS[m[1]].dinamica) return { base: m[1], param: decodeURIComponent(m[2]) };
+    return null;
+}
+
+// [ETAPA 0.1] O MENU DO TOPO
+// Item solto = link direto. Grupo = botão que abre um menu suspenso com
+// seções. Pra crescer, acrescente itens/seções aqui; a casca se monta
+// sozinha a partir desta lista.
+var NAV = [
+    { rota: '/mercado' },
+    { rota: '/portfolio' },
+    { rota: '/lancamentos' },
+    {
+        grupo: 'Análise',
+        secoes: [
+            {
+                titulo: 'Sua carteira',
+                itens: [
+                    { rota: '/balanceamento', desc: 'Alocação ideal e simulador de aporte' },
+                    { rota: '/objetivos', desc: 'Metas de patrimônio e previsão' },
+                ],
+            },
+        ],
+    },
+];
+
+// menu da engrenagem, à direita
+var NAV_CONTA = [
+    {
+        titulo: 'Preferências',
+        itens: [
+            { rota: '/ajustes', desc: 'Moeda, tema e armazenamento' },
+        ],
+    },
+    {
+        titulo: 'Projeto',
+        itens: [
+            { rota: '/sistema', desc: 'Cores, tipos e componentes' },
+        ],
+    },
+];
+var ROTA_INICIAL = '/mercado';
+var rotaAtual = null;
+
+function lerRotaDoEndereco() {
+    try { return location.hash.replace('#', ''); } catch (e) { return ''; }
+}
+
+function navegar(rota) {
+    if (!resolverRota(rota)) rota = ROTA_INICIAL;
+    rotaAtual = rota;
+    try {
+        if (location.hash !== '#' + rota) history.pushState(null, '', '#' + rota);
+    } catch (e) { /* preview: sem espelho na URL */ }
+    desenhar();
+}
+
+window.addEventListener('popstate', function () {
+    rotaAtual = lerRotaDoEndereco();
+    desenhar();
+});
+
+document.addEventListener('click', function (ev) {
+    var link = ev.target.closest('[data-rota]');
+    if (link) {
+        ev.preventDefault();
+        navegar(link.getAttribute('data-rota'));
+        return;
+    }
+    var botaoMoeda = ev.target.closest('[data-moeda]');
+    if (botaoMoeda && !botaoMoeda.disabled) {
+        trocarMoeda(botaoMoeda.getAttribute('data-moeda'));
+    }
+});
+
+document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Enter' && ev.target.matches && ev.target.matches('[data-rota]')) {
+        ev.preventDefault();
+        navegar(ev.target.getAttribute('data-rota'));
+    }
+});
+
+
+/* =================================================================
+   CASCA  [ETAPA 0.1]
+   Desenhada uma vez. Trocar de página só troca o miolo (#miolo); o topo,
+   o pulso do BTC e o rodapé continuam vivos.
+   ================================================================= */
+var CHEVRON = '<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+
+function menuSuspensoHTML(secoes, id, alinhar) {
+    return '<div class="menu-suspenso' + (alinhar === 'direita' ? ' direita' : '') + '" id="' + id + '" role="menu">' +
+        secoes.map(function (sec) {
+            return '<div class="menu-secao">' +
+                (sec.titulo ? '<p class="menu-secao-titulo">' + sec.titulo + '</p>' : '') +
+                sec.itens.map(function (it) {
+                    var r = ROTAS[it.rota];
+                    return '<a role="menuitem" tabindex="0" data-rota="' + it.rota + '" data-nav="' + it.rota + '" class="menu-item">' +
+                        '<span class="menu-item-icone">' + icone(r.icone) + '</span>' +
+                        '<div class="menu-item-texto"><strong>' + r.titulo + '</strong><span>' + it.desc + '</span></div></a>';
+                }).join('') + '</div>';
+        }).join('') + '</div>';
+}
+
+function rotasDoGrupo(secoes) {
+    var lista = [];
+    secoes.forEach(function (sec) { sec.itens.forEach(function (it) { lista.push(it.rota); }); });
+    return lista.join(' ');
+}
+
+function cascaHTML() {
+    var navHTML = NAV.map(function (item, i) {
+        if (item.rota) {
+            return '<a role="link" tabindex="0" data-rota="' + item.rota + '" data-nav="' + item.rota + '" class="nav-link">' +
+                ROTAS[item.rota].titulo + '</a>';
+        }
+        var id = 'menu-' + i;
+        return '<div class="nav-grupo" data-grupo>' +
+            '<button type="button" class="nav-grupo-botao" data-grupo-botao aria-haspopup="true" aria-expanded="false" aria-controls="' + id + '"' +
+            ' data-grupo-rotas="' + rotasDoGrupo(item.secoes) + '">' + item.grupo + CHEVRON + '</button>' +
+            menuSuspensoHTML(item.secoes, id) + '</div>';
+    }).join('');
+
+    return '' +
+        '<div class="casca">' +
+        '<header class="topo"><div class="topo-interno">' +
+        '<a role="link" tabindex="0" data-rota="/mercado" class="marca" aria-label="' + APP.nome + ', ir pro mercado">' + MARCA_SVG +
+        '<span class="marca-nome">' + APP.nome + '</span></a>' +
+        '<nav class="nav" aria-label="Principal">' + navHTML + '</nav>' +
+        '<div class="topo-direita">' +
+        // busca global [ETAPA 1]: filtra o mercado; Enter em outra página leva pra lá
+        '<div class="busca">' + icone('busca') +
+        '<input class="entrada" id="busca-global" type="search" placeholder="Buscar moeda" aria-label="Buscar moeda" autocomplete="off"></div>' +
+        '<div class="pulso" id="pulso" hidden title="Bitcoin em reais, Binance">' +
+        '<span class="pulso-ponto"></span>BTC <strong class="preco-vivo" id="pulso-preco">—</strong><span id="pulso-var"></span></div>' +
+        seletorMoedaHTML() +
+        '<div class="nav-grupo" data-grupo>' +
+        '<button type="button" class="botao-icone" data-grupo-botao aria-haspopup="true" aria-expanded="false" aria-controls="menu-conta"' +
+        ' aria-label="Ajustes e projeto" data-grupo-rotas="' + NAV_CONTA.map(function (s) { return rotasDoGrupo([s]); }).join(' ') + '">' +
+        icone('ajustes') + '</button>' +
+        menuSuspensoHTML(NAV_CONTA, 'menu-conta', 'direita') + '</div>' +
+        '</div></div></header>' +
+        '<main id="miolo"></main>' +
+        '<footer class="rodape">' +
+        '<span><strong>' + APP.nome + '</strong> ' + APP.versao + '</span>' +
+        '<span>Seus dados ficam só neste aparelho.</span>' +
+        '<span>&copy; ' + APP.ano + ' ' + APP.autor + '</span>' +
+        '</footer>' +
+        '</div>';
+}
+
+var ponteiroFino = window.matchMedia && window.matchMedia('(hover: hover)').matches;
+
+// abre/fecha menus suspensos: clique no botão, passar o mouse (com
+// pequena folga pra não fechar no caminho até o menu), Esc e clique fora
+function fecharMenus(excecao) {
+    document.querySelectorAll('[data-grupo].aberto').forEach(function (g) {
+        if (g === excecao) return;
+        g.classList.remove('aberto');
+        var b = g.querySelector('[data-grupo-botao]');
+        if (b) b.setAttribute('aria-expanded', 'false');
+    });
+}
+
+function abrirMenu(grupo) {
+    fecharMenus(grupo);
+    grupo.classList.add('aberto');
+    grupo.querySelector('[data-grupo-botao]').setAttribute('aria-expanded', 'true');
+}
+
+document.addEventListener('click', function (ev) {
+    var botao = ev.target.closest('[data-grupo-botao]');
+    if (botao) {
+        var g = botao.closest('[data-grupo]');
+        // com mouse, passar por cima já abriu: o clique só confirma (se
+        // alternasse, o clique logo depois do hover fecharia o menu).
+        // No toque, o clique alterna.
+        if (ponteiroFino || !g.classList.contains('aberto')) abrirMenu(g);
+        else fecharMenus();
+        return;
+    }
+    if (!ev.target.closest('.menu-suspenso')) fecharMenus();
+});
+
+document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape') fecharMenus();
+});
+
+if (ponteiroFino) {
+    var timerFechar = null;
+    document.addEventListener('mouseover', function (ev) {
+        var g = ev.target.closest && ev.target.closest('[data-grupo]');
+        if (g) {
+            clearTimeout(timerFechar);
+            if (!g.classList.contains('aberto')) abrirMenu(g);
+        }
+    });
+    document.addEventListener('mouseout', function (ev) {
+        var g = ev.target.closest && ev.target.closest('[data-grupo]');
+        if (!g) return;
+        if (ev.relatedTarget && g.contains(ev.relatedTarget)) return;
+        clearTimeout(timerFechar);
+        timerFechar = setTimeout(function () { fecharMenus(); }, 180);
+    });
+}
+
+function desenhar() {
+    var app = document.getElementById('app');
+    if (!app.querySelector('.casca')) {
+        app.innerHTML = cascaHTML();
+        atualizarSeletoresMoeda();
+    }
+    var resolvida = resolverRota(rotaAtual);
+    if (!resolvida) { rotaAtual = ROTA_INICIAL; resolvida = resolverRota(rotaAtual); }
+    var r = ROTAS[resolvida.base];
+    r.param = resolvida.param;
+
+    estado.limparPagina();   // ouvintes da página anterior saem
+    fecharMenus();
+    if (resolvida.base !== '/mercado') desconectarAoVivo();   // [ETAPA 1] socket só no mercado
+
+    var rotaMenu = resolvida.base === '/moeda' ? '/mercado' : resolvida.base;
+    document.querySelectorAll('[data-nav]').forEach(function (a) {
+        var ativo = a.getAttribute('data-nav') === rotaMenu;
+        a.classList.toggle('ativo', ativo);
+        if (ativo) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+    // o botão do grupo acende quando a página atual está dentro dele
+    document.querySelectorAll('[data-grupo-rotas]').forEach(function (b) {
+        b.classList.toggle('ativo', b.getAttribute('data-grupo-rotas').split(' ').indexOf(rotaMenu) !== -1);
+    });
+    document.title = r.titulo + ' · ' + APP.nome;
+
+    var miolo = document.getElementById('miolo');
+    miolo.innerHTML = r.render(r);
+    preencherValores(miolo);
+    if (typeof r.montar === 'function') r.montar(miolo);
+    window.scrollTo(0, 0);
+}
+
+
+/* =================================================================
+   PULSO DO MERCADO: BTC em reais no topo  [ETAPA 0]
+   Um preço de verdade já na fundação, pra testar o pisca e a animação
+   com dado real. Consulta a cada 30s (a Etapa 1 troca por WebSocket).
+   ================================================================= */
+var pulsoAnterior = null;
+
+function atualizarPulso() {
+    return fetch(BINANCE + '/api/v3/ticker/24hr?symbol=BTCBRL')
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function (d) {
+            var preco = Number(d.lastPrice);
+            var pct = Number(d.priceChangePercent);
+            var caixa = document.getElementById('pulso');
+            var el = document.getElementById('pulso-preco');
+            if (!caixa || !el) return;
+            caixa.hidden = false;
+            var fmt = function (v) { return 'R$ ' + formatarBR(v, 0); };
+            if (pulsoAnterior !== null && preco !== pulsoAnterior) {
+                piscar(el, preco > pulsoAnterior);
+                animarNumero(el, pulsoAnterior, preco, fmt);
+            } else {
+                el.textContent = fmt(preco);
+            }
+            document.getElementById('pulso-var').innerHTML = varHTML(pct);
+            pulsoAnterior = preco;
+        })
+        .catch(function () {
+            var caixa = document.getElementById('pulso');
+            if (caixa) caixa.hidden = true;   // sem conexão: some, sem alarde
+        });
+}
+
+
+/* =================================================================
+   PÁGINAS
+   Cada uma devolve o HTML do miolo. Se precisar ligar algo depois de ir
+   pra tela (ouvintes, timers), define `montar` na rota.
+   ================================================================= */
+function emBreveHTML(etapa, oque) {
+    return '<div class="em-breve">' + icone('construcao') +
+        '<div><strong>Chega na etapa ' + etapa + '.</strong> ' + oque + '</div></div>';
+}
+
+function paginaMoeda(r) {
+    var m = mercado.porId[r.param];
+    var nome = m ? m.nome : r.param;
+    return '<div class="pagina">' +
+        '<a role="link" tabindex="0" data-rota="/mercado" class="voltar">&larr; Mercado</a>' +
+        '<div class="pagina-cabecalho"><div><h1>' + escapar(nome) + '</h1>' +
+        (m ? '<p>' + escapar(m.simbolo) + ' · <span data-brl="' + m.preco + '" data-tipo="preco"></span></p>' : '') +
+        '</div></div>' +
+        emBreveHTML(2, 'Gráfico interativo com velas e zoom, estatísticas e conversor.') + '</div>';
+}
+
+function paginaPortfolio() {
+    return '<div class="pagina">' +
+        '<div class="painel">' +
+        '<p class="saldo-rotulo">Saldo do portfólio</p>' +
+        '<p class="saldo" data-brl="0"></p>' +
+        '<p style="margin-top: 10px; color: var(--texto-2); font-size: var(--t-sm);">Troque a moeda no topo: o saldo se reescreve em reais, dólares ou bitcoin.</p>' +
+        '</div>' +
+        '<div class="painel">' + emBreveHTML(4, 'Resumo com lucro realizado e não realizado, evolução real do patrimônio e alocação animada.') + '</div>' +
+        '</div>';
+}
+
+function paginaEmBreve(r) {
+    var textos = {
+        '/lancamentos': 'Compra, venda, entrada, saída e conversão, com validação na linha do tempo (o motor vem do Dash Finance).',
+        '/balanceamento': 'Alocação ideal, notas por moeda e simulador de aporte.',
+        '/objetivos': 'Objetivos de patrimônio com progresso e previsão de conclusão.',
+    };
+    return '<div class="pagina">' +
+        '<div class="pagina-cabecalho"><div><h1>' + r.titulo + '</h1></div></div>' +
+        emBreveHTML(r.etapa, textos[rotaAtual] || '') + '</div>';
+}
+
+function paginaAjustes() {
+    var taxas = estado.ler('taxas') || {};
+    return '<div class="pagina">' +
+        '<div class="pagina-cabecalho"><div><h1>Ajustes</h1><p>Preferências deste aparelho.</p></div></div>' +
+        '<div class="painel">' +
+        '<p class="painel-titulo">Moeda de exibição</p>' +
+        '<p class="painel-sub">Os valores são guardados em reais e convertidos na hora de mostrar, pela cotação da Binance.</p>' +
+        seletorMoedaHTML() +
+        '<div class="grade-2" style="margin-top: 18px;">' +
+        '<div class="cartao"><p class="indicador-rotulo">1 dólar (USDT)</p><p class="indicador-valor">' + (taxas.USD ? 'R$ ' + formatarBR(taxas.USD, 4) : '—') + '</p></div>' +
+        '<div class="cartao"><p class="indicador-rotulo">1 bitcoin</p><p class="indicador-valor">' + (taxas.BTC ? 'R$ ' + formatarBR(taxas.BTC, 2) : '—') + '</p></div>' +
+        '</div></div>' +
+        // [ETAPA 1] chave Demo da CoinGecko (opcional)
+        '<div class="painel">' +
+        '<p class="painel-titulo">Chave da CoinGecko</p>' +
+        '<p class="painel-sub">Opcional. Sem chave, o mercado usa a API pública, que aceita poucas consultas por minuto. ' +
+        'Com a chave Demo gratuita, o limite sobe pra 100 por minuto. Ela fica salva só neste aparelho.</p>' +
+        '<div class="linha-botoes">' +
+        '<input class="entrada" id="cg-chave" type="text" autocomplete="off" spellcheck="false" placeholder="CG-xxxxxxxxxxxxxxxx" style="flex: 1; min-width: 240px;" value="' + escapar(prefs.cgChave || '') + '">' +
+        '<button type="button" class="botao botao-neutro" data-salvar-chave>Salvar chave</button>' +
+        (prefs.cgChave ? '<button type="button" class="botao botao-fantasma" data-remover-chave>Remover</button>' : '') +
+        '</div></div>' +
+        '<div class="painel">' +
+        '<p class="painel-titulo">Tema</p>' +
+        '<p class="painel-sub">O tema claro está previsto e já tem as cores definidas. Por enquanto, só o escuro.</p>' +
+        '<div class="segmentado"><button type="button" aria-pressed="true">Escuro</button><button type="button" disabled title="Em breve">Claro</button></div>' +
+        '</div>' +
+        '<div class="painel">' +
+        '<p class="painel-titulo">Armazenamento</p>' +
+        '<p class="painel-sub">' + {
+            local: 'Salvando no navegador deste aparelho.',
+            claude: 'Preview do Claude: salvando no armazenamento do artefato.',
+            memoria: 'Modo temporário: este ambiente bloqueia armazenamento, nada fica salvo ao recarregar.',
+        }[modoArmazenamento] + '</p></div>' +
+        '</div>';
+}
+
+
+/* ---------- Sistema visual: vitrine pra aprovar o design ---------- */
+// moedas de demonstração com preço SIMULADO (passeio aleatório), só pra
+// ver o pisca e a animação funcionando sem depender de rede
+var DEMO = [
+    { s: 'BTC', n: 'Bitcoin', p: 612345.67, cor: '#F7931A', v: 1.24 },
+    { s: 'ETH', n: 'Ethereum', p: 13988.60, cor: '#8C9EFF', v: -0.82 },
+    { s: 'SOL', n: 'Solana', p: 1047.30, cor: '#14F195', v: 3.41 },
+    { s: 'DOGE', n: 'Dogecoin', p: 0.8712, cor: '#C2A633', v: -2.07 },
+    { s: 'PEPE', n: 'Pepe', p: 0.00005871, cor: '#4C9A2A', v: 7.9 },
+];
+
+function paginaSistema() {
+    var cores = [
+        ['Tinta', '--bg', '#0D111C', 'fundo do app'],
+        ['Superfície', '--superficie', '#131A29', 'painéis'],
+        ['Superfície 2', '--superficie-2', '#1A2334', 'cartões, hover'],
+        ['Borda', '--borda', '#232E44', 'divisões'],
+        ['Texto', '--texto', '#E7ECF5', 'principal'],
+        ['Texto 2', '--texto-2', '#A3AEC4', 'secundário'],
+        ['Latão', '--marca', '#E9B949', 'marca, foco, ação principal'],
+        ['Alta', '--alta', '#22C38E', 'só pra valorização'],
+        ['Queda', '--queda', '#F2555A', 'só pra desvalorização'],
+    ];
+
+    var linhasDemo = DEMO.map(function (m, i) {
+        return '<tr data-demo="' + i + '">' +
+            '<td class="rank">' + (i + 1) + '</td>' +
+            '<td><div class="celula-moeda"><span class="moeda-icone" style="background: ' + m.cor + ';">' + m.s.slice(0, 2) + '</span>' +
+            '<div><strong>' + m.n + '</strong> <span>' + m.s + '</span></div></div></td>' +
+            '<td><span class="preco-vivo" data-brl="' + m.p + '" data-tipo="preco"></span></td>' +
+            '<td data-demo-var>' + varHTML(m.v, true) + '</td>' +
+            '</tr>';
+    }).join('');
+
+    return '<div class="pagina">' +
+        '<div class="pagina-cabecalho"><div><h1>Sistema visual</h1>' +
+        '<p>Vitrine da fundação: cores, tipos e componentes que as próximas etapas vão usar. Esta página sai do menu antes da publicação.</p></div></div>' +
+
+        '<div class="painel"><p class="painel-titulo">Cores</p>' +
+        '<p class="painel-sub">Fundo em tinta azul, não preto. Latão é a cor da marca; verde e vermelho só aparecem pra alta e queda.</p>' +
+        '<div class="amostras-cor">' + cores.map(function (c) {
+            return '<div class="amostra"><div class="amostra-cor" style="background: var(' + c[1] + ');"></div>' +
+                '<div class="amostra-info"><strong>' + c[0] + '</strong>' + c[2] + ' · ' + c[3] + '</div></div>';
+        }).join('') + '</div></div>' +
+
+        '<div class="grade-2" style="margin-top: 16px;">' +
+        '<div class="painel escala-tipo"><p class="painel-titulo">Tipografia</p>' +
+        '<p class="painel-sub">Manrope na interface, com números de largura fixa. Unbounded só na marca e no saldo.</p>' +
+        '<p class="saldo" data-brl="48213.77"></p>' +
+        '<p style="font-size: var(--t-2xl); font-weight: 800; letter-spacing: -0.02em;">Título de página</p>' +
+        '<p style="font-size: var(--t-lg); font-weight: 700;">Título de painel</p>' +
+        '<p>Texto corrido da interface, em 15px.</p>' +
+        '<p style="font-size: var(--t-sm); color: var(--texto-2);">Texto secundário e apoio, em 13px.</p>' +
+        '</div>' +
+
+        '<div class="painel"><p class="painel-titulo">Controles</p>' +
+        '<p class="painel-sub">Botões por hierarquia, campo com foco em latão, seletor segmentado.</p>' +
+        '<div class="linha-botoes">' +
+        '<button type="button" class="botao botao-marca" data-demo-aviso="sucesso">' + icone('mais') + 'Novo lançamento</button>' +
+        '<button type="button" class="botao botao-neutro" data-demo-aviso="erro">Mostrar um erro</button>' +
+        '<button type="button" class="botao botao-fantasma">Cancelar</button>' +
+        '</div>' +
+        '<div class="campo" style="margin-top: 18px;"><label for="demo-campo">Quantidade</label>' +
+        '<input class="entrada" id="demo-campo" type="text" inputmode="decimal" placeholder="0,00"></div>' +
+        '<div style="margin-top: 18px;" class="linha-botoes">' + seletorMoedaHTML() +
+        '<span style="font-size: var(--t-sm); color: var(--texto-2);">Mesmo seletor do topo: os dois andam juntos.</span></div>' +
+        '</div></div>' +
+
+        '<div class="painel" style="margin-top: 16px;"><p class="painel-titulo">Preço ao vivo</p>' +
+        '<p class="painel-sub">Preços simulados mudando a cada 1,5 segundo: o fundo pisca em verde ou vermelho e o número desliza até o valor novo. Troque a moeda no topo e veja a tabela se reescrever sem recarregar.</p>' +
+        '<table class="tabela"><thead><tr><th>#</th><th>Moeda</th><th>Preço</th><th>24h</th></tr></thead><tbody>' + linhasDemo + '</tbody></table>' +
+        '</div>' +
+
+        '<div class="painel"><p class="painel-titulo">Indicadores e carregamento</p>' +
+        '<p class="painel-sub">Cartões de indicador e o esqueleto que aparece enquanto um dado chega.</p>' +
+        '<div class="grade-4">' +
+        '<div class="cartao"><p class="indicador-rotulo">Investido</p><p class="indicador-valor" data-brl="38860"></p></div>' +
+        '<div class="cartao"><p class="indicador-rotulo">Lucro não realizado</p><p class="indicador-valor" style="color: var(--alta);" data-brl="2151.40"></p></div>' +
+        '<div class="cartao"><p class="indicador-rotulo">Variação 24h</p><p class="indicador-valor">' + varHTML(-1.37) + '</p></div>' +
+        '<div class="cartao"><p class="indicador-rotulo">Carregando</p><span class="esqueleto" style="width: 70%; height: 18px; margin-top: 10px;"></span></div>' +
+        '</div></div>' +
+        '</div>';
+}
+
+document.addEventListener('click', function (ev) {
+    if (ev.target.closest('[data-salvar-chave]')) {
+        var v = (document.getElementById('cg-chave').value || '').trim();
+        prefs.cgChave = v || null;
+        salvarPrefs();
+        armazem.remove('MERCADO');   // força buscar de novo com a chave
+        avisar(v ? 'Chave salva.' : 'Chave removida.', 'sucesso');
+        desenhar();
+    }
+    if (ev.target.closest('[data-remover-chave]')) {
+        prefs.cgChave = null;
+        salvarPrefs();
+        armazem.remove('MERCADO');
+        avisar('Chave removida.', 'sucesso');
+        desenhar();
+    }
+});
+
+ROTAS['/sistema'].montar = function (miolo) {
+    var precos = DEMO.map(function (m) { return m.p; });
+    var timer = setInterval(function () {
+        if (!document.body.contains(miolo) || rotaAtual !== '/sistema') { clearInterval(timer); return; }
+        var i = Math.floor(Math.random() * DEMO.length);
+        var antes = precos[i];
+        var depois = antes * (1 + (Math.random() - 0.48) * 0.006);
+        precos[i] = depois;
+        var linha = miolo.querySelector('[data-demo="' + i + '"]');
+        if (!linha) return;
+        var el = linha.querySelector('.preco-vivo');
+        el.setAttribute('data-brl', depois);
+        piscar(el, depois > antes);
+        animarNumero(el, antes, depois, function (v) { return formatarMoeda(v, 'preco'); }, 500);
+    }, 1500);
+
+    miolo.querySelectorAll('[data-demo-aviso]').forEach(function (b) {
+        b.addEventListener('click', function () {
+            var t = b.getAttribute('data-demo-aviso');
+            avisar(t === 'sucesso' ? 'Lançamento salvo.' : 'A quantidade precisa ser maior que zero.', t);
+        });
+    });
+};
+
+
+/* =================================================================
+   MERCADO  [ETAPA 1 · 29/09/2026]
+   ================================================================= */
+
+// DE ONDE VEM CADA DADO
+//   CoinGecko /coins/markets (1 chamada, 100 moedas, já em reais):
+//     ranking, nome, logo, preço, variação 1h/24h/7d, volume, valor de
+//     mercado e o minigráfico de 7 dias. Funciona SEM chave (API pública,
+//     ~10 a 30 chamadas por minuto por IP). Com a chave Demo gratuita
+//     (colada em Ajustes) o limite sobe pra 100/min. Cache de 5 minutos.
+//     A chave vai como parâmetro na URL e não no cabeçalho: cabeçalho
+//     customizado obriga o navegador a uma checagem prévia (CORS) que já
+//     nos barrou na bolsai, no Dash Finance.
+//   Binance WebSocket (tempo real, a cada ~1s):
+//     preço e variação 24h das moedas que a Binance negocia contra USDT,
+//     convertidos pra reais pelo USDTBRL do mesmo canal.
+//
+// CASAR COINGECKO COM BINANCE: pelo símbolo (btc -> BTCUSDT). Símbolo não é
+// único no mundo cripto (duas moedas diferentes podem usar o mesmo), então
+// só liga o "ao vivo" se o preço da Binance estiver a até 10% do preço da
+// CoinGecko na largada. Mesma ideia que resolveu o caso do ENA.
+//
+// SEM COINGECKO (limite, fora do ar, bloqueio): cai pro modo simplificado,
+// com uma lista fixa das principais moedas e dados só da Binance. Sem
+// valor de mercado, logo e minigráfico, mas com preço ao vivo.
+//
+// ATUALIZAÇÃO NO LUGAR: a tabela é montada uma vez (e de novo só ao trocar
+// aba, busca ou ordem). O WebSocket mexe só nas células de preço e 24h
+// da linha certa, com pisca e número deslizando.
+
+var COINGECKO = 'https://api.coingecko.com/api/v3';
+var BINANCE_WS = 'wss://data-stream.binance.vision/stream?streams=';
+var MERCADO_TTL = 5 * 60 * 1000;
+var DIVERGENCIA_MAX = 0.10;
+
+// modo simplificado: principais moedas negociadas na Binance
+var LISTA_RESERVA = [
+    ['BTC', 'Bitcoin'], ['ETH', 'Ethereum'], ['USDT', 'Tether'], ['BNB', 'BNB'], ['SOL', 'Solana'],
+    ['XRP', 'XRP'], ['USDC', 'USD Coin'], ['DOGE', 'Dogecoin'], ['ADA', 'Cardano'], ['TRX', 'TRON'],
+    ['AVAX', 'Avalanche'], ['LINK', 'Chainlink'], ['TON', 'Toncoin'], ['SHIB', 'Shiba Inu'], ['DOT', 'Polkadot'],
+    ['BCH', 'Bitcoin Cash'], ['LTC', 'Litecoin'], ['NEAR', 'NEAR Protocol'], ['UNI', 'Uniswap'], ['SUI', 'Sui'],
+    ['PEPE', 'Pepe'], ['APT', 'Aptos'], ['XLM', 'Stellar'], ['ETC', 'Ethereum Classic'], ['ATOM', 'Cosmos'],
+    ['ARB', 'Arbitrum'], ['OP', 'Optimism'], ['INJ', 'Injective'], ['AAVE', 'Aave'], ['ENA', 'Ethena'],
+];
+
+var mercado = {
+    lista: [],          // moedas no formato interno (ver normalizarCoinGecko)
+    porId: {},
+    modo: null,         // 'completo' | 'simplificado'
+    atualizadoEm: null,
+    aba: 'todas',       // todas | favoritas | altas | quedas
+    busca: '',
+    ordem: { campo: 'rank', desc: false },
+    ws: null,
+    wsTentativas: 0,
+    wsMapa: {},         // 'BTCUSDT' -> id da moeda
+    usdtbrl: null,
+};
+
+function favoritos() {
+    return prefs.favoritos || [];
+}
+
+function alternarFavorito(id) {
+    var f = favoritos().slice();
+    var i = f.indexOf(id);
+    if (i === -1) f.push(id); else f.splice(i, 1);
+    prefs.favoritos = f;
+    salvarPrefs();
+    return i === -1;
+}
+
+// ---------- coleta ----------
+function normalizarCoinGecko(c) {
+    return {
+        id: c.id,
+        simbolo: String(c.symbol || '').toUpperCase(),
+        nome: c.name,
+        logo: c.image,
+        rank: c.market_cap_rank,
+        preco: c.current_price,
+        var1h: c.price_change_percentage_1h_in_currency,
+        var24h: c.price_change_percentage_24h_in_currency != null ? c.price_change_percentage_24h_in_currency : c.price_change_percentage_24h,
+        var7d: c.price_change_percentage_7d_in_currency,
+        volume: c.total_volume,
+        valorMercado: c.market_cap,
+        sparkline: c.sparkline_in_7d && c.sparkline_in_7d.price ? c.sparkline_in_7d.price : null,
+        aoVivo: false,
+    };
+}
+
+function buscarMercadoCoinGecko() {
+    var cache = armazem.json('MERCADO', null);
+    if (cache && Date.now() - cache.em < MERCADO_TTL && cache.modo === 'completo') {
+        return Promise.resolve(cache);
+    }
+    var url = COINGECKO + '/coins/markets?vs_currency=brl&order=market_cap_desc&per_page=100&page=1' +
+        '&sparkline=true&price_change_percentage=1h,24h,7d';
+    if (prefs.cgChave) url += '&x_cg_demo_api_key=' + encodeURIComponent(prefs.cgChave);
+
+    return fetch(url)
+        .then(function (r) {
+            if (r.status === 429) throw new Error('limite');
+            if (!r.ok) throw new Error('http ' + r.status);
+            return r.json();
+        })
+        .then(function (dados) {
+            var pacote = { em: Date.now(), modo: 'completo', lista: dados.map(normalizarCoinGecko) };
+            try { armazem.set('MERCADO', JSON.stringify(pacote)); } catch (e) { /* cache é opcional */ }
+            return pacote;
+        })
+        .catch(function (erro) {
+            // cache vencido ainda serve melhor que o modo simplificado
+            if (cache && cache.modo === 'completo') {
+                cache.velho = true;
+                return cache;
+            }
+            throw erro;
+        });
+}
+
+function buscarMercadoReserva() {
+    var simbolos = LISTA_RESERVA.filter(function (m) { return m[0] !== 'USDT'; })
+        .map(function (m) { return m[0] + 'USDT'; }).concat(['USDTBRL']);
+    var url = BINANCE + '/api/v3/ticker/24hr?symbols=' + encodeURIComponent(JSON.stringify(simbolos));
+    return fetch(url)
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function (dados) {
+            var por = {};
+            dados.forEach(function (d) { por[d.symbol] = d; });
+            var taxa = por.USDTBRL ? Number(por.USDTBRL.lastPrice) : null;
+            if (!taxa) throw new Error('sem USDTBRL');
+            var lista = [];
+            LISTA_RESERVA.forEach(function (m, i) {
+                var d = m[0] === 'USDT' ? por.USDTBRL : por[m[0] + 'USDT'];
+                if (!d) return;
+                var preco = m[0] === 'USDT' ? Number(d.lastPrice) : Number(d.lastPrice) * taxa;
+                lista.push({
+                    id: m[0].toLowerCase(), simbolo: m[0], nome: m[1], logo: null, rank: i + 1,
+                    preco: preco, var1h: null, var24h: Number(d.priceChangePercent), var7d: null,
+                    volume: Number(d.quoteVolume) * (m[0] === 'USDT' ? 1 : taxa), valorMercado: null,
+                    sparkline: null, aoVivo: false,
+                });
+            });
+            return { em: Date.now(), modo: 'simplificado', lista: lista };
+        });
+}
+
+function carregarMercado() {
+    return buscarMercadoCoinGecko()
+        .catch(function () { return buscarMercadoReserva(); })
+        .then(function (pacote) {
+            mercado.lista = pacote.lista;
+            mercado.modo = pacote.modo;
+            mercado.atualizadoEm = pacote.em;
+            mercado.velho = !!pacote.velho;
+            mercado.porId = {};
+            mercado.lista.forEach(function (m) { mercado.porId[m.id] = m; });
+            return pacote;
+        });
+}
+
+// ---------- tempo real ----------
+function conectarAoVivo() {
+    desconectarAoVivo();
+    // quais moedas têm par USDT na Binance? (lista de preços, 1h de cache)
+    var cachePrecos = armazem.json('BINANCE_PRECOS', null);
+    var pronto = cachePrecos && Date.now() - cachePrecos.em < 60 * 60 * 1000
+        ? Promise.resolve(cachePrecos.precos)
+        : fetch(BINANCE + '/api/v3/ticker/price').then(function (r) { return r.json(); }).then(function (lista) {
+            var precos = {};
+            lista.forEach(function (p) { precos[p.symbol] = Number(p.price); });
+            try { armazem.set('BINANCE_PRECOS', JSON.stringify({ em: Date.now(), precos: precos })); } catch (e) {}
+            return precos;
+        });
+
+    pronto.then(function (precos) {
+        var taxa = precos.USDTBRL;
+        if (!taxa) throw new Error('sem USDTBRL');
+        mercado.usdtbrl = taxa;
+        mercado.wsMapa = {};
+        mercado.lista.forEach(function (m) {
+            if (m.simbolo === 'USDT') { mercado.wsMapa.USDTBRL_MOEDA = m.id; m.aoVivo = true; return; }
+            var par = m.simbolo + 'USDT';
+            if (!precos[par]) return;
+            var precoBinance = precos[par] * taxa;
+            // mesmo símbolo, moeda diferente? preço longe demais = não casa
+            if (m.preco > 0 && Math.abs(precoBinance / m.preco - 1) > DIVERGENCIA_MAX) return;
+            mercado.wsMapa[par] = m.id;
+            m.aoVivo = true;
+        });
+        var streams = Object.keys(mercado.wsMapa).filter(function (k) { return k !== 'USDTBRL_MOEDA'; })
+            .map(function (k) { return k.toLowerCase() + '@miniTicker'; });
+        streams.push('usdtbrl@miniTicker');
+        abrirSocket(streams);
+        marcarLinhasAoVivo();
+    }).catch(function () {
+        estado.definir('conexao', 'off');
+    });
+}
+
+function abrirSocket(streams) {
+    estado.definir('conexao', 'conectando');
+    var ws;
+    try {
+        ws = new WebSocket(BINANCE_WS + streams.join('/'));
+    } catch (e) {
+        estado.definir('conexao', 'off');
+        return;
+    }
+    mercado.ws = ws;
+    ws.onopen = function () {
+        mercado.wsTentativas = 0;
+        estado.definir('conexao', 'ao-vivo');
+    };
+    ws.onmessage = function (ev) {
+        var msg;
+        try { msg = JSON.parse(ev.data); } catch (e) { return; }
+        var d = msg && msg.data;
+        if (!d || !d.s) return;
+        receberTick(d.s, Number(d.c), Number(d.o));
+    };
+    ws.onclose = function () {
+        if (mercado.ws !== ws) return;          // fechado de propósito
+        mercado.ws = null;
+        estado.definir('conexao', 'off');
+        // reconecta com espera crescente (2s, 4s, 8s... até 60s)
+        var espera = Math.min(60000, 2000 * Math.pow(2, mercado.wsTentativas++));
+        mercado.timerReconexao = setTimeout(function () {
+            if (rotaAtual === '/mercado') abrirSocket(streams);
+        }, espera);
+    };
+    ws.onerror = function () { /* onclose cuida */ };
+}
+
+function desconectarAoVivo() {
+    clearTimeout(mercado.timerReconexao);
+    if (mercado.ws) {
+        var ws = mercado.ws;
+        mercado.ws = null;
+        try { ws.close(); } catch (e) {}
+    }
+}
+
+function receberTick(simbolo, fechamento, abertura) {
+    var id, preco;
+    if (simbolo === 'USDTBRL') {
+        mercado.usdtbrl = fechamento;
+        id = mercado.wsMapa.USDTBRL_MOEDA;
+        preco = fechamento;
+    } else {
+        id = mercado.wsMapa[simbolo];
+        if (!id || !mercado.usdtbrl) return;
+        preco = fechamento * mercado.usdtbrl;
+    }
+    var m = id && mercado.porId[id];
+    if (!m || !(preco > 0)) return;
+
+    var anterior = m.preco;
+    m.preco = preco;
+    if (abertura > 0) m.var24h = (fechamento / abertura - 1) * 100;
+
+    var linha = document.querySelector('[data-moeda-id="' + id + '"]');
+    if (!linha) return;
+    var celPreco = linha.querySelector('[data-cel="preco"]');
+    var celVar = linha.querySelector('[data-cel="var24h"]');
+    if (celPreco && Math.abs(preco - anterior) / anterior > 1e-7) {
+        celPreco.setAttribute('data-brl', preco);
+        piscar(celPreco, preco > anterior);
+        animarNumero(celPreco, anterior, preco, function (v) { return formatarMoeda(v, 'preco'); }, 450);
+    }
+    if (celVar) celVar.innerHTML = varHTML(m.var24h);
+}
+
+function marcarLinhasAoVivo() {
+    mercado.lista.forEach(function (m) {
+        var linha = document.querySelector('[data-moeda-id="' + m.id + '"]');
+        if (linha) linha.classList.toggle('ao-vivo', m.aoVivo);
+    });
+}
+
+// ---------- desenho ----------
+function sparklineSVG(pontos, pct) {
+    if (!pontos || pontos.length < 2) return '<span class="sem-dado">—</span>';
+    // 168 pontos (1 por hora) viram ~42: o traço fica limpo e leve
+    var passo = Math.max(1, Math.floor(pontos.length / 42));
+    var amostra = pontos.filter(function (_, i) { return i % passo === 0; });
+    amostra.push(pontos[pontos.length - 1]);
+    var min = Math.min.apply(null, amostra), max = Math.max.apply(null, amostra);
+    var w = 120, h = 36, faixa = max - min || 1;
+    var d = amostra.map(function (v, i) {
+        var x = (i / (amostra.length - 1)) * w;
+        var y = h - 3 - ((v - min) / faixa) * (h - 6);
+        return (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
+    }).join(' ');
+    var cor = pct == null ? 'var(--texto-3)' : pct >= 0 ? 'var(--alta)' : 'var(--queda)';
+    return '<svg class="sparkline" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" aria-hidden="true">' +
+        '<path d="' + d + '" fill="none" stroke="' + cor + '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" pathLength="1"/></svg>';
+}
+
+function logoHTML(m) {
+    if (m.logo) {
+        return '<img class="moeda-logo" src="' + escapar(m.logo) + '" alt="" loading="lazy" width="28" height="28">';
+    }
+    return '<span class="moeda-icone" style="background: var(--superficie-3); color: var(--texto-2);">' + escapar(m.simbolo.slice(0, 3)) + '</span>';
+}
+
+function pctCelula(v) {
+    return v == null ? '<span class="sem-dado">—</span>' : varHTML(v);
+}
+
+function moedasFiltradas() {
+    var lista = mercado.lista.slice();
+    var fav = favoritos();
+    if (mercado.aba === 'favoritas') lista = lista.filter(function (m) { return fav.indexOf(m.id) !== -1; });
+    if (mercado.busca) {
+        var q = mercado.busca.toLowerCase();
+        lista = lista.filter(function (m) { return m.nome.toLowerCase().indexOf(q) !== -1 || m.simbolo.toLowerCase().indexOf(q) !== -1; });
+    }
+    if (mercado.aba === 'altas') {
+        lista = lista.filter(function (m) { return m.var24h > 0; }).sort(function (a, b) { return b.var24h - a.var24h; });
+        return lista;
+    }
+    if (mercado.aba === 'quedas') {
+        lista = lista.filter(function (m) { return m.var24h < 0; }).sort(function (a, b) { return a.var24h - b.var24h; });
+        return lista;
+    }
+    var o = mercado.ordem;
+    lista.sort(function (a, b) {
+        var va = a[o.campo], vb = b[o.campo];
+        if (va == null) return 1;
+        if (vb == null) return -1;
+        return o.desc ? vb - va : va - vb;
+    });
+    return lista;
+}
+
+function linhaHTML(m, primeiraVez) {
+    var fav = favoritos().indexOf(m.id) !== -1;
+    return '<tr data-moeda-id="' + escapar(m.id) + '" class="' + (m.aoVivo ? 'ao-vivo' : '') + '">' +
+        '<td class="col-fav"><button type="button" class="estrela' + (fav ? ' marcada' : '') + '" data-favorito="' + escapar(m.id) + '" aria-pressed="' + fav + '" aria-label="' +
+        (fav ? 'Tirar ' : 'Marcar ') + escapar(m.nome) + (fav ? ' das favoritas' : ' como favorita') + '">' + ICONE_ESTRELA + '</button></td>' +
+        '<td class="rank">' + (m.rank || '—') + '</td>' +
+        '<td><a role="link" tabindex="0" class="celula-moeda" data-rota="/moeda/' + escapar(m.id) + '">' + logoHTML(m) +
+        '<div><strong>' + escapar(m.nome) + '</strong> <span>' + escapar(m.simbolo) + '</span></div></a></td>' +
+        '<td><span class="preco-vivo" data-cel="preco" data-brl="' + m.preco + '" data-tipo="preco"></span></td>' +
+        '<td>' + pctCelula(m.var1h) + '</td>' +
+        '<td data-cel="var24h">' + pctCelula(m.var24h) + '</td>' +
+        '<td>' + pctCelula(m.var7d) + '</td>' +
+        '<td>' + (m.volume != null ? '<span data-brl="' + m.volume + '" data-tipo="compacto"></span>' : '<span class="sem-dado">—</span>') + '</td>' +
+        '<td>' + (m.valorMercado != null ? '<span data-brl="' + m.valorMercado + '" data-tipo="compacto"></span>' : '<span class="sem-dado">—</span>') + '</td>' +
+        '<td class="col-grafico' + (primeiraVez ? ' desenhar' : '') + '">' + sparklineSVG(m.sparkline, m.var7d) + '</td>' +
+        '</tr>';
+}
+
+var ICONE_ESTRELA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6l2.5 5.2 5.7.7-4.2 3.9 1.1 5.6L12 16.3 6.9 19l1.1-5.6-4.2-3.9 5.7-.7z"/></svg>';
+
+var COLUNAS = [
+    { campo: null, rotulo: '', cls: 'col-fav' },
+    { campo: 'rank', rotulo: '#' },
+    { campo: null, rotulo: 'Moeda' },
+    { campo: 'preco', rotulo: 'Preço' },
+    { campo: 'var1h', rotulo: '1h' },
+    { campo: 'var24h', rotulo: '24h' },
+    { campo: 'var7d', rotulo: '7d' },
+    { campo: 'volume', rotulo: 'Volume 24h' },
+    { campo: 'valorMercado', rotulo: 'Valor de mercado' },
+    { campo: null, rotulo: 'Últimos 7 dias', cls: 'col-grafico' },
+];
+
+function cabecalhoTabelaHTML() {
+    var o = mercado.ordem;
+    var ordenavel = mercado.aba === 'todas' || mercado.aba === 'favoritas';
+    return '<tr>' + COLUNAS.map(function (c) {
+        if (!c.campo || !ordenavel) return '<th class="' + (c.cls || '') + '">' + c.rotulo + '</th>';
+        var ativa = o.campo === c.campo;
+        return '<th class="ordenavel' + (ativa ? ' ativa' : '') + '" aria-sort="' + (ativa ? (o.desc ? 'descending' : 'ascending') : 'none') + '">' +
+            '<button type="button" data-ordenar="' + c.campo + '">' + c.rotulo +
+            '<span class="seta-ordem">' + (ativa ? (o.desc ? '▼' : '▲') : '') + '</span></button></th>';
+    }).join('') + '</tr>';
+}
+
+function desenharTabela(primeiraVez) {
+    var tabela = document.getElementById('tabela-mercado');
+    if (!tabela) return;
+    var lista = moedasFiltradas();
+    tabela.querySelector('thead').innerHTML = cabecalhoTabelaHTML();
+    var corpo = tabela.querySelector('tbody');
+    if (!lista.length) {
+        var vazio = mercado.aba === 'favoritas' && !mercado.busca
+            ? 'Nenhuma favorita ainda. Toque na estrela ao lado de uma moeda pra acompanhar ela aqui.'
+            : mercado.busca ? 'Nenhuma moeda encontrada pra "' + escapar(mercado.busca) + '".' : 'Nada por aqui agora.';
+        corpo.innerHTML = '<tr><td colspan="10" class="tabela-vazia">' + vazio + '</td></tr>';
+        return;
+    }
+    corpo.innerHTML = lista.map(function (m) { return linhaHTML(m, primeiraVez); }).join('');
+    preencherValores(corpo);
+}
+
+function destaquesHTML() {
+    var l = mercado.lista;
+    var comVar = l.filter(function (m) { return m.var24h != null; });
+    var altas = comVar.slice().sort(function (a, b) { return b.var24h - a.var24h; }).slice(0, 3);
+    var quedas = comVar.slice().sort(function (a, b) { return a.var24h - b.var24h; }).slice(0, 3);
+
+    function mini(m) {
+        return '<a role="link" tabindex="0" class="destaque-linha" data-rota="/moeda/' + escapar(m.id) + '">' +
+            logoHTML(m) + '<span class="destaque-nome">' + escapar(m.simbolo) + '</span>' +
+            '<span class="destaque-preco" data-brl="' + m.preco + '" data-tipo="preco"></span>' + varHTML(m.var24h) + '</a>';
+    }
+
+    var terceiro;
+    if (mercado.modo === 'completo') {
+        var total = l.reduce(function (s, m) { return s + (m.valorMercado || 0); }, 0);
+        var volume = l.reduce(function (s, m) { return s + (m.volume || 0); }, 0);
+        var btc = mercado.porId.bitcoin;
+        var dominancia = btc && total ? btc.valorMercado / total * 100 : null;
+        terceiro = '<div class="destaque"><p class="destaque-titulo">As 100 maiores</p>' +
+            '<div class="destaque-numeros">' +
+            '<div><span>Valor de mercado</span><strong data-brl="' + total + '" data-tipo="compacto"></strong></div>' +
+            '<div><span>Volume em 24h</span><strong data-brl="' + volume + '" data-tipo="compacto"></strong></div>' +
+            (dominancia != null ? '<div><span>Peso do bitcoin</span><strong>' + formatarBR(dominancia, 1) + '%</strong></div>' : '') +
+            '</div></div>';
+    } else {
+        terceiro = '<div class="destaque"><p class="destaque-titulo">Modo simplificado</p>' +
+            '<p class="destaque-aviso">A CoinGecko não respondeu agora, então os dados vêm só da Binance: sem valor de mercado, logos e gráfico de 7 dias. Tenta de novo em alguns minutos.</p></div>';
+    }
+
+    return '<div class="destaques">' +
+        '<div class="destaque"><p class="destaque-titulo">Maiores altas em 24h</p>' + altas.map(mini).join('') + '</div>' +
+        '<div class="destaque"><p class="destaque-titulo">Maiores quedas em 24h</p>' + quedas.map(mini).join('') + '</div>' +
+        terceiro + '</div>';
+}
+
+function statusConexaoHTML() {
+    return '<span class="conexao" id="conexao" data-estado="conectando"><span class="conexao-ponto"></span><span class="conexao-texto">Conectando…</span></span>';
+}
+
+function atualizarStatusConexao(v) {
+    var el = document.getElementById('conexao');
+    if (!el) return;
+    el.setAttribute('data-estado', v);
+    el.querySelector('.conexao-texto').textContent = {
+        'ao-vivo': 'Preços ao vivo',
+        conectando: 'Conectando…',
+        off: 'Sem atualização ao vivo',
+    }[v] || '';
+}
+
+function paginaMercado() {
+    var linhasEsqueleto = '';
+    for (var i = 0; i < 10; i++) {
+        linhasEsqueleto += '<tr><td class="col-fav"></td><td class="rank">' + (i + 1) + '</td>' +
+            '<td><div class="celula-moeda"><span class="esqueleto" style="width: 28px; height: 28px; border-radius: 50%;"></span>' +
+            '<span class="esqueleto" style="width: ' + (90 + (i * 37) % 60) + 'px;"></span></div></td>' +
+            '<td><span class="esqueleto" style="width: 90px; margin-left: auto;"></span></td>' +
+            '<td><span class="esqueleto" style="width: 44px; margin-left: auto;"></span></td>' +
+            '<td><span class="esqueleto" style="width: 44px; margin-left: auto;"></span></td>' +
+            '<td><span class="esqueleto" style="width: 44px; margin-left: auto;"></span></td>' +
+            '<td><span class="esqueleto" style="width: 80px; margin-left: auto;"></span></td>' +
+            '<td><span class="esqueleto" style="width: 90px; margin-left: auto;"></span></td>' +
+            '<td class="col-grafico"><span class="esqueleto" style="width: 110px; height: 30px; margin-left: auto;"></span></td></tr>';
+    }
+    var abas = [['todas', 'Todas'], ['favoritas', 'Favoritas'], ['altas', 'Em alta'], ['quedas', 'Em queda']];
+    return '<div class="pagina">' +
+        '<div class="pagina-cabecalho"><div><h1>Mercado</h1>' +
+        '<p>As 100 maiores criptomoedas por valor de mercado, com preço em tempo real.</p></div>' +
+        statusConexaoHTML() + '</div>' +
+        '<div id="destaques-mercado"><div class="destaques">' +
+        '<div class="destaque"><span class="esqueleto" style="width: 60%;"></span><span class="esqueleto" style="margin-top: 16px;"></span><span class="esqueleto" style="margin-top: 12px;"></span><span class="esqueleto" style="margin-top: 12px;"></span></div>' +
+        '<div class="destaque"><span class="esqueleto" style="width: 60%;"></span><span class="esqueleto" style="margin-top: 16px;"></span><span class="esqueleto" style="margin-top: 12px;"></span><span class="esqueleto" style="margin-top: 12px;"></span></div>' +
+        '<div class="destaque"><span class="esqueleto" style="width: 60%;"></span><span class="esqueleto" style="margin-top: 16px;"></span><span class="esqueleto" style="margin-top: 12px;"></span></div>' +
+        '</div></div>' +
+        '<div class="barra-tabela"><div class="segmentado" role="tablist" aria-label="Filtrar moedas">' +
+        abas.map(function (a) {
+            return '<button type="button" role="tab" data-aba="' + a[0] + '" aria-pressed="' + (mercado.aba === a[0]) + '">' + a[1] + '</button>';
+        }).join('') + '</div>' +
+        '<span class="barra-info" id="mercado-info"></span></div>' +
+        '<div class="painel painel-tabela">' +
+        '<table class="tabela tabela-mercado" id="tabela-mercado"><thead>' + cabecalhoTabelaHTML() + '</thead>' +
+        '<tbody>' + linhasEsqueleto + '</tbody></table></div>' +
+        '</div>';
+}
+
+ROTAS['/mercado'].montar = function (miolo) {
+    estado.ouvir('conexao', atualizarStatusConexao, true);
+    atualizarStatusConexao(estado.ler('conexao') || 'conectando');
+
+    carregarMercado().then(function () {
+        if (rotaAtual !== '/mercado') return;
+        document.getElementById('destaques-mercado').innerHTML = destaquesHTML();
+        preencherValores(document.getElementById('destaques-mercado'));
+        desenharTabela(true);
+        atualizarInfoMercado();
+        conectarAoVivo();
+    }).catch(function () {
+        var corpo = miolo.querySelector('#tabela-mercado tbody');
+        if (corpo) corpo.innerHTML = '<tr><td colspan="10" class="tabela-vazia">Não consegui buscar o mercado agora, nem na CoinGecko nem na Binance. Confira a conexão e recarregue a página.</td></tr>';
+        document.getElementById('destaques-mercado').innerHTML = '';
+        estado.definir('conexao', 'off');
+    });
+};
+
+function atualizarInfoMercado() {
+    var el = document.getElementById('mercado-info');
+    if (!el || !mercado.atualizadoEm) return;
+    var d = new Date(mercado.atualizadoEm);
+    var hora = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    el.textContent = (mercado.modo === 'completo' ? 'Dados de mercado da CoinGecko' : 'Dados da Binance') +
+        ' de ' + hora + (mercado.velho ? ' (sem atualizar: limite de consultas)' : '') + '. Preço ao vivo pela Binance.';
+}
+
+// ---------- interações ----------
+document.addEventListener('click', function (ev) {
+    var estrela = ev.target.closest('[data-favorito]');
+    if (estrela) {
+        ev.stopPropagation();
+        var marcou = alternarFavorito(estrela.getAttribute('data-favorito'));
+        estrela.classList.toggle('marcada', marcou);
+        estrela.setAttribute('aria-pressed', marcou);
+        if (mercado.aba === 'favoritas') desenharTabela(false);
+        return;
+    }
+    var aba = ev.target.closest('[data-aba]');
+    if (aba) {
+        mercado.aba = aba.getAttribute('data-aba');
+        document.querySelectorAll('[data-aba]').forEach(function (b) {
+            b.setAttribute('aria-pressed', b === aba ? 'true' : 'false');
+        });
+        desenharTabela(false);
+        return;
+    }
+    var ord = ev.target.closest('[data-ordenar]');
+    if (ord) {
+        var campo = ord.getAttribute('data-ordenar');
+        if (mercado.ordem.campo === campo) mercado.ordem.desc = !mercado.ordem.desc;
+        else mercado.ordem = { campo: campo, desc: campo !== 'rank' };
+        desenharTabela(false);
+    }
+});
+
+// busca do topo: filtra o mercado enquanto digita; de outra página, Enter
+// leva pro mercado já filtrado
+document.addEventListener('input', function (ev) {
+    if (ev.target.id !== 'busca-global') return;
+    mercado.busca = ev.target.value.trim();
+    if (rotaAtual === '/mercado') desenharTabela(false);
+});
+document.addEventListener('keydown', function (ev) {
+    if (ev.target.id !== 'busca-global') return;
+    if (ev.key === 'Enter' && rotaAtual !== '/mercado') navegar('/mercado');
+    if (ev.key === 'Escape') {
+        ev.target.value = '';
+        mercado.busca = '';
+        if (rotaAtual === '/mercado') desenharTabela(false);
+    }
+});
+
+
+/* =================================================================
+   INÍCIO
+   ================================================================= */
+carregarArmazenamento().then(function () {
+    prefs = armazem.json('PREFS', prefs);
+    estado.definir('taxas', armazem.json('TAXAS', {}) || {});
+    estado.definir('moeda', MOEDAS[prefs.moeda] ? prefs.moeda : 'BRL');
+    estado.definir('conexao', 'conectando');
+
+    rotaAtual = lerRotaDoEndereco() || ROTA_INICIAL;
+    desenhar();
+
+    buscarTaxas();
+    atualizarPulso();
+    setInterval(atualizarPulso, 30000);
+    setInterval(buscarTaxas, TAXAS_TTL);
+});
+
+})();
+</script>
+</body>
+</html>
