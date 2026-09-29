@@ -38,6 +38,8 @@
                           destaques, abas, ordenação, favoritos, busca.
   [ETAPA 1.1 · 29/09/2026] CoinGecko exige chave (403 sem ela): chave Demo
                           embutida + regra de no máximo 1 chamada por dia.
+  [ETAPA 1.2 · 29/09/2026] largura máxima 1240 -> 1400px e colunas fixas na
+                          tabela do Mercado (sem rolagem, nome perto do preço).
 -->
 <html lang="pt-BR" data-tema="escuro">
 <head>
@@ -195,7 +197,7 @@ a[data-rota] {
 
 /* mesma largura e alinhamento do conteúdo das páginas */
 .topo-interno {
-    max-width: 1240px;
+    max-width: 1400px;
     margin: 0 auto;
     height: var(--topo);
     padding: 0 28px;
@@ -420,7 +422,7 @@ main#miolo {
 
 /* rodapé: versão, autoria e o aviso de privacidade */
 .rodape {
-    max-width: 1240px;
+    max-width: 1400px;
     width: 100%;
     margin: 0 auto;
     padding: 20px 28px 28px;
@@ -517,7 +519,7 @@ main#miolo {
 /* ---------- página ---------- */
 .pagina {
     width: 100%;
-    max-width: 1240px;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 28px 28px 48px;
 }
@@ -1105,6 +1107,24 @@ main#miolo {
 .tabela-mercado td {
     padding: 12px 14px;
 }
+
+/* [ETAPA 1.2] larguras fixas por coluna: a coluna da moeda fica só com a
+   sobra, então o nome não fica longe do preço, e o minigráfico cabe sem
+   rolagem. Abaixo de 1080px a tabela rola na horizontal. */
+.tabela-mercado {
+    table-layout: fixed;
+    min-width: 1080px;
+}
+
+.tabela-mercado th:nth-child(1) { width: 44px; }
+.tabela-mercado th:nth-child(2) { width: 48px; }
+.tabela-mercado th:nth-child(4) { width: 150px; }
+.tabela-mercado th:nth-child(5) { width: 100px; }
+.tabela-mercado th:nth-child(6) { width: 100px; }
+.tabela-mercado th:nth-child(7) { width: 100px; }
+.tabela-mercado th:nth-child(8) { width: 150px; }
+.tabela-mercado th:nth-child(9) { width: 160px; }
+.tabela-mercado th:nth-child(10) { width: 150px; }
 
 .tabela-mercado .col-fav {
     width: 36px;
