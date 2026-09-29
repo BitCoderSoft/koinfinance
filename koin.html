@@ -17,11 +17,13 @@
     3. Motor         compra, venda, entrada, saída, conversão + validação
     4. Portfólio     resumo, evolução real, alocação, tabela
     5. Responsivo    celular: menu sanduíche, listas e cartões, telas de app
-    6. Extras        balanceamento, objetivos, alertas, backup
-    7. PWA           manifest, service worker, instalação
+    6. Identificação perfis por dispositivo, PIN local (Etapa 6.1: email real)
+    7. Extras        balanceamento, objetivos, alertas, backup
+    8. PWA           manifest, service worker, instalação
 
   Ordem alterada em 29/09/2026: o responsivo foi adiantado e passou a ser a
-  Etapa 5; os extras desceram para a 6. Etapa adiantada = renumerar em ordem.
+  Etapa 5; os extras desceram para a 7 após inserção da Etapa 6 (identificação)
+  em 29/09/2026. Etapa adiantada = renumerar em ordem.
 
   Decisões de base:
     - Tema ESCURO primeiro. O claro já tem os tokens mapeados (comentados
@@ -29,8 +31,8 @@
     - Moeda de exibição: Real (padrão), Dólar ou Bitcoin. Todo valor do
       app é guardado e calculado em REAIS; a conversão acontece só na hora
       de mostrar (ver formatarMoeda e o atributo data-brl).
-    - Sem login: os dados ficam no dispositivo de quem usa. Backup em
-      arquivo cobre a troca de aparelho (Etapa 6).
+    - Identificação por perfil + PIN (Etapa 6): múltiplos perfis por
+      dispositivo, dados separados. Backup em arquivo (Etapa 7).
     - Herança do Dash Finance: armazenamento com fallback pro preview do
       claude.ai, navegação sem href, formulários sem submit nativo,
       formatação pt-BR. Tudo reaproveitado e marcado como [HERANÇA].
@@ -58,6 +60,8 @@
   [ETAPA 4.1 / 5.1 · 29/09/2026] ajustes do relatório de testes no celular: topo fixo,
                           bolinhas nos destaques, gráficos menores no celular,
                           escala do portfólio, sinal negativo, rosca com 1 moeda etc.
+  [ETAPA 6 · 29/09/2026] identificação: múltiplos perfis, PIN criptografado com
+                          e-mail (AES-GCM, SubtleCrypto), sessão por aba.
 -->
 <html lang="pt-BR" data-tema="escuro">
 <head>
@@ -2604,6 +2608,221 @@ body:has(#gaveta.aberta) .avisos {
         font-size: 22px;
     }
 }
+
+/* =================================================================
+   TELAS DE IDENTIFICAÇÃO  [ETAPA 6]
+   Sobreposição de tela cheia antes do app carregar.
+   ================================================================= */
+
+.tela-entrada {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.tela-caixa {
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.tela-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.tela-logo svg {
+    width: 36px;
+    height: 36px;
+}
+
+.tela-logo-nome {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--marca);
+    letter-spacing: -0.02em;
+}
+
+.tela-titulo {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--texto);
+    margin: 0;
+}
+
+.tela-texto {
+    font-size: 14px;
+    color: var(--texto-2);
+    margin: 0;
+    line-height: 1.5;
+}
+
+.tela-aviso {
+    font-size: 13px;
+    color: var(--texto-2);
+    background: var(--superficie-2);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.tela-link {
+    background: none;
+    border: none;
+    color: var(--marca);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px 0;
+    text-align: left;
+}
+
+.tela-link:hover { text-decoration: underline; }
+
+.tela-link-sair {
+    font-size: 13px;
+    color: var(--texto-3);
+}
+
+.tela-link-sair:hover {
+    color: var(--queda);
+}
+
+.tela-voltar {
+    display: block;
+    margin: 12px auto 0;
+    color: var(--texto-3);
+    font-size: 13px;
+}
+
+.tela-pin-resultado {
+    font-size: 15px;
+    color: var(--texto);
+    background: var(--superficie-2);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 4px;
+}
+
+.tela-pin-resultado strong {
+    color: var(--marca);
+    font-family: 'Unbounded', sans-serif;
+    letter-spacing: 0.1em;
+}
+
+/* lista de perfis */
+.perfis-lista {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.perfil-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 12px;
+    background: var(--superficie);
+    border: 2px solid var(--borda);
+    border-radius: 14px;
+    cursor: pointer;
+    flex: 1;
+    min-width: 90px;
+    transition: border-color 0.15s;
+}
+
+.perfil-card:hover,
+.perfil-card.ativo {
+    border-color: var(--marca);
+}
+
+.perfil-card-nome {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--texto);
+    text-align: center;
+    word-break: break-all;
+}
+
+.perfil-novo .avatar-novo {
+    background: var(--superficie-2);
+    border: 2px dashed var(--borda);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: var(--texto-3);
+    border-radius: 50%;
+}
+
+/* área do PIN (aparece ao selecionar perfil) */
+.pin-area {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 4px;
+}
+
+.pin-area-quem {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--texto);
+    margin: 0;
+}
+
+.pin-entrada {
+    font-family: 'Unbounded', sans-serif;
+    letter-spacing: 0.3em;
+    font-size: 20px;
+    text-align: center;
+}
+
+/* avatar circular */
+.avatar {
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+/* avatar no topo (computador) */
+.usuario-topo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 8px;
+}
+
+/* avatar no topo mobile */
+.usuario-mobile-nome {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--texto);
+}
+
+@media (max-width: 768px) {
+    .perfil-card {
+        padding: 12px 10px;
+    }
+}
 </style>
 </head>
 <body>
@@ -2727,11 +2946,12 @@ var estado = (function () {
     };
 })();
 
-// preferências persistidas
-var prefs = armazem.json('PREFS', { moeda: 'BRL' });
+// preferências: carregadas em iniciarApp() depois de estabelecer a sessão
+var prefs = { moeda: 'BRL' };
 
 function salvarPrefs() {
-    armazem.set('PREFS', JSON.stringify(prefs));
+    var chave = sessaoAtual() ? 'PREFS_' + sessaoAtual() : 'PREFS';
+    armazem.set(chave, JSON.stringify(prefs));
 }
 
 
@@ -3151,7 +3371,9 @@ function menuMobileHTML() {
     }).join('') + secoes(NAV_CONTA);
 
     return '<div class="menu-mobile" id="menu-mobile" aria-hidden="true">' +
+        // [ETAPA 6] nome do usuário logado; preenchido por atualizarInfoUsuario()
         '<div class="menu-mobile-topo"><span class="marca">' + MARCA_SVG + '<span class="marca-nome">' + APP.nome + '</span></span>' +
+        '<span class="usuario-mobile-nome" id="usuario-nome-mobile"></span>' +
         '<button type="button" class="botao-icone" data-menu-fechar aria-label="Fechar menu">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
         '<nav class="menu-mobile-nav" aria-label="Menu">' + corpo + '</nav></div>';
@@ -3188,6 +3410,8 @@ function cascaHTML() {
         ' aria-label="Ajustes e projeto" data-grupo-rotas="' + NAV_CONTA.map(function (s) { return rotasDoGrupo([s]); }).join(' ') + '">' +
         icone('ajustes') + '</button>' +
         menuSuspensoHTML(NAV_CONTA, 'menu-conta', 'direita') + '</div>' +
+        // [ETAPA 6] avatar do perfil logado + botão de sair (só computador)
+        '<div id="usuario-topo" class="usuario-topo so-computador"></div>' +
         // [ETAPA 5] só aparecem no celular (ver bloco CELULAR no CSS)
         '<button type="button" class="botao-icone botao-busca-mobile" data-busca-toggle aria-label="Buscar moeda">' + icone('busca') + '</button>' +
         '<button type="button" class="botao-icone botao-menu" data-menu-abrir aria-label="Abrir menu" aria-controls="menu-mobile">' + ICONE_MENU + '</button>' +
@@ -4912,14 +5136,385 @@ function verificarCronologia(transacoes, alteracao) {
 // ---------- banco local (só neste aparelho) ----------
 // BANCO = { moedas: { id: { id, simbolo, nome, logo } }, transacoes: [...], proximoId }
 // `moedas` guarda o cadastro de cada moeda já lançada, pra a tela de
+/* =================================================================
+   IDENTIFICAÇÃO  [ETAPA 6 · 29/09/2026]
+   Múltiplos perfis por dispositivo. Cada perfil tem nome de usuário
+   (sem espaços), e-mail e PIN (4 ou 6 dígitos). O PIN é cifrado com
+   AES-GCM usando o e-mail como chave (via PBKDF2). "Esqueci meu PIN"
+   decifra e mostra o PIN para quem conhece o e-mail cadastrado.
+   Sessão em sessionStorage: dura enquanto a aba estiver aberta.
+   ================================================================= */
+
+// ─── Armazenamento de perfis ─────────────────────────────────────
+function lerUsuarios() {
+    return armazem.json('USUARIOS', []) || [];
+}
+function gravarUsuarios(lista) {
+    armazem.set('USUARIOS', JSON.stringify(lista));
+}
+function buscarUsuarioPorId(id) {
+    return lerUsuarios().filter(function (u) { return u.id === id; })[0] || null;
+}
+function buscarUsuarioPorEmail(email) {
+    var em = (email || '').toLowerCase().trim();
+    return lerUsuarios().filter(function (u) { return u.email === em; })[0] || null;
+}
+
+// ─── Sessão ───────────────────────────────────────────────────────
+// sessionStorage: survives page reload, not browser/tab close.
+var _sessaoId = null;
+function sessaoAtual() {
+    if (_sessaoId) return _sessaoId;
+    try { _sessaoId = sessionStorage.getItem('KOIN_SESSAO'); } catch (e) {}
+    return _sessaoId;
+}
+function iniciarSessao(id) {
+    _sessaoId = id;
+    try { sessionStorage.setItem('KOIN_SESSAO', id); } catch (e) {}
+}
+function encerrarSessao() {
+    _sessaoId = null;
+    try { sessionStorage.removeItem('KOIN_SESSAO'); } catch (e) {}
+}
+
+// ─── Crypto: AES-GCM + PBKDF2 ────────────────────────────────────
+function _strBuf(s) { return new TextEncoder().encode(s); }
+function _b64(buf) { return btoa(String.fromCharCode.apply(null, new Uint8Array(buf))); }
+function _debuf(b64) {
+    var s = atob(b64), b = new Uint8Array(s.length);
+    for (var i = 0; i < s.length; i++) b[i] = s.charCodeAt(i);
+    return b.buffer;
+}
+
+function _derivarChave(email, salt) {
+    return crypto.subtle.importKey('raw', _strBuf(email.toLowerCase().trim()), 'PBKDF2', false, ['deriveKey'])
+        .then(function (mat) {
+            return crypto.subtle.deriveKey(
+                { name: 'PBKDF2', salt: salt, iterations: 100000, hash: 'SHA-256' },
+                mat, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
+            );
+        });
+}
+
+function encriptarPIN(pin, email) {
+    var salt = crypto.getRandomValues(new Uint8Array(16));
+    var iv   = crypto.getRandomValues(new Uint8Array(12));
+    return _derivarChave(email, salt).then(function (chave) {
+        return crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, chave, _strBuf(pin));
+    }).then(function (cifrado) {
+        return { encriptado: _b64(cifrado), salt: _b64(salt), iv: _b64(iv) };
+    });
+}
+
+function decriptarPIN(dados, email) {
+    return _derivarChave(email, _debuf(dados.salt)).then(function (chave) {
+        return crypto.subtle.decrypt({ name: 'AES-GCM', iv: _debuf(dados.iv) }, chave, _debuf(dados.encriptado));
+    }).then(function (claro) {
+        return new TextDecoder().decode(claro);
+    });
+}
+
+// ─── Avatar ───────────────────────────────────────────────────────
+var AVATAR_CORES = ['#3987e5', '#d95926', '#9085e9', '#c98500', '#d55181'];
+function corAvatar(nome) {
+    var soma = 0;
+    for (var i = 0; i < nome.length; i++) soma += nome.charCodeAt(i);
+    return AVATAR_CORES[soma % AVATAR_CORES.length];
+}
+function avatarHTML(usuario, tam) {
+    tam = tam || 40;
+    return '<div class="avatar" style="width:' + tam + 'px;height:' + tam + 'px;background:' + corAvatar(usuario.nomeUsuario) + '" aria-hidden="true">' +
+        escapar(usuario.nomeUsuario.charAt(0).toUpperCase()) + '</div>';
+}
+
+// ─── Info do usuário na casca ─────────────────────────────────────
+function atualizarInfoUsuario() {
+    var u = buscarUsuarioPorId(sessaoAtual());
+    if (!u) return;
+    // avatar no topo (computador)
+    var topo = document.getElementById('usuario-topo');
+    if (topo) {
+        topo.innerHTML = avatarHTML(u, 34) +
+            '<button type="button" class="tela-link tela-link-sair" data-sair title="Sair da conta">Sair</button>';
+    }
+    // nome no menu mobile
+    var nomeMob = document.getElementById('usuario-nome-mobile');
+    if (nomeMob) nomeMob.textContent = u.nomeUsuario;
+}
+
+// ─── Telas de entrada ─────────────────────────────────────────────
+var _usuarioSelecionadoId = null;   // qual perfil foi clicado na lista
+
+function _logoTela() {
+    return '<div class="tela-logo">' + MARCA_SVG + '<span class="tela-logo-nome">' + APP.nome + '</span></div>';
+}
+
+function telaListaHTML(usuarios) {
+    var cards = usuarios.map(function (u) {
+        return '<button type="button" class="perfil-card" data-perfil="' + escapar(u.id) + '">' +
+            avatarHTML(u, 52) + '<span class="perfil-card-nome">' + escapar(u.nomeUsuario) + '</span></button>';
+    }).join('');
+    var pinArea = '<div id="pin-area" class="pin-area" hidden>' +
+        '<p class="pin-area-quem" id="pin-area-quem"></p>' +
+        '<input type="password" inputmode="numeric" class="entrada pin-entrada" id="pin-entrada" placeholder="PIN" maxlength="6" autocomplete="current-password">' +
+        '<div id="pin-erro" class="erro-campo" hidden></div>' +
+        '<button type="button" class="botao botao-marca botao-cheio" data-login-submit>Entrar</button>' +
+        '<button type="button" class="tela-link" data-tela="esqueci">Esqueci meu PIN</button>' +
+        '</div>';
+    return _logoTela() +
+        '<h2 class="tela-titulo">Bem-vindo de volta</h2>' +
+        '<div class="perfis-lista">' + cards +
+        '<button type="button" class="perfil-card perfil-novo" data-tela="criar"><div class="avatar avatar-novo" style="width:52px;height:52px">+</div><span class="perfil-card-nome">Novo perfil</span></button>' +
+        '</div>' + pinArea;
+}
+
+function telaCriarHTML() {
+    return _logoTela() +
+        '<h2 class="tela-titulo">Criar perfil</h2>' +
+        '<div class="campo-grupo">' +
+        '<label class="campo-label" for="novo-nome">Nome de usuário <span class="campo-nota">(sem espaços)</span></label>' +
+        '<input type="text" class="entrada" id="novo-nome" placeholder="ErisvaldoCorreia" maxlength="30" autocomplete="off">' +
+        '<div class="erro-campo" id="erro-nome" hidden></div></div>' +
+        '<div class="campo-grupo">' +
+        '<label class="campo-label" for="novo-email">E-mail</label>' +
+        '<input type="email" class="entrada" id="novo-email" placeholder="email@exemplo.com" autocomplete="email">' +
+        '<div class="erro-campo" id="erro-email" hidden></div></div>' +
+        '<div class="campo-grupo">' +
+        '<label class="campo-label">Comprimento do PIN</label>' +
+        '<div class="segmentado">' +
+        '<button type="button" data-pin-comp="4" aria-pressed="true">4 dígitos</button>' +
+        '<button type="button" data-pin-comp="6" aria-pressed="false">6 dígitos</button>' +
+        '</div></div>' +
+        '<div class="campo-grupo">' +
+        '<label class="campo-label" for="novo-pin">PIN</label>' +
+        '<input type="password" inputmode="numeric" class="entrada pin-entrada" id="novo-pin" placeholder="••••" maxlength="4" autocomplete="new-password">' +
+        '<div class="erro-campo" id="erro-pin" hidden></div></div>' +
+        '<div class="campo-grupo">' +
+        '<label class="campo-label" for="novo-pin-conf">Confirmar PIN</label>' +
+        '<input type="password" inputmode="numeric" class="entrada pin-entrada" id="novo-pin-conf" placeholder="••••" maxlength="4" autocomplete="new-password">' +
+        '<div class="erro-campo" id="erro-pin-conf" hidden></div></div>' +
+        '<p class="tela-aviso">⚠ Guarde seu PIN. Se esquecer, você poderá recuperá-lo com o e-mail cadastrado.</p>' +
+        '<button type="button" class="botao botao-marca botao-cheio" id="btn-criar-perfil">Criar perfil</button>' +
+        '<div class="erro-campo" id="erro-criar" hidden></div>';
+}
+
+function telaEsqueciHTML() {
+    return _logoTela() +
+        '<h2 class="tela-titulo">Recuperar PIN</h2>' +
+        '<p class="tela-texto">Digite o e-mail cadastrado no perfil. Se estiver correto, seu PIN será mostrado.</p>' +
+        '<div class="campo-grupo">' +
+        '<label class="campo-label" for="rec-email">E-mail</label>' +
+        '<input type="email" class="entrada" id="rec-email" placeholder="email@exemplo.com" autocomplete="email">' +
+        '</div>' +
+        '<button type="button" class="botao botao-marca botao-cheio" id="btn-recuperar">Mostrar meu PIN</button>' +
+        '<div class="tela-pin-resultado" id="rec-resultado" hidden></div>' +
+        '<div class="erro-campo" id="rec-erro" hidden></div>';
+}
+
+function mostrarTelaDeEntrada(usuarios) {
+    _usuarioSelecionadoId = null;
+    var app = document.getElementById('app');
+    var telaNome = usuarios.length === 0 ? 'criar' : 'lista';
+    app.innerHTML = '<div class="tela-entrada" id="tela-entrada">' +
+        '<div class="tela-caixa" id="tela-caixa">' +
+        (telaNome === 'criar' ? telaCriarHTML() : telaListaHTML(usuarios)) +
+        '</div>' +
+        (usuarios.length > 0 ? '<button type="button" class="tela-link tela-voltar" id="tela-voltar" hidden data-tela-voltar>← Voltar</button>' : '') +
+        '</div>';
+}
+
+function trocarSubtela(nome, usuarios) {
+    var caixa = document.getElementById('tela-caixa');
+    var voltar = document.getElementById('tela-voltar');
+    if (!caixa) return;
+    if (nome === 'lista') {
+        caixa.innerHTML = telaListaHTML(usuarios || lerUsuarios());
+        if (voltar) voltar.hidden = true;
+    } else if (nome === 'criar') {
+        caixa.innerHTML = telaCriarHTML();
+        if (voltar) voltar.hidden = false;
+    } else if (nome === 'esqueci') {
+        caixa.innerHTML = telaEsqueciHTML();
+        if (voltar) voltar.hidden = false;
+    }
+    _usuarioSelecionadoId = null;
+}
+
+// ─── Lógica das telas ─────────────────────────────────────────────
+function _mostrarErro(id, msg) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg;
+    el.hidden = !msg;
+}
+function _setarOcupado(btnId, ocupado, textoOriginal) {
+    var btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.disabled = ocupado;
+    btn.textContent = ocupado ? 'Aguarde…' : textoOriginal;
+}
+
+function tentarLogin() {
+    if (!_usuarioSelecionadoId) return;
+    var pin = (document.getElementById('pin-entrada') || {}).value || '';
+    _mostrarErro('pin-erro', '');
+    if (!pin) { _mostrarErro('pin-erro', 'Digite o PIN.'); return; }
+    var btn = document.querySelector('[data-login-submit]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Aguarde…'; }
+    var usuario = buscarUsuarioPorId(_usuarioSelecionadoId);
+    if (!usuario) { _mostrarErro('pin-erro', 'Perfil não encontrado.'); if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; } return; }
+    decriptarPIN(usuario.pinDados, usuario.email).then(function (pinSalvo) {
+        if (pinSalvo === pin) {
+            iniciarSessao(usuario.id);
+            iniciarApp();
+        } else {
+            _mostrarErro('pin-erro', 'PIN incorreto. Verifique e tente novamente.');
+            if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
+        }
+    }).catch(function () {
+        _mostrarErro('pin-erro', 'PIN incorreto. Verifique e tente novamente.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
+    });
+}
+
+function criarPerfil() {
+    var nome  = ((document.getElementById('novo-nome') || {}).value || '').trim();
+    var email = ((document.getElementById('novo-email') || {}).value || '').toLowerCase().trim();
+    var pin   = (document.getElementById('novo-pin') || {}).value || '';
+    var conf  = (document.getElementById('novo-pin-conf') || {}).value || '';
+    _mostrarErro('erro-nome', '');
+    _mostrarErro('erro-email', '');
+    _mostrarErro('erro-pin', '');
+    _mostrarErro('erro-pin-conf', '');
+    _mostrarErro('erro-criar', '');
+    var ok = true;
+    if (!nome || !/^[A-Za-z0-9]{2,30}$/.test(nome)) {
+        _mostrarErro('erro-nome', 'Use apenas letras e números, sem espaços (2 a 30 caracteres).'); ok = false;
+    }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        _mostrarErro('erro-email', 'Digite um e-mail válido.'); ok = false;
+    }
+    var usuarios = lerUsuarios();
+    if (ok && usuarios.some(function (u) { return u.nomeUsuario.toLowerCase() === nome.toLowerCase(); })) {
+        _mostrarErro('erro-nome', 'Já existe um perfil com esse nome.'); ok = false;
+    }
+    if (ok && !pin) { _mostrarErro('erro-pin', 'Digite o PIN.'); ok = false; }
+    if (ok && !/^[0-9]{4}$|^[0-9]{6}$/.test(pin)) { _mostrarErro('erro-pin', 'O PIN deve ter 4 ou 6 dígitos numéricos.'); ok = false; }
+    if (ok && pin !== conf) { _mostrarErro('erro-pin-conf', 'Os PINs não coincidem.'); ok = false; }
+    if (!ok) return;
+    _setarOcupado('btn-criar-perfil', true, 'Criar perfil');
+    // chave derivada só do email; o PIN vai como texto cifrado
+    // recuperação = decifrar com email e exibir o PIN
+    encriptarPIN(pin, email).then(function (pinDados) {
+        var id = 'u' + Date.now();
+        var novo = { id: id, nomeUsuario: nome, email: email, pinDados: pinDados, criadoEm: hojeISO() };
+        usuarios.push(novo);
+        gravarUsuarios(usuarios);
+        iniciarSessao(id);
+        iniciarApp();
+    }).catch(function (e) {
+        _mostrarErro('erro-criar', 'Erro ao cifrar o PIN. Tente novamente.');
+        _setarOcupado('btn-criar-perfil', false, 'Criar perfil');
+    });
+}
+
+function recuperarPIN() {
+    var email = ((document.getElementById('rec-email') || {}).value || '').toLowerCase().trim();
+    _mostrarErro('rec-erro', '');
+    var res = document.getElementById('rec-resultado');
+    if (res) res.hidden = true;
+    if (!email) { _mostrarErro('rec-erro', 'Digite seu e-mail.'); return; }
+    var usuario = buscarUsuarioPorEmail(email);
+    if (!usuario) { _mostrarErro('rec-erro', 'Nenhum perfil encontrado com este e-mail.'); return; }
+    _setarOcupado('btn-recuperar', true, 'Mostrar meu PIN');
+    var btn = document.getElementById('btn-recuperar');
+    decriptarPIN(usuario.pinDados, email)
+        .then(function (pin) {
+            if (res) { res.hidden = false; res.innerHTML = 'Seu PIN é: <strong>' + escapar(pin) + '</strong>'; }
+            if (btn) { btn.disabled = false; btn.textContent = 'Mostrar meu PIN'; }
+        })
+        .catch(function () {
+            _mostrarErro('rec-erro', 'Não foi possível recuperar o PIN com este e-mail.');
+            if (btn) { btn.disabled = false; btn.textContent = 'Mostrar meu PIN'; }
+        });
+}
+
+// ─── Logout ───────────────────────────────────────────────────────
+function sair() {
+    encerrarSessao();
+    try { desconectarAoVivo(); } catch (e) {}
+    try { sairDaMoeda(); } catch (e) {}
+    try { sairDoPortfolio(); } catch (e) {}
+    // limpar o app e voltar à tela de entrada
+    var app = document.getElementById('app');
+    app.innerHTML = '';
+    mostrarTelaDeEntrada(lerUsuarios());
+}
+
+// ─── Eventos das telas de identificação ──────────────────────────
+document.addEventListener('click', function (ev) {
+    // selecionar um perfil na lista
+    var card = ev.target.closest('[data-perfil]');
+    if (card) {
+        _usuarioSelecionadoId = card.getAttribute('data-perfil');
+        var u = buscarUsuarioPorId(_usuarioSelecionadoId);
+        var area = document.getElementById('pin-area');
+        var quem = document.getElementById('pin-area-quem');
+        if (area && u) {
+            area.hidden = false;
+            if (quem) quem.textContent = u.nomeUsuario;
+            var inp = document.getElementById('pin-entrada');
+            if (inp) { inp.value = ''; inp.focus(); }
+        }
+        document.querySelectorAll('.perfil-card').forEach(function (c) { c.classList.toggle('ativo', c === card); });
+        return;
+    }
+    // submeter PIN
+    if (ev.target.closest('[data-login-submit]')) { tentarLogin(); return; }
+    // criar perfil
+    if (ev.target.id === 'btn-criar-perfil') { criarPerfil(); return; }
+    // recuperar PIN
+    if (ev.target.id === 'btn-recuperar') { recuperarPIN(); return; }
+    // trocar subtela (criar, esqueci, lista)
+    var telaBotao = ev.target.closest('[data-tela]');
+    if (telaBotao) { trocarSubtela(telaBotao.getAttribute('data-tela')); return; }
+    // voltar
+    if (ev.target.closest('[data-tela-voltar]')) { trocarSubtela('lista'); return; }
+    // sair da conta
+    if (ev.target.closest('[data-sair]')) { sair(); return; }
+    // PIN comprimento (na tela de criar)
+    var compBtn = ev.target.closest('[data-pin-comp]');
+    if (compBtn) {
+        var comp = compBtn.getAttribute('data-pin-comp');
+        document.querySelectorAll('[data-pin-comp]').forEach(function (b) { b.setAttribute('aria-pressed', b === compBtn ? 'true' : 'false'); });
+        ['novo-pin', 'novo-pin-conf'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) { el.maxLength = Number(comp); el.placeholder = comp === '4' ? '••••' : '••••••'; }
+        });
+        return;
+    }
+});
+
+document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Enter' && ev.target.id === 'pin-entrada') { tentarLogin(); }
+    if (ev.key === 'Enter' && (ev.target.id === 'novo-pin-conf' || ev.target.id === 'novo-email' || ev.target.id === 'novo-pin')) {
+        criarPerfil();
+    }
+    if (ev.key === 'Enter' && ev.target.id === 'rec-email') { recuperarPIN(); }
+});
+
+
 // lançamentos não depender do pacote diário da CoinGecko (moeda que saiu do
 // top 100 continua aparecendo com nome e logo).
 // Lançamento: { id, criadoEm, tipo, moedaId, quantidade, precoUnitario,
 //   taxas, data, moedaDestinoId?, quantidadeDestino? }  (valores em reais)
-var BANCO_CHAVE = 'BANCO';
+function chaveDosBanco() {
+    var id = sessaoAtual();
+    return id ? 'BANCO_' + id : 'BANCO';
+}
 
 function lerBanco() {
-    var b = armazem.json(BANCO_CHAVE, null);
+    var b = armazem.json(chaveDosBanco(), null);
     if (!b || !Array.isArray(b.transacoes)) b = { moedas: {}, transacoes: [], proximoId: 1 };
     b.moedas = b.moedas || {};
     b.proximoId = b.proximoId || 1;
@@ -4927,7 +5522,7 @@ function lerBanco() {
 }
 
 function gravarBanco(b) {
-    armazem.set(BANCO_CHAVE, JSON.stringify(b));
+    armazem.set(chaveDosBanco(), JSON.stringify(b));
 }
 
 function hojeISO() {
@@ -6401,21 +6996,32 @@ document.addEventListener('change', function (ev) {
 
 
 /* =================================================================
-   INÍCIO
+   INÍCIO  [ETAPA 6: verificar sessão antes de iniciar o app]
    ================================================================= */
-carregarArmazenamento().then(function () {
-    prefs = armazem.json('PREFS', prefs);
+function iniciarApp() {
+    var chavePrefs = sessaoAtual() ? 'PREFS_' + sessaoAtual() : 'PREFS';
+    prefs = armazem.json(chavePrefs, { moeda: 'BRL' });
     estado.definir('taxas', armazem.json('TAXAS', {}) || {});
     estado.definir('moeda', MOEDAS[prefs.moeda] ? prefs.moeda : 'BRL');
     estado.definir('conexao', 'conectando');
-
     rotaAtual = lerRotaDoEndereco() || ROTA_INICIAL;
     desenhar();
-
+    atualizarInfoUsuario();
     buscarTaxas();
     atualizarPulso();
     setInterval(atualizarPulso, 30000);
     setInterval(buscarTaxas, TAXAS_TTL);
+}
+
+carregarArmazenamento().then(function () {
+    var usuarios = lerUsuarios();
+    var id = sessaoAtual();
+    var valido = id && usuarios.some(function (u) { return u.id === id; });
+    if (valido) {
+        iniciarApp();
+    } else {
+        mostrarTelaDeEntrada(usuarios);
+    }
 });
 
 })();

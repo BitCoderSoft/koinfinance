@@ -4,7 +4,7 @@ Projeto da BitCoderSoft. Nome provisório: **Koin** (pode mudar; trocar em `APP.
 
 App web de gestão de portfólio só de criptomoedas, pensado para virar PWA instalável. Inspiração visual e de produto: CoinMarketCap, CoinGecko e as telas de mercado da Binance. Destino: publicação no portfólio da BitCoderSoft.
 
-Este documento resume o que foi construído até aqui (etapas 0, 0.1 e 1, feitas no chat do claude.ai) e o plano das próximas etapas, para a continuação no VS Code.
+Este documento resume o que foi construído até aqui (etapas 0–6, iniciadas no claude.ai e continuadas no VS Code) e o plano das próximas etapas.
 
 ---
 
@@ -13,9 +13,9 @@ Este documento resume o que foi construído até aqui (etapas 0, 0.1 e 1, feitas
 | Item | Estado |
 |---|---|
 | Arquivo principal | `koin.html` (single-file: HTML + CSS + JS, sem build) |
-| Versão | `0.1.0` (vira `1.0.0` ao fechar a Etapa 7) |
-| Etapas concluídas | 0 (fundação), 0.1 (navegação no topo), 1 (mercado), 1.1 (CoinGecko com chave), 1.2 (tabela larga), 2 (página da moeda), 2.1 (sem chave do usuário), 3 (motor e lançamentos), 4 (portfólio), 4.1 e 5.1 (ajustes do relatório de testes), 5 (responsivo no celular) |
-| Próxima etapa | 6 (extras: balanceamento, objetivos, alertas, backup), depois 7 (PWA) |
+| Versão | `0.1.0` (vira `1.0.0` ao fechar a Etapa 8) |
+| Etapas concluídas | 0 (fundação), 0.1 (navegação no topo), 1 (mercado), 1.1 (CoinGecko com chave), 1.2 (tabela larga), 2 (página da moeda), 2.1 (sem chave do usuário), 3 (motor e lançamentos), 4 (portfólio), 4.1 e 5.1 (ajustes do relatório de testes), 5 (responsivo no celular), 6 (identificação: perfis, PIN, sessão) |
+| Próxima etapa | 6.1 (seletor de portfólio no cabeçalho, confirmado pelo autor), depois 7 (extras) e 8 (PWA) |
 | Pendência aberta | Confirmar no navegador (com a chave) que o Mercado sai do modo simplificado (ver "Verificação pendente") |
 
 ---
@@ -24,17 +24,17 @@ Este documento resume o que foi construído até aqui (etapas 0, 0.1 e 1, feitas
 
 O Koin nasceu da parte cripto do **Dash Finance**, painel pessoal de investimentos (ações, FIIs, BDRs e cripto) do mesmo autor, também single-file. Boa parte da lógica foi testada lá com dados reais. O Dash Finance é de uso pessoal e fica congelado em ~70%; o Koin é o produto publicável.
 
-O `dash-finance.html` foi anexado no chat na Etapa 3 e o motor cripto já foi portado. **O arquivo original contém tokens reais (brapi e bolsai) no código: nunca colocar ele no repositório.** Se precisar dele de novo (Balanceamento e Objetivos, Etapa 6, e Backup, `[BACKUP v1]`), colocar uma cópia limpa (sem tokens) em `referencia/`.
+O `dash-finance.html` foi anexado no chat na Etapa 3 e o motor cripto já foi portado. **O arquivo original contém tokens reais (brapi e bolsai) no código: nunca colocar ele no repositório.** Se precisar dele de novo (Balanceamento e Objetivos, Etapa 7, e Backup, `[BACKUP v1]`), colocar uma cópia limpa (sem tokens) em `referencia/`.
 
 ---
 
 ## Decisões de produto
 
 - **Só cripto.** Nada de bolsa.
-- **Sem login.** Os dados ficam no aparelho de quem usa. Troca de aparelho resolvida por backup em arquivo (Etapa 6).
+- **Identificação por perfil + PIN local** (Etapa 6, entregue). Troca de aparelho resolvida por backup em arquivo (Etapa 7).
 - **Moeda de exibição:** Real (padrão), Dólar ou Bitcoin. Tudo é guardado e calculado em **reais**; a conversão acontece só na hora de mostrar.
 - **Tema escuro primeiro.** Os tokens do tema claro já estão escritos (comentados em `:root[data-tema="claro"]`), para ligar numa etapa futura.
-- **Primeiro a web larga**, depois o responsivo (Etapa 5), os extras (Etapa 6) e o PWA (Etapa 7). Mesmo assim, construir cada componente sem travar o caminho pro celular.
+- **Primeiro a web larga**, depois o responsivo (Etapa 5), identificação (Etapa 6), os extras (Etapa 7) e o PWA (Etapa 8).
 
 ---
 
@@ -224,8 +224,20 @@ Pedido do autor: testar o app no navegador do celular antes dos extras. Ainda **
 - **Lançamentos:** cada um vira um cartão (operação e data, moedas, quantidade e valor, lucro realizado, editar e excluir). **Gaveta de lançamento em tela cheia** com rodapé fixo.
 - **Moeda:** cabeçalho empilhado, gráfico de 280px, estatísticas em 2 colunas, conversor em coluna.
 - Campos com 16px (evita o zoom do iPhone), respiro de `safe-area`, sem rolagem horizontal da página (verificado a 390px).
-- Fora do escopo por enquanto: botão flutuante "+", barra inferior, Ajustes e Sistema visual refinados, gestos, tela de instalação (Etapa 7).
+- Fora do escopo por enquanto: botão flutuante "+", barra inferior, Ajustes e Sistema visual refinados, gestos, tela de instalação (Etapa 8).
 - Ideia registrada: o cabeçalho da tabela do Mercado voltaria a ser ordenável por toque se o seletor incomodar.
+
+### Etapa 6 · Identificação (entregue)
+Múltiplos perfis por dispositivo. Cada perfil tem nome de usuário (sem espaços), e-mail e PIN (4 ou 6 dígitos numéricos). Dados de carteira e preferências ficam em chaves separadas por perfil (`KOIN_BANCO_<id>`, `KOIN_PREFS_<id>`).
+- **PIN criptografado localmente:** AES-GCM via `SubtleCrypto`, chave derivada do e-mail com PBKDF2 (100 mil iterações, SHA-256). O PIN é o texto cifrado; recuperação = decifrar com o mesmo e-mail e mostrar o PIN para quem conhece o endereço.
+- **Sessão por aba:** `sessionStorage` (`KOIN_SESSAO`). Dura enquanto a aba estiver aberta; fechar o navegador pede PIN novamente. Reiniciar a página dentro da mesma aba mantém a sessão.
+- **Fluxo:** ao abrir, `carregarArmazenamento()` verifica se há sessão válida. Se sim, entra direto no app (`iniciarApp()`). Se não, exibe a tela de entrada sobre o `#app`.
+- **Tela de entrada:** lista de perfis em cartões com avatar colorido; ao clicar num perfil aparece o campo de PIN. Botão "Novo perfil" leva ao cadastro. "Esqueci meu PIN" pede o e-mail e mostra o PIN decifrado.
+- **Avatar:** círculo colorido com a inicial do nome; cor derivada do nome por hash simples (paleta de 5 cores de `AVATAR_CORES`).
+- **Info do usuário na casca:** avatar + botão "Sair" no topo (computador, `.usuario-topo`); nome do perfil no cabeçalho do menu sanduíche (celular).
+- **`sair()`:** encerra sessão, limpa sockets/timers, redesenha a tela de entrada.
+- **Mensagem de PIN esquecido:** aviso visível na tela de cadastro pedindo para guardar bem o PIN.
+- **Próxima iteração confirmada pelo autor:** seletor de portfólio/perfil no cabeçalho da página Portfólio (Etapa 6.1).
 
 ### Etapa 4 · Portfólio (entregue)
 - **Menu:** "Lançamentos" virou submenu de "Portfólio" (grupo `Portfólio` em `NAV`, com os itens Portfólio e Lançamentos). O botão do grupo acende nas duas rotas. Na tela do Portfólio há o botão "Lançamentos" (e "Novo lançamento") no cabeçalho.
@@ -249,7 +261,7 @@ Portado do `dash-finance.html` (só a parte cripto: `[CRIPTO v2]`, `[CRIPTO v2.1
 - Só as 100 moedas do pacote diário podem ser escolhidas em lançamento novo. Moeda já lançada continua aparecendo mesmo se sair do top 100.
 - Testes do motor (23 casos, rodados em Node contra o trecho do HTML): entrada gratuita não derruba o preço médio, venda baixa custo proporcional e calcula lucro realizado, conversão leva o custo e a fração com custo, saída sem lucro realizado, ordem no mesmo dia, furo de saldo, excluir/editar barrados, cadeia conversão e venda, resíduo de ponto flutuante.
 - Etiquetas de operação: latão para o que entra, cinza para o que sai, azul para conversão. Verde e vermelho seguem só para alta e queda (inclusive o lucro realizado).
-- Backup (exportar e importar JSON) continua na Etapa 6. O `BANCO` já está em uma chave só, o que facilita.
+- Backup (exportar e importar JSON) continua na Etapa 7. O `BANCO` já está em uma chave só, o que facilita.
 
 ### Etapa 2 · Página da moeda (entregue)
 - Rota `/moeda/<id>`: cabeçalho (logo, nome, posição, favorita, preço ao vivo e 24h), gráfico, estatísticas, conversor e espaços de "Sua posição" e "Seus lançamentos" (Etapas 3/4).
@@ -263,13 +275,18 @@ Portado do `dash-finance.html` (só a parte cripto: `[CRIPTO v2]`, `[CRIPTO v2.1
 
 ## Próximas etapas
 
-### Etapa 6 · Extras
+### Etapa 6.1 · Seletor de portfólio (confirmado pelo autor)
+- Seletor de portfólio no cabeçalho da página de Portfólio (não na nav).
+- Permite trocar de portfólio/perfil sem sair da tela.
+- Portfólios pertencem a um único perfil.
+
+### Etapa 7 · Extras
 - **Balanceamento:** alocação ideal por moeda ou grupo, nota 0 a 10 por moeda, peso ideal, desvio em pontos percentuais, simulador de aporte (só compra, guloso pela maior falta). Vocabulário: "alocação ideal", "nota", "peso ideal", "desvio". A palavra "meta" fica reservada para Objetivos.
 - **Objetivos:** patrimônio total, patrimônio numa moeda, com progresso, aporte mensal (informado ou média real) e conclusão estimada. Concluídos guardados com data.
 - **Alertas de preço** (no app; notificação de sistema depois do PWA).
 - **Backup:** exportar/importar JSON com prévia, verificação da carteira e "desfazer última importação" (portar do Dash Finance, tag `[BACKUP v1]`).
 
-### Etapa 7 · PWA
+### Etapa 8 · PWA
 - Separar em `index.html` + `manifest.webmanifest` + `sw.js` + ícones (192, 512, maskable).
 - Service worker: cache da casca e das bibliotecas de CDN; dados de mercado com rede primeiro e cache de reserva.
 - Tela de instalação, splash, `theme-color`, modo standalone.
@@ -280,7 +297,7 @@ Portado do `dash-finance.html` (só a parte cripto: `[CRIPTO v2]`, `[CRIPTO v2.1
 
 ## Antes de publicar (do relatório de testes de 29/09/2026)
 
-Nada disso foi feito ainda. Fazer junto com a Etapa 7 (PWA) ou antes de qualquer publicação:
+Nada disso foi feito ainda. Fazer junto com a Etapa 8 (PWA) ou antes de qualquer publicação:
 1. **Chave da CoinGecko no código** (`CG_CHAVE_PADRAO`): publicada, qualquer um copia a chave e todos dividem a cota de 10 mil chamadas por mês do plano Demo (com 1 chamada por dia por aparelho, ~330 usuários diários esgotam o mês). Solução: um intermediário (Cloudflare Worker gratuito) que guarda a chave, busca `/coins/markets` a cada poucos minutos e entrega a resposta em cache; o app chama o Worker, nunca a CoinGecko. **Ao montar o Worker, gerar chave nova e apagar a atual** (ela já apareceu fora do repositório).
 2. **Biblioteca de gráficos por CDN** (`LW_URL`, unpkg, já com SRI): para o PWA, incluir o arquivo no cache do service worker (ou servir junto do app), senão o gráfico some offline.
 3. **Testar pelo endereço publicado**, não pelo arquivo: abrindo por `content://downloads` cada download novo pode virar outra origem e os lançamentos "somem". Publicar no GitHub Pages (mesmo em rascunho) e testar pela URL. É também pré-requisito do PWA.
@@ -288,7 +305,7 @@ Nada disso foi feito ainda. Fazer junto com a Etapa 7 (PWA) ou antes de qualquer
 
 ---
 
-## Para a Etapa 7 (PWA): tela de identificação (ideia registrada em 29/09/2026)
+## Para a Etapa 8 (PWA): identificação e sincronização (ideia registrada em 29/09/2026)
 
 O autor pretende, no PWA, mostrar uma **tela inicial de identificação antes do app**, para saber **quem está usando**. Por enquanto é só referência, sem decisão. Pontos levantados ao olhar o login do Dash Finance:
 
@@ -297,7 +314,7 @@ O autor pretende, no PWA, mostrar uma **tela inicial de identificação antes do
 - **Versões possíveis:** (a) só um nome local para a saudação "Olá, fulano", sem visibilidade; (b) identificação real com servidor, com visibilidade de uso; (c) identificação opcional, com o app funcionando sem ela.
 - **Não reaproveitar** o hash do Dash Finance. Identificação de verdade usa um provedor de autenticação.
 - Aproveitar do Dash Finance: o layout de tela dividida com o painel da marca, a saudação e o padrão de guarda de rota (`renderCurrentRoute`).
-- Decidir também o que acontece com os dados locais (carteira) de quem se identifica: continuam só no aparelho ou passam a sincronizar. Sincronizar resolveria a troca de aparelho, hoje coberta só por backup em arquivo (Etapa 6).
+- Decidir também o que acontece com os dados locais (carteira) de quem se identifica: continuam só no aparelho ou passam a sincronizar. Sincronizar resolveria a troca de aparelho, hoje coberta só por backup em arquivo (Etapa 7).
 
 ---
 
@@ -305,7 +322,7 @@ O autor pretende, no PWA, mostrar uma **tela inicial de identificação antes do
 
 ```
 koin/
-  index.html            (hoje: koin.html; renomear na Etapa 7)
+  index.html            (hoje: koin.html; renomear na Etapa 8)
   CLAUDE.md             (este arquivo)
   referencia/
     dash-finance.html   (consulta do motor; sem dados pessoais)
