@@ -16,9 +16,12 @@
     2. Moeda         página de detalhe com gráfico interativo
     3. Motor         compra, venda, entrada, saída, conversão + validação
     4. Portfólio     resumo, evolução real, alocação, tabela
-    5. Extras        balanceamento, objetivos, alertas, backup
-    6. Responsivo    barra inferior, telas de app
+    5. Responsivo    celular: menu sanduíche, listas e cartões, telas de app
+    6. Extras        balanceamento, objetivos, alertas, backup
     7. PWA           manifest, service worker, instalação
+
+  Ordem alterada em 29/09/2026: o responsivo foi adiantado e passou a ser a
+  Etapa 5; os extras desceram para a 6. Etapa adiantada = renumerar em ordem.
 
   Decisões de base:
     - Tema ESCURO primeiro. O claro já tem os tokens mapeados (comentados
@@ -27,7 +30,7 @@
       app é guardado e calculado em REAIS; a conversão acontece só na hora
       de mostrar (ver formatarMoeda e o atributo data-brl).
     - Sem login: os dados ficam no dispositivo de quem usa. Backup em
-      arquivo cobre a troca de aparelho (Etapa 5).
+      arquivo cobre a troca de aparelho (Etapa 6).
     - Herança do Dash Finance: armazenamento com fallback pro preview do
       claude.ai, navegação sem href, formulários sem submit nativo,
       formatação pt-BR. Tudo reaproveitado e marcado como [HERANÇA].
@@ -49,6 +52,9 @@
                           lucro realizado, posição na página da moeda.
   [ETAPA 4 · 29/09/2026] portfólio: saldo, lucros, evolução real do patrimônio,
                           alocação em rosca e tabela. Lançamentos vira submenu.
+  [ETAPA 5 · 29/09/2026] responsivo para celular (adiantado): menu sanduíche,
+                          Mercado enxuto em linhas, tabelas em lista e cartões,
+                          gaveta em tela cheia. Vale abaixo de 768px.
 -->
 <html lang="pt-BR" data-tema="escuro">
 <head>
@@ -1858,7 +1864,7 @@ body:has(#gaveta.aberta) .avisos {
     color: var(--alta);
 }
 
-/* telas médias: a Etapa 6 cuida do celular de verdade (barra inferior).
+/* telas médias: o bloco CELULAR (Etapa 5), no fim do CSS, cuida do celular.
    Aqui só evitamos quebrar abaixo de 1000px. */
 @media (max-width: 1000px) {
     .grade-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1866,6 +1872,591 @@ body:has(#gaveta.aberta) .avisos {
     .estatisticas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .moeda-colunas { grid-template-columns: minmax(0, 1fr); }
     .busca .entrada { width: 180px; }
+}
+
+/* =================================================================
+   CELULAR  [ETAPA 5 · 29/09/2026]
+   Web larga continua exatamente como estava. Abaixo de 768px (mesmo ponto
+   do Dash Finance, [MOBILE v1]):
+     - topo: marca, moeda de exibição, busca (ícone) e sanduíche
+     - menu abre por cima da tela e fecha no X, no Esc ou ao escolher uma página
+     - Mercado enxuto: cada moeda é uma linha (estrela, posição, logo, nome,
+       preço e variação 24h); o resto fica na página da moeda
+     - destaques viram faixa que rola na horizontal
+     - tabelas viram lista ou cartões; lançamento abre em tela cheia
+     - campos com 16px (evita o zoom do iPhone) e respiro de safe-area
+   Fica no FIM do <style> de propósito: precisa vir depois das regras do
+   computador pra ganhar (mesma especificidade).
+   ================================================================= */
+.botao-busca-mobile,
+.botao-menu,
+.menu-mobile,
+.ord-mobile {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    :root {
+        --topo: 56px;
+    }
+
+    html {
+        -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+        overflow-x: hidden;
+    }
+
+    /* ---------- topo ---------- */
+    .topo {
+        padding-top: env(safe-area-inset-top);
+    }
+
+    .topo-interno {
+        padding: 0 16px;
+        gap: 10px;
+    }
+
+    .marca-nome {
+        font-size: 17px;
+    }
+
+    .nav,
+    .pulso,
+    .topo-direita > .nav-grupo {
+        display: none !important;
+    }
+
+    .topo-direita {
+        gap: 8px;
+    }
+
+    .botao-busca-mobile,
+    .botao-menu {
+        display: flex;
+    }
+
+    .topo-direita .segmentado button {
+        padding: 6px 9px;
+    }
+
+    .busca {
+        display: none;
+    }
+
+    /* busca abre numa segunda linha, colada embaixo do topo */
+    .topo.busca-aberta .busca {
+        display: block;
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 100%;
+        padding: 10px 16px;
+        background: var(--bg);
+        border-bottom: 1px solid var(--borda);
+    }
+
+    .topo.busca-aberta .busca .entrada {
+        width: 100%;
+        padding-left: 38px;
+    }
+
+    .topo.busca-aberta .busca svg {
+        left: 28px;
+    }
+
+    /* ---------- menu sanduíche ---------- */
+    .menu-mobile {
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+        background: var(--bg);
+        padding-bottom: env(safe-area-inset-bottom);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-12px);
+        transition: opacity 180ms ease, transform 180ms ease, visibility 180ms;
+    }
+
+    .menu-mobile.aberto {
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+    }
+
+    .menu-mobile-topo {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+        height: calc(var(--topo) + env(safe-area-inset-top));
+        padding: env(safe-area-inset-top) 16px 0;
+        border-bottom: 1px solid var(--borda);
+    }
+
+    .menu-mobile-nav {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px 12px 28px;
+    }
+
+    .menu-mobile .menu-secao + .menu-secao {
+        margin-top: 4px;
+    }
+
+    .menu-mobile .menu-item {
+        padding: 12px 10px;
+    }
+
+    .menu-mobile .menu-item-texto strong {
+        font-size: var(--t-md);
+    }
+
+    /* ---------- páginas ---------- */
+    .pagina {
+        padding: 16px 16px 32px;
+    }
+
+    .pagina-cabecalho {
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px 12px;
+        margin-bottom: 14px;
+    }
+
+    .pagina-cabecalho h1 {
+        font-size: var(--t-xl);
+    }
+
+    /* a descrição longa fica só no computador */
+    .pagina-cabecalho p {
+        display: none;
+    }
+
+    .painel {
+        padding: 16px;
+    }
+
+    .entrada,
+    select.entrada {
+        font-size: 16px;
+        height: 44px;
+    }
+
+    .rodape {
+        flex-direction: column;
+        gap: 4px;
+        padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
+    }
+
+    /* ---------- Mercado enxuto ---------- */
+    /* destaques: faixa que rola na horizontal e sangra até a borda da tela */
+    #destaques-mercado {
+        margin: 0 -16px 16px;
+    }
+
+    .destaques {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 0;
+        padding: 0 16px;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+    }
+
+    .destaques::-webkit-scrollbar {
+        display: none;
+    }
+
+    .destaque {
+        flex: 0 0 66%;
+        min-height: 0;
+        padding: 12px 14px 6px;
+        scroll-snap-align: start;
+    }
+
+    .destaque-titulo {
+        margin-bottom: 4px;
+        font-size: var(--t-xs);
+        color: var(--texto-2);
+    }
+
+    .destaque-linha {
+        padding: 4px 6px;
+        gap: 8px;
+        font-size: var(--t-xs);
+    }
+
+    .destaque-numeros {
+        gap: 6px;
+    }
+
+    .barra-tabela {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .barra-tabela .segmentado {
+        display: flex;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .barra-tabela .segmentado::-webkit-scrollbar {
+        display: none;
+    }
+
+    .segmentado button {
+        white-space: nowrap;
+    }
+
+    .barra-tabela select.ord-mobile {
+        display: block;
+        height: 40px;
+        color: var(--texto-2);
+    }
+
+    .barra-info {
+        display: none;
+    }
+
+    .painel-tabela {
+        padding: 2px 0;
+        overflow: visible;
+    }
+
+    /* cada moeda é uma linha: estrela, posição, moeda e, à direita, preço em
+       cima e variação 24h embaixo */
+    .tabela-mercado,
+    .tabela-portfolio,
+    .tabela-lanc {
+        min-width: 0;
+        table-layout: auto;
+    }
+
+    .tabela-mercado,
+    .tabela-mercado tbody,
+    .tabela-portfolio,
+    .tabela-portfolio tbody,
+    .tabela-lanc,
+    .tabela-lanc tbody {
+        display: block;
+    }
+
+    .tabela-mercado thead,
+    .tabela-portfolio thead,
+    .tabela-lanc thead {
+        display: none;
+    }
+
+    .tabela-mercado td,
+    .tabela-portfolio td,
+    .tabela-lanc td {
+        display: block;
+        padding: 0;
+        border: none;
+        text-align: left;
+    }
+
+    .tabela-mercado tbody tr {
+        display: grid;
+        grid-template-columns: 22px 20px minmax(0, 1fr) auto;
+        grid-template-areas: "fav rank moeda preco" "fav rank moeda var";
+        align-items: center;
+        column-gap: 8px;
+        row-gap: 0;
+        padding: 9px 12px;
+        border-bottom: 1px solid var(--borda);
+    }
+
+    .tabela-mercado tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    .tabela-mercado td:nth-child(1) { grid-area: fav; }
+    .tabela-mercado td:nth-child(2) { grid-area: rank; text-align: center; font-size: var(--t-xs); }
+    .tabela-mercado td:nth-child(3) { grid-area: moeda; min-width: 0; }
+    .tabela-mercado td:nth-child(4) { grid-area: preco; text-align: right; font-weight: 700; font-size: var(--t-sm); }
+    .tabela-mercado td:nth-child(6) { grid-area: var; justify-self: end; }
+
+    .tabela-mercado td:nth-child(5),
+    .tabela-mercado td:nth-child(7),
+    .tabela-mercado td:nth-child(8),
+    .tabela-mercado td:nth-child(9),
+    .tabela-mercado td:nth-child(10) {
+        display: none;
+    }
+
+    .tabela-mercado td.tabela-vazia {
+        grid-column: 1 / -1;
+        grid-area: auto;
+        text-align: center;
+    }
+
+    .tabela-mercado .col-fav {
+        width: auto;
+        padding: 0;
+    }
+
+    .tabela-mercado .celula-moeda,
+    .tabela-portfolio .celula-moeda {
+        min-width: 0;
+    }
+
+    .tabela-mercado .celula-moeda > div,
+    .tabela-portfolio .celula-moeda > div {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        line-height: 1.25;
+    }
+
+    .tabela-mercado .celula-moeda strong,
+    .tabela-portfolio .celula-moeda strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .tabela-mercado .celula-moeda span,
+    .tabela-portfolio .celula-moeda span {
+        font-size: var(--t-xs);
+    }
+
+    /* variação 24h logo abaixo do preço, só na cor (sem caixa), pra linha ficar baixa */
+    .tabela-mercado td:nth-child(6) .var {
+        font-size: var(--t-xs);
+    }
+
+    .tabela-mercado .estrela {
+        width: 22px;
+        height: 22px;
+    }
+
+    /* ---------- página da moeda ---------- */
+    .moeda-topo {
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .moeda-topo .moeda-logo,
+    .moeda-topo .moeda-icone {
+        width: 40px;
+        height: 40px;
+    }
+
+    .moeda-nome h1 {
+        font-size: var(--t-xl);
+    }
+
+    .moeda-preco {
+        order: 4;
+        width: 100%;
+        margin-left: 0;
+        text-align: left;
+    }
+
+    .moeda-preco-valor {
+        font-size: 26px;
+    }
+
+    .moeda-topo .conexao {
+        margin-left: auto;
+    }
+
+    .grafico {
+        height: 280px;
+    }
+
+    .grafico-pf {
+        height: 240px;
+    }
+
+    .grafico-barra {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .grafico-barra .segmentado {
+        display: flex;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .estatisticas {
+        gap: 8px;
+    }
+
+    .cartao {
+        padding: 12px 14px;
+    }
+
+    .conversor .campo {
+        min-width: 100%;
+    }
+
+    .conversor-igual {
+        display: none;
+    }
+
+    /* ---------- portfólio ---------- */
+    .cabecalho-acoes {
+        width: 100%;
+    }
+
+    .cabecalho-acoes .conexao {
+        flex-basis: 100%;
+    }
+
+    .cabecalho-acoes .botao {
+        flex: 1;
+    }
+
+    .saldo {
+        font-size: 30px;
+    }
+
+    .rosca-area {
+        justify-content: center;
+        gap: 20px;
+    }
+
+    #pf-rosca-leg {
+        min-width: 100%;
+    }
+
+    .rosca-valor {
+        width: auto;
+    }
+
+    /* cada moeda: nome e quantidade à esquerda, saldo e lucro à direita */
+    .tabela-portfolio tbody tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas: "moeda saldo" "moeda lucro";
+        align-items: center;
+        row-gap: 2px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--borda);
+    }
+
+    .tabela-portfolio tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    .tabela-portfolio td:nth-child(1) { grid-area: moeda; min-width: 0; }
+    .tabela-portfolio td:nth-child(7) { grid-area: saldo; text-align: right; }
+    .tabela-portfolio td:nth-child(8) { grid-area: lucro; text-align: right; }
+
+    .tabela-portfolio td:nth-child(2),
+    .tabela-portfolio td:nth-child(3),
+    .tabela-portfolio td:nth-child(4),
+    .tabela-portfolio td:nth-child(5),
+    .tabela-portfolio td:nth-child(6),
+    .tabela-portfolio td:nth-child(9) {
+        display: none;
+    }
+
+    .tabela-portfolio .lucro-pct {
+        display: inline;
+        margin-left: 6px;
+    }
+
+    /* ---------- lançamentos: cada um vira um cartão ---------- */
+    .tabela-lanc tbody tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas: "tipo data" "moeda moeda" "qtd total" "realizado realizado" "acoes acoes";
+        align-items: center;
+        gap: 8px 12px;
+        padding: 14px;
+        border-bottom: 1px solid var(--borda);
+    }
+
+    .tabela-lanc tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    .tabela-lanc td:nth-child(1) { grid-area: data; justify-self: end; color: var(--texto-2); font-size: var(--t-sm); }
+    .tabela-lanc td:nth-child(2) { grid-area: tipo; justify-self: start; }
+    .tabela-lanc td.col-moeda-lanc { display: block; grid-area: moeda; min-width: 0; }
+    .tabela-lanc td:nth-child(4) { grid-area: qtd; color: var(--texto-2); font-size: var(--t-sm); }
+    .tabela-lanc td:nth-child(7) { grid-area: total; text-align: right; font-weight: 700; }
+    .tabela-lanc td:nth-child(8) { grid-area: realizado; font-size: var(--t-sm); }
+
+    .tabela-lanc td:nth-child(5),
+    .tabela-lanc td:nth-child(6),
+    .tabela-lanc td:nth-child(8):not(:has(.var)) {
+        display: none;
+    }
+
+    .tabela-lanc td:nth-child(8)::before {
+        content: "Lucro realizado ";
+        color: var(--texto-3);
+    }
+
+    .tabela-lanc td.col-acoes {
+        display: flex;
+        grid-area: acoes;
+        justify-content: flex-end;
+        gap: 8px;
+        padding-top: 4px;
+    }
+
+    .tabela-lanc .col-acoes .botao {
+        flex: 1;
+        height: 38px;
+        border-color: var(--borda-forte);
+    }
+
+    .lanc-resumo {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    /* ---------- gaveta de lançamento em tela cheia ---------- */
+    .gaveta {
+        width: 100vw;
+        border-left: none;
+    }
+
+    .gaveta-topo {
+        padding: calc(14px + env(safe-area-inset-top)) 16px 14px;
+    }
+
+    .gaveta-corpo {
+        padding: 16px;
+    }
+
+    .gaveta .segmentado button {
+        padding: 6px 8px;
+        font-size: 13px;
+    }
+
+    .gaveta-pe {
+        padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    }
+
+    .gaveta-pe .botao {
+        flex: 1;
+        height: 48px;
+    }
+
+    .avisos,
+    body:has(#gaveta.aberta) .avisos {
+        left: 16px;
+        right: 16px;
+        bottom: calc(16px + env(safe-area-inset-bottom));
+    }
+
+    body:has(#gaveta.aberta) .avisos {
+        bottom: calc(84px + env(safe-area-inset-bottom));
+    }
 }
 </style>
 </head>
@@ -2248,8 +2839,8 @@ var ROTAS = {
     '/mercado':       { titulo: 'Mercado',        icone: 'mercado',       etapa: 1, render: paginaMercado },
     '/portfolio':     { titulo: 'Portfólio',      icone: 'portfolio',     etapa: 4, render: paginaPortfolio },
     '/lancamentos':   { titulo: 'Lançamentos',    icone: 'lancamentos',   etapa: 3, render: paginaLancamentos },
-    '/balanceamento': { titulo: 'Balanceamento',  icone: 'balanceamento', etapa: 5, render: paginaEmBreve },
-    '/objetivos':     { titulo: 'Objetivos',      icone: 'objetivos',     etapa: 5, render: paginaEmBreve },
+    '/balanceamento': { titulo: 'Balanceamento',  icone: 'balanceamento', etapa: 6, render: paginaEmBreve },
+    '/objetivos':     { titulo: 'Objetivos',      icone: 'objetivos',     etapa: 6, render: paginaEmBreve },
     '/ajustes':       { titulo: 'Ajustes',        icone: 'ajustes',       render: paginaAjustes },
     '/sistema':       { titulo: 'Sistema visual', icone: 'sistema',       render: paginaSistema },
     // [ETAPA 1] rota com parâmetro: /moeda/bitcoin, /moeda/ethereum...
@@ -2380,6 +2971,38 @@ function rotasDoGrupo(secoes) {
     return lista.join(' ');
 }
 
+// [ETAPA 5] MENU SANDUÍCHE (celular): abre por cima da tela, montado das mesmas
+// listas NAV e NAV_CONTA do menu do computador. Cada item leva data-nav, então
+// o item da página atual acende sozinho (ver desenhar).
+var ICONE_MENU = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
+
+var DESCRICAO_ROTA = { '/mercado': 'As 100 maiores moedas, ao vivo' };
+
+function menuMobileHTML() {
+    function item(rota, desc) {
+        var r = ROTAS[rota];
+        return '<a role="link" tabindex="0" data-rota="' + rota + '" data-nav="' + rota + '" class="menu-item">' +
+            '<span class="menu-item-icone">' + icone(r.icone) + '</span>' +
+            '<div class="menu-item-texto"><strong>' + r.titulo + '</strong><span>' + (desc || DESCRICAO_ROTA[rota] || '') + '</span></div></a>';
+    }
+    function secoes(lista, tituloPadrao) {
+        return lista.map(function (sec) {
+            return '<div class="menu-secao">' + ((sec.titulo || tituloPadrao) ? '<p class="menu-secao-titulo">' + (tituloPadrao || sec.titulo) + '</p>' : '') +
+                sec.itens.map(function (it) { return item(it.rota, it.desc); }).join('') + '</div>';
+        }).join('');
+    }
+    var corpo = NAV.map(function (n) {
+        if (n.rota) return '<div class="menu-secao">' + item(n.rota) + '</div>';
+        return secoes(n.secoes, n.grupo);
+    }).join('') + secoes(NAV_CONTA);
+
+    return '<div class="menu-mobile" id="menu-mobile" aria-hidden="true">' +
+        '<div class="menu-mobile-topo"><span class="marca">' + MARCA_SVG + '<span class="marca-nome">' + APP.nome + '</span></span>' +
+        '<button type="button" class="botao-icone" data-menu-fechar aria-label="Fechar menu">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
+        '<nav class="menu-mobile-nav" aria-label="Menu">' + corpo + '</nav></div>';
+}
+
 function cascaHTML() {
     var navHTML = NAV.map(function (item, i) {
         if (item.rota) {
@@ -2411,7 +3034,11 @@ function cascaHTML() {
         ' aria-label="Ajustes e projeto" data-grupo-rotas="' + NAV_CONTA.map(function (s) { return rotasDoGrupo([s]); }).join(' ') + '">' +
         icone('ajustes') + '</button>' +
         menuSuspensoHTML(NAV_CONTA, 'menu-conta', 'direita') + '</div>' +
+        // [ETAPA 5] só aparecem no celular (ver bloco CELULAR no CSS)
+        '<button type="button" class="botao-icone botao-busca-mobile" data-busca-toggle aria-label="Buscar moeda">' + icone('busca') + '</button>' +
+        '<button type="button" class="botao-icone botao-menu" data-menu-abrir aria-label="Abrir menu" aria-controls="menu-mobile">' + ICONE_MENU + '</button>' +
         '</div></div></header>' +
+        menuMobileHTML() +
         '<main id="miolo"></main>' +
         '<footer class="rodape">' +
         '<span><strong>' + APP.nome + '</strong> ' + APP.versao + '</span>' +
@@ -2489,6 +3116,8 @@ function desenhar() {
 
     estado.limparPagina();   // ouvintes da página anterior saem
     fecharMenus();
+    fecharMenuMobile();      // [ETAPA 5]
+    fecharBuscaMobile();
     if (resolvida.base !== '/mercado') desconectarAoVivo();   // [ETAPA 1] socket só no mercado
     sairDaMoeda();                                            // [ETAPA 2] gráfico, socket e timers da moeda
     sairDoPortfolio();                                        // [ETAPA 4] idem, do portfólio
@@ -3266,6 +3895,15 @@ function atualizarStatusConexao(v) {
     }[v] || '';
 }
 
+var ORDENS_MOBILE = [
+    ['rank:0', 'Posição'],
+    ['valorMercado:1', 'Maior valor de mercado'],
+    ['var24h:1', 'Maior alta em 24h'],
+    ['var24h:0', 'Maior queda em 24h'],
+    ['volume:1', 'Maior volume'],
+    ['preco:1', 'Maior preço'],
+];
+
 function paginaMercado() {
     var linhasEsqueleto = '';
     for (var i = 0; i < 10; i++) {
@@ -3294,6 +3932,12 @@ function paginaMercado() {
         abas.map(function (a) {
             return '<button type="button" role="tab" data-aba="' + a[0] + '" aria-pressed="' + (mercado.aba === a[0]) + '">' + a[1] + '</button>';
         }).join('') + '</div>' +
+        // [ETAPA 5] no celular o cabeçalho da tabela some; a ordem vem deste seletor
+        '<select class="entrada ord-mobile" id="ord-mobile" aria-label="Ordenar por">' +
+        ORDENS_MOBILE.map(function (o) {
+            var atual = mercado.ordem.campo + ':' + (mercado.ordem.desc ? 1 : 0);
+            return '<option value="' + o[0] + '"' + (o[0] === atual ? ' selected' : '') + '>' + o[1] + '</option>';
+        }).join('') + '</select>' +
         '<span class="barra-info" id="mercado-info"></span></div>' +
         '<div class="painel painel-tabela">' +
         '<table class="tabela tabela-mercado" id="tabela-mercado"><thead>' + cabecalhoTabelaHTML() + '</thead>' +
@@ -5440,6 +6084,67 @@ document.addEventListener('click', function (ev) {
         b.setAttribute('aria-pressed', b === per ? 'true' : 'false');
     });
     desenharEvolucao(true);
+});
+
+
+/* =================================================================
+   CELULAR  [ETAPA 5 · 29/09/2026]
+   Navegação por menu sanduíche que abre por cima da tela (sem barra
+   inferior, por enquanto), busca que abre numa segunda linha do topo, ordem
+   do Mercado por seletor e toque na linha da moeda. O layout em si mora no
+   bloco CELULAR do CSS (abaixo de 768px, como no Dash Finance).
+   ================================================================= */
+function ehTelaPequena() {
+    try { return window.matchMedia('(max-width: 768px)').matches; } catch (e) { return false; }
+}
+
+function fecharMenuMobile() {
+    var menu = document.getElementById('menu-mobile');
+    if (!menu || !menu.classList.contains('aberto')) return;
+    menu.classList.remove('aberto');
+    menu.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+}
+
+function fecharBuscaMobile() {
+    var topo = document.querySelector('.topo');
+    if (topo) topo.classList.remove('busca-aberta');
+}
+
+document.addEventListener('click', function (ev) {
+    if (ev.target.closest('[data-menu-abrir]')) {
+        var menu = document.getElementById('menu-mobile');
+        fecharBuscaMobile();
+        menu.classList.add('aberto');
+        menu.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        return;
+    }
+    if (ev.target.closest('[data-menu-fechar]')) { fecharMenuMobile(); return; }
+
+    if (ev.target.closest('[data-busca-toggle]')) {
+        var topo = document.querySelector('.topo');
+        var abrir = !topo.classList.contains('busca-aberta');
+        topo.classList.toggle('busca-aberta', abrir);
+        if (abrir) document.getElementById('busca-global').focus();
+        return;
+    }
+
+    // toque na linha inteira leva pra moeda (a estrela e o link têm ação própria)
+    if (!ehTelaPequena() || ev.target.closest('a, button')) return;
+    var linha = ev.target.closest('.tabela-mercado tbody tr[data-moeda-id], .tabela-portfolio tbody tr[data-moeda-id]');
+    if (linha) navegar('/moeda/' + linha.getAttribute('data-moeda-id'));
+});
+
+document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape') { fecharMenuMobile(); fecharBuscaMobile(); }
+});
+
+document.addEventListener('change', function (ev) {
+    if (ev.target.id !== 'ord-mobile') return;
+    var p = ev.target.value.split(':');
+    mercado.ordem = { campo: p[0], desc: p[1] === '1' };
+    desenharTabela(false);
 });
 
 

@@ -14,8 +14,8 @@ Este documento resume o que foi construído até aqui (etapas 0, 0.1 e 1, feitas
 |---|---|
 | Arquivo principal | `koin.html` (single-file: HTML + CSS + JS, sem build) |
 | Versão | `0.1.0` (vira `1.0.0` ao fechar a Etapa 7) |
-| Etapas concluídas | 0 (fundação), 0.1 (navegação no topo), 1 (mercado), 1.1 (CoinGecko com chave), 1.2 (tabela larga), 2 (página da moeda), 2.1 (sem chave do usuário), 3 (motor e lançamentos), 4 (portfólio) |
-| Próxima etapa | 5 (extras: balanceamento, objetivos, alertas, backup) |
+| Etapas concluídas | 0 (fundação), 0.1 (navegação no topo), 1 (mercado), 1.1 (CoinGecko com chave), 1.2 (tabela larga), 2 (página da moeda), 2.1 (sem chave do usuário), 3 (motor e lançamentos), 4 (portfólio), 5 (responsivo no celular) |
+| Próxima etapa | 6 (extras: balanceamento, objetivos, alertas, backup), depois 7 (PWA) |
 | Pendência aberta | Confirmar no navegador (com a chave) que o Mercado sai do modo simplificado (ver "Verificação pendente") |
 
 ---
@@ -24,17 +24,17 @@ Este documento resume o que foi construído até aqui (etapas 0, 0.1 e 1, feitas
 
 O Koin nasceu da parte cripto do **Dash Finance**, painel pessoal de investimentos (ações, FIIs, BDRs e cripto) do mesmo autor, também single-file. Boa parte da lógica foi testada lá com dados reais. O Dash Finance é de uso pessoal e fica congelado em ~70%; o Koin é o produto publicável.
 
-O `dash-finance.html` foi anexado no chat na Etapa 3 e o motor cripto já foi portado. **O arquivo original contém tokens reais (brapi e bolsai) no código: nunca colocar ele no repositório.** Se precisar dele de novo (Balanceamento e Objetivos, Etapa 5, e Backup, `[BACKUP v1]`), colocar uma cópia limpa (sem tokens) em `referencia/`.
+O `dash-finance.html` foi anexado no chat na Etapa 3 e o motor cripto já foi portado. **O arquivo original contém tokens reais (brapi e bolsai) no código: nunca colocar ele no repositório.** Se precisar dele de novo (Balanceamento e Objetivos, Etapa 6, e Backup, `[BACKUP v1]`), colocar uma cópia limpa (sem tokens) em `referencia/`.
 
 ---
 
 ## Decisões de produto
 
 - **Só cripto.** Nada de bolsa.
-- **Sem login.** Os dados ficam no aparelho de quem usa. Troca de aparelho resolvida por backup em arquivo (Etapa 5).
+- **Sem login.** Os dados ficam no aparelho de quem usa. Troca de aparelho resolvida por backup em arquivo (Etapa 6).
 - **Moeda de exibição:** Real (padrão), Dólar ou Bitcoin. Tudo é guardado e calculado em **reais**; a conversão acontece só na hora de mostrar.
 - **Tema escuro primeiro.** Os tokens do tema claro já estão escritos (comentados em `:root[data-tema="claro"]`), para ligar numa etapa futura.
-- **Primeiro a web larga**, depois o responsivo (Etapa 6) e o PWA (Etapa 7). Mesmo assim, construir cada componente sem travar o caminho pro celular.
+- **Primeiro a web larga**, depois o responsivo (Etapa 5), os extras (Etapa 6) e o PWA (Etapa 7). Mesmo assim, construir cada componente sem travar o caminho pro celular.
 
 ---
 
@@ -125,6 +125,7 @@ Qualquer elemento com `data-brl="1234.56"` é preenchido por `preencherValores()
 
 ## Convenções (valem para todo código novo)
 
+- **Numeração das etapas:** quando o autor pede pra adiantar uma etapa, ela **ocupa o lugar na ordem** e as demais descem (as etapas nunca pulam número). O número novo vale no commit, no CLAUDE.md e nas tags `[ETAPA N]` do código. A ordem pode mudar de novo: o que está adiante pode ficar pra depois ou ganhar outras prioridades. Ajuste `N.x` continua sendo ajuste de uma etapa.
 - **Tags nos comentários:** toda mudança leva `[ETAPA N]` (ou `[ETAPA N.x]` para ajuste). Herdado do Dash Finance leva `[HERANÇA]`. O guia no topo do HTML lista o histórico.
 - **Links internos sem `href`:** use `<a role="link" tabindex="0" data-rota="/rota">`. O preview do claude.ai trata qualquer `href` como link externo. Navegar por código: `navegar('/rota')`.
 - **Formulários sem submit nativo:** o preview bloqueia `<form>` antes do evento `submit`. Botões `type="button"` com `data-*` e tratamento no `click`; Enter tratado no `keydown`. (Na Etapa 3 a gaveta de lançamento seguiu isso: `data-lanc-salvar` no clique e Enter no `keydown`.)
@@ -197,6 +198,18 @@ Testado só com respostas simuladas no formato das documentações. Falta confir
 
 ---
 
+### Etapa 5 · Responsivo no celular (entregue, adiantada)
+Pedido do autor: testar o app no navegador do celular antes dos extras. Ainda **não é PWA**. Vale abaixo de **768px** (mesmo ponto do Dash Finance, `[MOBILE v1]`); o computador não mudou. Bloco `CELULAR` no fim do `<style>` (precisa vir depois das regras do computador).
+- **Como testar no celular:** servir a pasta pela rede (`python3 -m http.server 8000 --bind 0.0.0.0`) e abrir `http://<IP do Mac>:8000/koin.html` no celular, na mesma Wi-Fi. Os dados ficam por endereço (não misturam com o `file://`).
+- **Navegação por menu sanduíche** (sem barra inferior, por enquanto; decisão do autor): abre por cima da tela e fecha no X, no Esc ou ao escolher uma página. É montado das mesmas listas `NAV` e `NAV_CONTA` (`menuMobileHTML`), com a página atual acesa. Topo: marca, moeda de exibição (R$, US$, ₿), ícone de busca (abre uma 2ª linha) e sanduíche. Pulso do BTC e engrenagem somem (Ajustes e Sistema visual vão para o menu).
+- **Mercado enxuto** (referência: CoinMarketCap mobile): cada moeda é uma linha de ~58px com estrela, posição, logo, nome com o símbolo embaixo e, à direita, preço com a variação 24h logo abaixo. Colunas 1h, 7d, volume, valor de mercado e minigráfico ficam só na página da moeda. Toque na linha inteira abre a moeda (a estrela tem ação própria). Abas rolam na horizontal e a ordem vem de um seletor (`ORDENS_MOBILE`), porque o cabeçalho da tabela some. Destaques viram uma faixa que rola na horizontal.
+- **Portfólio:** cartões em 2 colunas, gráfico mais baixo, legenda da rosca embaixo, tabela vira lista (moeda à esquerda, saldo e lucro à direita; toque abre a moeda).
+- **Lançamentos:** cada um vira um cartão (operação e data, moedas, quantidade e valor, lucro realizado, editar e excluir). **Gaveta de lançamento em tela cheia** com rodapé fixo.
+- **Moeda:** cabeçalho empilhado, gráfico de 280px, estatísticas em 2 colunas, conversor em coluna.
+- Campos com 16px (evita o zoom do iPhone), respiro de `safe-area`, sem rolagem horizontal da página (verificado a 390px).
+- Fora do escopo por enquanto: botão flutuante "+", barra inferior, Ajustes e Sistema visual refinados, gestos, tela de instalação (Etapa 7).
+- Ideia registrada: o cabeçalho da tabela do Mercado voltaria a ser ordenável por toque se o seletor incomodar.
+
 ### Etapa 4 · Portfólio (entregue)
 - **Menu:** "Lançamentos" virou submenu de "Portfólio" (grupo `Portfólio` em `NAV`, com os itens Portfólio e Lançamentos). O botão do grupo acende nas duas rotas. Na tela do Portfólio há o botão "Lançamentos" (e "Novo lançamento") no cabeçalho.
 - **Resumo:** saldo grande (Unbounded) na moeda de exibição, variação das últimas 24h (R$ e %), custo total, lucro não realizado (e % sobre o custo), lucro realizado, resultado total (não realizado mais realizado). Saldo desliza até o valor novo a cada atualização.
@@ -219,7 +232,7 @@ Portado do `dash-finance.html` (só a parte cripto: `[CRIPTO v2]`, `[CRIPTO v2.1
 - Só as 100 moedas do pacote diário podem ser escolhidas em lançamento novo. Moeda já lançada continua aparecendo mesmo se sair do top 100.
 - Testes do motor (23 casos, rodados em Node contra o trecho do HTML): entrada gratuita não derruba o preço médio, venda baixa custo proporcional e calcula lucro realizado, conversão leva o custo e a fração com custo, saída sem lucro realizado, ordem no mesmo dia, furo de saldo, excluir/editar barrados, cadeia conversão e venda, resíduo de ponto flutuante.
 - Etiquetas de operação: latão para o que entra, cinza para o que sai, azul para conversão. Verde e vermelho seguem só para alta e queda (inclusive o lucro realizado).
-- Backup (exportar e importar JSON) continua na Etapa 5. O `BANCO` já está em uma chave só, o que facilita.
+- Backup (exportar e importar JSON) continua na Etapa 6. O `BANCO` já está em uma chave só, o que facilita.
 
 ### Etapa 2 · Página da moeda (entregue)
 - Rota `/moeda/<id>`: cabeçalho (logo, nome, posição, favorita, preço ao vivo e 24h), gráfico, estatísticas, conversor e espaços de "Sua posição" e "Seus lançamentos" (Etapas 3/4).
@@ -233,16 +246,11 @@ Portado do `dash-finance.html` (só a parte cripto: `[CRIPTO v2]`, `[CRIPTO v2.1
 
 ## Próximas etapas
 
-### Etapa 5 · Extras
+### Etapa 6 · Extras
 - **Balanceamento:** alocação ideal por moeda ou grupo, nota 0 a 10 por moeda, peso ideal, desvio em pontos percentuais, simulador de aporte (só compra, guloso pela maior falta). Vocabulário: "alocação ideal", "nota", "peso ideal", "desvio". A palavra "meta" fica reservada para Objetivos.
 - **Objetivos:** patrimônio total, patrimônio numa moeda, com progresso, aporte mensal (informado ou média real) e conclusão estimada. Concluídos guardados com data.
 - **Alertas de preço** (no app; notificação de sistema depois do PWA).
 - **Backup:** exportar/importar JSON com prévia, verificação da carteira e "desfazer última importação" (portar do Dash Finance, tag `[BACKUP v1]`).
-
-### Etapa 6 · Responsivo
-- Navegação vira **barra inferior** com ícones no celular (padrão de app nativo). Menus agrupados viram folha que sobe de baixo.
-- Tabelas viram cartões; formulários em tela cheia com rodapé fixo; campos com 16px (evita zoom do iPhone); respeito a `safe-area-inset`.
-- Referência: bloco `[MOBILE v1]` do Dash Finance.
 
 ### Etapa 7 · PWA
 - Separar em `index.html` + `manifest.webmanifest` + `sw.js` + ícones (192, 512, maskable).
@@ -262,7 +270,7 @@ O autor pretende, no PWA, mostrar uma **tela inicial de identificação antes do
 - **Versões possíveis:** (a) só um nome local para a saudação "Olá, fulano", sem visibilidade; (b) identificação real com servidor, com visibilidade de uso; (c) identificação opcional, com o app funcionando sem ela.
 - **Não reaproveitar** o hash do Dash Finance. Identificação de verdade usa um provedor de autenticação.
 - Aproveitar do Dash Finance: o layout de tela dividida com o painel da marca, a saudação e o padrão de guarda de rota (`renderCurrentRoute`).
-- Decidir também o que acontece com os dados locais (carteira) de quem se identifica: continuam só no aparelho ou passam a sincronizar. Sincronizar resolveria a troca de aparelho, hoje coberta só por backup em arquivo (Etapa 5).
+- Decidir também o que acontece com os dados locais (carteira) de quem se identifica: continuam só no aparelho ou passam a sincronizar. Sincronizar resolveria a troca de aparelho, hoje coberta só por backup em arquivo (Etapa 6).
 
 ---
 
