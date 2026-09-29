@@ -14,8 +14,8 @@ Este documento resume o que foi construído até aqui (etapas 0, 0.1 e 1, feitas
 |---|---|
 | Arquivo principal | `koin.html` (single-file: HTML + CSS + JS, sem build) |
 | Versão | `0.1.0` (vira `1.0.0` ao fechar a Etapa 7) |
-| Etapas concluídas | 0 (fundação), 0.1 (navegação no topo), 1 (mercado) |
-| Próxima etapa | 2 (página da moeda com gráfico interativo) |
+| Etapas concluídas | 0 (fundação), 0.1 (navegação no topo), 1 (mercado), 1.1 (CoinGecko com chave), 1.2 (tabela larga), 2 (página da moeda) |
+| Próxima etapa | 3 (motor e lançamentos) |
 | Pendência aberta | Confirmar no navegador (com a chave) que o Mercado sai do modo simplificado (ver "Verificação pendente") |
 
 ---
@@ -150,7 +150,7 @@ Qualquer elemento com `data-brl="1234.56"` é preenchido por `preencherValores()
 ### CoinGecko
 - Base: `https://api.coingecko.com/api/v3`
 - `/coins/markets?vs_currency=brl&order=market_cap_desc&per_page=100&page=1&sparkline=true&price_change_percentage=1h,24h,7d` → 1 chamada traz as 100 maiores com ranking, logo, preço em reais, variações, volume, valor de mercado e minigráfico de 7 dias.
-- **Exige chave** (confirmado em 29/09/2026: sem chave o `/coins/markets` responde 403 "Request blocked" do CloudFront). Chave Demo gratuita: 30/min, 10 mil/mês. Por enquanto a chave Demo do autor está embutida em `CG_CHAVE_PADRAO`; a colada em Ajustes tem prioridade. Rever antes de publicar (chave no código é pública).
+- **Exige chave** (confirmado em 29/09/2026: sem chave o `/coins/markets` responde 403 "Request blocked" do CloudFront). Chave Demo gratuita: 30/min, 10 mil/mês. A chave Demo do autor está embutida em `CG_CHAVE_PADRAO`. **O usuário não informa chave própria** (o campo foi removido de Ajustes em 29/09/2026). Rever antes de publicar (chave no código é pública).
 - **REGRA: no máximo 1 chamada por dia.** O Koin vive dos dados da Binance (preço, 24h e volume ao vivo). A CoinGecko só entra pro que a Binance não entrega (ranking, logo, valor de mercado, variação 1h/7d, minigráfico), e **só na primeira abertura do dia** (dia local, `diaDeHoje()`). Cache de hoje = não chama. Falhou = espera 30 min (`CG_ESPERA_FALHA`) e usa o cache antigo. Toda chamada nova à CoinGecko (Etapa 2 em diante) deve seguir a mesma regra, com cache longo por moeda.
 - O `sparkline_in_7d` vem em **dólar** mesmo com `vs_currency=brl`. Serve pro formato do minigráfico, não pra valores.
 - A chave vai como **parâmetro na URL** (`x_cg_demo_api_key`), não no cabeçalho: cabeçalho customizado dispara a checagem prévia de CORS, que já bloqueou outra API (bolsai) no Dash Finance.
@@ -177,11 +177,17 @@ Barra lateral removida. Topo com links, grupo "Análise" (Balanceamento, Objetiv
 - Busca do topo: filtra enquanto digita; Enter em outra página leva ao Mercado filtrado; Esc limpa.
 - Preço e 24h ao vivo pelo WebSocket, com pisca e deslize. Indicador "Preços ao vivo" na página.
 - Modo simplificado automático (30 principais, só Binance) quando a CoinGecko não responde.
-- Ajustes: campo da chave Demo da CoinGecko (salvar/remover).
+- Ajustes: campo da chave Demo da CoinGecko (removido depois, ver Etapa 2.1).
+
+### Etapa 2.1 · Sem chave do usuário
+Removido de Ajustes o campo para o usuário colar a chave da CoinGecko. Só vale a chave embutida.
+
+### Etapa 1.2 · Tabela do Mercado mais larga
+Largura máxima 1240 para 1400px, colunas com largura fixa (minigráfico cabe sem rolagem, nome perto do preço).
 
 ### Etapa 1.1 · CoinGecko com chave e 1 chamada por dia
 Chave Demo embutida, cache por dia local, espera de 30 min após falha (`MERCADO_FALHA`). Testado com chamada real: 1ª chamada HTTP, repetições no mesmo dia sem HTTP, cache de ontem renova, falha usa cache velho sem martelar.
-- Rota `/moeda/<id>` criada, ainda com placeholder da Etapa 2.
+- Rota `/moeda/<id>` criada (preenchida na Etapa 2).
 
 ### Verificação pendente
 [29/09/2026] Via curl, com a chave Demo, o `/coins/markets` responde 200 com `access-control-allow-origin: *` (CORS liberado). Sem chave dá 403. Falta só ver no navegador o Mercado completo com a chave embutida (etapa 1.1).
@@ -191,15 +197,17 @@ Testado só com respostas simuladas no formato das documentações. Falta confir
 
 ---
 
-## Próximas etapas
+### Etapa 2 · Página da moeda (entregue)
+- Rota `/moeda/<id>`: cabeçalho (logo, nome, posição, favorita, preço ao vivo e 24h), gráfico, estatísticas, conversor e espaços de "Sua posição" e "Seus lançamentos" (Etapas 3/4).
+- Gráfico: **Lightweight Charts 4.2.3** (unpkg, com SRI), carregado só ao abrir uma moeda. Linha e velas; períodos 1D, 7D, 1M, 3M, 1A; cursor com data e valores; segue a moeda de exibição (R$/US$/₿). Klines da Binance em USDT convertidas pelas klines do USDTBRL no mesmo instante. A última vela acompanha o preço ao vivo.
+- Moeda **sem par na Binance**: sem gráfico (mensagem). Não buscamos o histórico na CoinGecko por causa da regra de 1 chamada por dia. Decidir depois se vale uma exceção com cache longo.
+- Estatísticas: máxima, mínima e volume de 24h vêm da Binance (`ticker/24hr`, a cada 60s). Valor de mercado, ofertas e máxima histórica vêm do **mesmo pacote diário** da CoinGecko (campos novos, `CG_PACOTE_VERSAO = 2`), sem chamada extra. Só as 100 do pacote têm página.
+- Conversor quantidade ↔ valor na moeda de exibição, pelo preço atual.
+- **REGRA DOS 5s:** o preço na tela (tabela do Mercado e página da moeda) muda no máximo a cada 5s (`PRECO_INTERVALO_MS`). O WebSocket segue mandando ~1 tick/s; `criarAmortecedor` guarda o último de cada moeda e aplica em lote (1º lote 800ms após o 1º tick). O pulso do BTC no topo continua a cada 30s. Verificado: 1 mudança a cada 5s. Toda tela nova com preço ao vivo deve usar `criarAmortecedor`.
+- Casamento Binance × CoinGecko (`parBinanceDe`): com o pacote de até 24h, a tolerância de divergência sobe de 10% para 40% quando o pacote tem mais de 1h. Símbolo repetido de verdade difere por ordens de grandeza.
+- `sairDaMoeda()` roda em todo `desenhar()` e limpa socket, timers e gráfico.
 
-### Etapa 2 · Página da moeda
-- Rota `/moeda/<id>` (já existe o esqueleto em `paginaMoeda`).
-- Cabeçalho: logo, nome, símbolo, preço ao vivo (mesmo WebSocket, 1 stream), variação 24h, favorita.
-- **Gráfico interativo** com **Lightweight Charts** (TradingView), carregado por CDN: linha e velas, zoom, cursor com preço e data, períodos 1D, 7D, 1M, 3M, 1A. Dados: klines da Binance (`/api/v3/klines`, par USDT convertido pelo USDTBRL do mesmo dia, lógica já pronta no Dash Finance em `buscarHistoricoCripto`). Moeda sem par na Binance: `/coins/{id}/market_chart` da CoinGecko.
-- Estatísticas: máxima e mínima 24h, volume, valor de mercado, oferta circulante e máxima, máxima histórica e distância dela (CoinGecko `/coins/{id}`, cache longo).
-- Conversor rápido (quantidade ↔ reais).
-- Espaço reservado para "sua posição" e "seus lançamentos" (preenchido na Etapa 3/4).
+## Próximas etapas
 
 ### Etapa 3 · Motor e lançamentos
 Portar do Dash Finance (buscar pelas tags `[CRIPTO v2]`, `[CRIPTO v2.1]`, `[MOTOR v2]`):
