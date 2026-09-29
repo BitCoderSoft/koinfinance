@@ -47,6 +47,8 @@
   [ETAPA 3 · 29/09/2026] motor de custo (portado do Dash Finance, só cripto),
                           lançamentos (compra, venda, entrada, saída, conversão),
                           lucro realizado, posição na página da moeda.
+  [ETAPA 4 · 29/09/2026] portfólio: saldo, lucros, evolução real do patrimônio,
+                          alocação em rosca e tabela. Lançamentos vira submenu.
 -->
 <html lang="pt-BR" data-tema="escuro">
 <head>
@@ -1664,6 +1666,198 @@ body:has(#gaveta.aberta) .avisos {
     }
 }
 
+
+/* =================================================================
+   PORTFÓLIO  [ETAPA 4 · 29/09/2026]
+   ================================================================= */
+.cabecalho-acoes {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+#pf-conteudo > .painel + .painel,
+#pf-conteudo > .painel + .pf-nota,
+#pf-conteudo > .painel + .painel-tabela {
+    margin-top: 16px;
+}
+
+.pf-hero .saldo {
+    margin-bottom: 6px;
+}
+
+.pf-var {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    min-height: 26px;
+    margin-bottom: 20px;
+    font-size: var(--t-md);
+}
+
+.pf-var-rotulo {
+    color: var(--texto-3);
+    font-size: var(--t-sm);
+}
+
+.pf-cartoes .indicador-valor.ganho {
+    color: var(--alta);
+}
+
+.pf-cartoes .indicador-valor.perda {
+    color: var(--queda);
+}
+
+.indicador-nota {
+    font-size: var(--t-xs);
+    color: var(--texto-3);
+    margin-top: 2px;
+}
+
+.pf-nota {
+    margin: 10px 4px 0;
+    font-size: var(--t-xs);
+    color: var(--texto-3);
+}
+
+.pf-legenda {
+    display: flex;
+    gap: 18px;
+    margin-bottom: 8px;
+    font-size: var(--t-sm);
+    color: var(--texto-2);
+}
+
+.pf-legenda span {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pf-traco {
+    display: inline-block;
+    width: 18px;
+    height: 2px;
+    border-radius: 2px;
+}
+
+.pf-tracejado {
+    background: repeating-linear-gradient(90deg, var(--texto-3) 0 4px, transparent 4px 7px);
+}
+
+.grafico-pf {
+    height: 340px;
+}
+
+.rosca-area {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    flex-wrap: wrap;
+}
+
+.rosca {
+    width: 200px;
+    height: 200px;
+    display: block;
+}
+
+.rosca-fatia {
+    transition: stroke-dasharray 700ms var(--ease), stroke-dashoffset 700ms var(--ease);
+}
+
+.rosca-total {
+    fill: var(--texto);
+    font-family: var(--fonte-marca);
+    font-size: 26px;
+    font-weight: 500;
+}
+
+.rosca-rotulo {
+    fill: var(--texto-3);
+    font-size: 11px;
+}
+
+#pf-rosca-leg {
+    flex: 1;
+    min-width: 260px;
+}
+
+.rosca-legenda {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-width: 460px;
+}
+
+.rosca-legenda li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--borda);
+    font-size: var(--t-sm);
+}
+
+.rosca-legenda li:last-child {
+    border-bottom: none;
+}
+
+.rosca-cor {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.rosca-nome {
+    flex: 1;
+    font-weight: 600;
+}
+
+.rosca-pct {
+    width: 56px;
+    text-align: right;
+    color: var(--texto-2);
+}
+
+.rosca-valor {
+    width: 120px;
+    text-align: right;
+    font-weight: 600;
+}
+
+.tabela-portfolio th:first-child,
+.tabela-portfolio td:first-child {
+    text-align: left;
+}
+
+.tabela-portfolio .td-forte {
+    font-weight: 700;
+}
+
+.lucro-pct {
+    display: block;
+    font-size: var(--t-xs);
+    font-weight: 700;
+}
+
+.lucro-pct.alta {
+    color: var(--alta);
+}
+
+.lucro-pct.queda {
+    color: var(--queda);
+}
+
+.qtd-sem-custo {
+    display: block;
+    font-size: var(--t-xs);
+    color: var(--alta);
+}
+
 /* telas médias: a Etapa 6 cuida do celular de verdade (barra inferior).
    Aqui só evitamos quebrar abaixo de 1000px. */
 @media (max-width: 1000px) {
@@ -2076,8 +2270,18 @@ function resolverRota(rota) {
 // sozinha a partir desta lista.
 var NAV = [
     { rota: '/mercado' },
-    { rota: '/portfolio' },
-    { rota: '/lancamentos' },
+    {
+        grupo: 'Portfólio',
+        secoes: [
+            {
+                titulo: 'Sua carteira',
+                itens: [
+                    { rota: '/portfolio', desc: 'Saldo, lucro, evolução e alocação' },
+                    { rota: '/lancamentos', desc: 'Compras, vendas, entradas e conversões' },
+                ],
+            },
+        ],
+    },
     {
         grupo: 'Análise',
         secoes: [
@@ -2287,6 +2491,7 @@ function desenhar() {
     fecharMenus();
     if (resolvida.base !== '/mercado') desconectarAoVivo();   // [ETAPA 1] socket só no mercado
     sairDaMoeda();                                            // [ETAPA 2] gráfico, socket e timers da moeda
+    sairDoPortfolio();                                        // [ETAPA 4] idem, do portfólio
 
     var rotaMenu = resolvida.base === '/moeda' ? '/mercado' : resolvida.base;
     document.querySelectorAll('[data-nav]').forEach(function (a) {
@@ -2353,17 +2558,6 @@ function emBreveHTML(etapa, oque) {
 }
 
 // (página da moeda: bloco MOEDA, mais abaixo)
-function paginaPortfolio() {
-    return '<div class="pagina">' +
-        '<div class="painel">' +
-        '<p class="saldo-rotulo">Saldo do portfólio</p>' +
-        '<p class="saldo" data-brl="0"></p>' +
-        '<p style="margin-top: 10px; color: var(--texto-2); font-size: var(--t-sm);">Troque a moeda no topo: o saldo se reescreve em reais, dólares ou bitcoin.</p>' +
-        '</div>' +
-        '<div class="painel">' + emBreveHTML(4, 'Resumo com lucro realizado e não realizado, evolução real do patrimônio e alocação animada.') + '</div>' +
-        '</div>';
-}
-
 function paginaEmBreve(r) {
     var textos = {
         '/lancamentos': 'Compra, venda, entrada, saída e conversão, com validação na linha do tempo (o motor vem do Dash Finance).',
@@ -4569,6 +4763,684 @@ function lancamentosMoedaHTML(m) {
     return '<div class="painel"><p class="painel-titulo">Seus lançamentos</p>' + corpo +
         '<div style="margin-top: 12px;"><button type="button" class="botao botao-neutro" data-lanc-novo data-moeda="' + escapar(m.id) + '">' + icone('mais') + 'Novo lançamento</button></div></div>';
 }
+
+
+/* =================================================================
+   PORTFÓLIO  [ETAPA 4 · 29/09/2026]
+   ================================================================= */
+
+// [EVOLUCAO:início] função pura, testada em Node.
+// EVOLUÇÃO REAL DO PATRIMÔNIO: reconstruída dia a dia, do 1º lançamento até
+// hoje. Em cada dia vale (quantidade que se tinha naquele dia) x (preço
+// daquele dia), somando as moedas. Não é o custo acumulado (o custo vem
+// junto, como segunda linha, pra comparar).
+//   precos[moedaId]['AAAA-MM-DD'] = fechamento do dia, em reais
+// Preço que falta num dia repete o último conhecido. Moeda sem nenhum preço
+// (sem par na Binance, ou antes de listar) entra pelo CUSTO, e é devolvida em
+// `aCusto` pra tela avisar.
+function diasEntre(deISO, ateISO) {
+    var dias = [];
+    var d = new Date(deISO + 'T00:00:00Z');
+    var fim = new Date(ateISO + 'T00:00:00Z');
+    while (d <= fim) {
+        dias.push(d.toISOString().slice(0, 10));
+        d.setUTCDate(d.getUTCDate() + 1);
+    }
+    return dias;
+}
+
+function reconstruirEvolucao(transacoes, precos, hojeISO) {
+    var ordenadas = ordenarTransacoes(transacoes);
+    if (!ordenadas.length) return { pontos: [], aCusto: [] };
+
+    var ultimo = {};        // último preço conhecido por moeda
+    var aCusto = {};
+    var aplicadas = [];
+    var proxima = 0;
+    var posicoes = {};
+    var pontos = [];
+
+    diasEntre(ordenadas[0].data, hojeISO).forEach(function (dia) {
+        var mudou = false;
+        while (proxima < ordenadas.length && ordenadas[proxima].data <= dia) {
+            aplicadas.push(ordenadas[proxima++]);
+            mudou = true;
+        }
+        if (mudou) posicoes = processarCarteira(aplicadas).posicoes;
+
+        Object.keys(precos).forEach(function (id) {
+            var v = precos[id][dia];
+            if (v !== undefined && v !== null) ultimo[id] = v;
+        });
+
+        var valor = 0, custo = 0;
+        Object.keys(posicoes).forEach(function (id) {
+            var p = posicoes[id];
+            if (p.quantidade <= QTD_EPSILON) return;
+            custo += p.custoTotal;
+            if (ultimo[id] !== undefined) {
+                valor += p.quantidade * ultimo[id];
+            } else {
+                valor += p.custoTotal;
+                aCusto[id] = true;
+            }
+        });
+        pontos.push({ time: dia, valor: valor, custo: custo });
+    });
+
+    return { pontos: pontos, aCusto: Object.keys(aCusto) };
+}
+// [EVOLUCAO:fim]
+
+// DE ONDE VEM CADA DADO
+//   Posições e lucros: motor de lançamentos (carteiraAtual).
+//   Preço e variação 24h ao vivo: Binance (REST na abertura e WebSocket, com
+//   o amortecedor de 5s). Moeda sem par na Binance usa o preço do pacote
+//   diário e entra "sem cotação ao vivo".
+//   Histórico do gráfico: klines diárias da Binance (par USDT x USDTBRL do
+//   mesmo dia), uma chamada por moeda que a carteira já teve.
+// Moeda que a Binance não negocia (ou que saiu do top 100) fica de fora da
+// cotação e, no gráfico, entra pelo custo. A tela avisa.
+
+// alocação: 5 cores categóricas na ordem validada (pares vizinhos, inclusive
+// fechando o anel, passam na checagem de daltonismo no fundo escuro) + cinza
+// para "Outras". Ficam de fora o verde e o vermelho, reservados pra alta e queda.
+var ALOCACAO_CORES = ['#3987e5', '#d95926', '#9085e9', '#c98500', '#d55181'];
+var ALOCACAO_OUTRAS = '#6B7791';
+var PF_PERIODOS = { '1M': 30, '3M': 90, '6M': 180, '1A': 365, 'Tudo': 0 };
+
+var portfolioPg = null;
+
+function sairDoPortfolio() {
+    if (!portfolioPg) return;
+    var pg = portfolioPg;
+    portfolioPg = null;
+    if (pg.canal) pg.canal.parar();
+    if (pg.amortecedor) pg.amortecedor.parar();
+    if (pg.chart) { try { pg.chart.remove(); } catch (e) {} }
+}
+
+// canal do WebSocket da Binance, com reconexão de espera crescente
+function abrirCanalAoVivo(streams, aoTick) {
+    var canal = { ws: null, tentativas: 0, timer: null, parado: false };
+    function abrir() {
+        estado.definir('conexao', 'conectando');
+        var ws;
+        try { ws = new WebSocket(BINANCE_WS + streams.join('/')); } catch (e) { estado.definir('conexao', 'off'); return; }
+        canal.ws = ws;
+        ws.onopen = function () { canal.tentativas = 0; estado.definir('conexao', 'ao-vivo'); };
+        ws.onmessage = function (ev) {
+            var msg;
+            try { msg = JSON.parse(ev.data); } catch (e) { return; }
+            var d = msg && msg.data;
+            if (d && d.s) aoTick(d.s, Number(d.c), Number(d.o));
+        };
+        ws.onclose = function () {
+            if (canal.parado || canal.ws !== ws) return;
+            canal.ws = null;
+            estado.definir('conexao', 'off');
+            var espera = Math.min(60000, 2000 * Math.pow(2, canal.tentativas++));
+            canal.timer = setTimeout(function () { if (!canal.parado) abrir(); }, espera);
+        };
+        ws.onerror = function () { /* onclose cuida */ };
+    }
+    abrir();
+    return {
+        parar: function () {
+            canal.parado = true;
+            clearTimeout(canal.timer);
+            if (canal.ws) { var ws = canal.ws; canal.ws = null; try { ws.close(); } catch (e) {} }
+        },
+    };
+}
+
+// ordem em que a moeda entrou na carteira: a cor da alocação segue a moeda,
+// não o tamanho dela (moeda que cresce não troca de cor)
+function ordemDeEntrada() {
+    var ordem = {};
+    var n = 0;
+    ordenarTransacoes(lerBanco().transacoes).forEach(function (t) {
+        pernasDaTransacao(t).forEach(function (p) { if (ordem[p.moedaId] === undefined) ordem[p.moedaId] = n++; });
+    });
+    return ordem;
+}
+
+function calcularPortfolio(pg) {
+    var linhas = pg.linhas.map(function (l) {
+        var p = l.pos;
+        var saldo = l.preco !== null ? p.quantidade * l.preco : null;
+        var base = saldo !== null ? saldo : p.custoTotal;          // sem cotação entra pelo custo
+        var antes = saldo !== null && l.var24h !== null ? saldo / (1 + l.var24h / 100) : base;
+        return {
+            l: l,
+            saldo: saldo,
+            base: base,
+            antes: antes,
+            pm: p.qtdComCusto > QTD_EPSILON ? p.custoTotal / p.qtdComCusto : null,
+            lucro: base - p.custoTotal,
+            rent: saldo !== null && p.custoTotal > 0 ? (saldo - p.custoTotal) / p.custoTotal * 100 : null,
+        };
+    });
+    var t = { saldo: 0, custo: 0, antes: 0, semCotacao: 0 };
+    linhas.forEach(function (x) {
+        t.saldo += x.base;
+        t.custo += x.l.pos.custoTotal;
+        t.antes += x.antes;
+        if (x.saldo === null) t.semCotacao++;
+    });
+    linhas.forEach(function (x) { x.pct = t.saldo > 0 ? x.base / t.saldo * 100 : 0; });
+    return {
+        linhas: linhas,
+        saldo: t.saldo,
+        custo: t.custo,
+        lucroNR: t.saldo - t.custo,
+        lucroNRpct: t.custo > 0 ? (t.saldo - t.custo) / t.custo * 100 : null,
+        var24h: t.saldo - t.antes,
+        var24hPct: t.antes > 0 ? (t.saldo / t.antes - 1) * 100 : null,
+        semCotacao: t.semCotacao,
+        realizado: pg.realizado,
+    };
+}
+
+// fatias da rosca: as 5 maiores com cor própria e o resto em "Outras"
+function montarFatias(r) {
+    var ordem = ordemDeEntrada();
+    var porTamanho = r.linhas.filter(function (x) { return x.base > 0; })
+        .sort(function (a, b) { return b.base - a.base; });
+    var principais = porTamanho.length > ALOCACAO_CORES.length ? porTamanho.slice(0, ALOCACAO_CORES.length) : porTamanho;
+    var resto = porTamanho.slice(principais.length);
+    var porEntrada = principais.slice().sort(function (a, b) { return ordem[a.l.id] - ordem[b.l.id]; });
+    var cor = {};
+    porEntrada.forEach(function (x, i) { cor[x.l.id] = ALOCACAO_CORES[i]; });
+    var fatias = principais.map(function (x) { return { ids: [x.l.id], nome: x.l.info.simbolo, cor: cor[x.l.id] }; });
+    if (resto.length) fatias.push({ ids: resto.map(function (x) { return x.l.id; }), nome: 'Outras', cor: ALOCACAO_OUTRAS });
+    return fatias;
+}
+
+function baseDaFatia(r, f) {
+    return r.linhas.filter(function (x) { return f.ids.indexOf(x.l.id) !== -1; })
+        .reduce(function (s, x) { return s + x.base; }, 0);
+}
+
+var ROSCA_R = 70;
+var ROSCA_C = 2 * Math.PI * ROSCA_R;
+
+function roscaHTML(r, fatias) {
+    var acumulado = 0;
+    var segmentos = fatias.map(function (f, i) {
+        var frac = r.saldo > 0 ? baseDaFatia(r, f) / r.saldo : 0;
+        var comp = Math.max(frac * ROSCA_C - 2, 0);        // 2px de respiro entre as fatias
+        var seg = '<circle class="rosca-fatia" data-fatia="' + i + '" cx="90" cy="90" r="' + ROSCA_R + '" fill="none" stroke="' + f.cor + '" stroke-width="22" ' +
+            'stroke-dasharray="' + comp.toFixed(2) + ' ' + (ROSCA_C - comp).toFixed(2) + '" stroke-dashoffset="' + (-acumulado).toFixed(2) + '" transform="rotate(-90 90 90)">' +
+            '<title>' + escapar(f.nome) + ': ' + formatarBR(frac * 100, 1) + '%</title></circle>';
+        acumulado += frac * ROSCA_C;
+        return seg;
+    }).join('');
+    return '<svg class="rosca" viewBox="0 0 180 180" role="img" aria-label="Alocação da carteira por moeda">' +
+        '<circle cx="90" cy="90" r="' + ROSCA_R + '" fill="none" stroke="var(--superficie-2)" stroke-width="22"/>' +
+        segmentos + '<text x="90" y="86" text-anchor="middle" class="rosca-total">' + r.linhas.length + '</text>' +
+        '<text x="90" y="104" text-anchor="middle" class="rosca-rotulo">' + (r.linhas.length === 1 ? 'moeda' : 'moedas') + '</text></svg>';
+}
+
+function legendaAlocacaoHTML(r, fatias) {
+    return '<ul class="rosca-legenda">' + fatias.map(function (f, i) {
+        var base = baseDaFatia(r, f);
+        return '<li data-fatia-leg="' + i + '"><span class="rosca-cor" style="background: ' + f.cor + ';"></span>' +
+            '<span class="rosca-nome">' + escapar(f.nome) + '</span>' +
+            '<span class="rosca-pct">' + formatarBR(r.saldo > 0 ? base / r.saldo * 100 : 0, 1) + '%</span>' +
+            '<span class="rosca-valor" data-brl="' + base + '"></span></li>';
+    }).join('') + '</ul>';
+}
+
+function linhaPortfolioHTML(x) {
+    var l = x.l;
+    var p = l.pos;
+    var semCusto = p.quantidade - p.qtdComCusto;
+    return '<tr data-moeda-id="' + escapar(l.id) + '">' +
+        '<td>' + moedaCelulaHTML(l.id) + '</td>' +
+        '<td>' + (l.preco !== null ? '<span class="preco-vivo" data-cel="preco" data-brl="' + l.preco + '" data-tipo="preco"></span>' : '<span class="sem-dado" title="Sem cotação ao vivo">—</span>') + '</td>' +
+        '<td data-cel="var24h">' + pctCelula(l.var24h) + '</td>' +
+        '<td>' + textoQuantidade(p.quantidade) +
+        (semCusto > QTD_EPSILON && x.pm !== null ? '<span class="qtd-sem-custo">' + textoQuantidade(semCusto) + ' sem custo</span>' : '') + '</td>' +
+        '<td>' + (x.pm !== null ? '<span data-brl="' + x.pm + '" data-tipo="preco"></span>' : '<span class="sem-dado">custo zero</span>') + '</td>' +
+        '<td><span data-brl="' + p.custoTotal + '"></span></td>' +
+        '<td class="td-forte" data-cel="saldo">' + (x.saldo !== null ? '<span data-brl="' + x.saldo + '"></span>' : '<span class="sem-dado">—</span>') + '</td>' +
+        '<td data-cel="lucro">' + lucroCelulaHTML(x) + '</td>' +
+        '<td data-cel="pct">' + formatarBR(x.pct, 1) + '%</td></tr>';
+}
+
+function lucroCelulaHTML(x) {
+    if (x.saldo === null) return '<span class="sem-dado">—</span>';
+    if (x.l.pos.custoTotal <= 0) return '<span class="var alta">custo zero</span>';
+    return '<span class="var ' + (x.lucro >= 0 ? 'alta' : 'queda') + '" data-brl="' + x.lucro + '"></span>' +
+        '<span class="lucro-pct ' + (x.lucro >= 0 ? 'alta' : 'queda') + '">' + formatarPct(x.rent) + '</span>';
+}
+
+function cartaoResumoHTML(rotulo, id, nota) {
+    return '<div class="cartao"><p class="indicador-rotulo">' + rotulo + '</p><p class="indicador-valor" id="' + id + '"></p>' +
+        (nota ? '<p class="indicador-nota" id="' + id + '-nota"></p>' : '') + '</div>';
+}
+
+function paginaPortfolio() {
+    return '<div class="pagina">' +
+        '<div class="pagina-cabecalho"><div><h1>Portfólio</h1>' +
+        '<p>Quanto você tem, quanto pagou e quanto ganhou, moeda por moeda.</p></div>' +
+        '<div class="cabecalho-acoes">' + statusConexaoHTML() +
+        '<button type="button" class="botao botao-neutro" data-rota="/lancamentos">' + icone('lancamentos') + 'Lançamentos</button>' +
+        '<button type="button" class="botao botao-marca" data-lanc-novo>' + icone('mais') + 'Novo lançamento</button></div></div>' +
+        '<div id="pf-conteudo"><div class="painel"><span class="esqueleto" style="width: 40%; height: 42px;"></span>' +
+        '<span class="esqueleto" style="margin-top: 20px; height: 80px; border-radius: 12px;"></span></div></div></div>';
+}
+
+function portfolioVazioHTML() {
+    return '<div class="painel"><p class="painel-titulo">Sua carteira está vazia</p>' +
+        '<p class="painel-sub">Registre a sua primeira compra, entrada ou conversão. O saldo, o lucro e a alocação aparecem aqui.</p>' +
+        '<button type="button" class="botao botao-marca" data-lanc-novo>' + icone('mais') + 'Novo lançamento</button></div>';
+}
+
+function portfolioHTML(pg, r, fatias) {
+    var periodos = Object.keys(PF_PERIODOS).map(function (k) {
+        return '<button type="button" data-pf-periodo="' + k + '" aria-pressed="' + (k === pg.periodo) + '">' + k + '</button>';
+    }).join('');
+
+    var tabela = r.linhas.length
+        ? '<div class="painel painel-tabela"><table class="tabela tabela-portfolio" id="tabela-portfolio"><thead><tr>' +
+          '<th>Moeda</th><th>Preço</th><th>24h</th><th>Quantidade</th><th>Preço médio</th><th>Custo</th><th>Saldo</th><th>Lucro</th><th>% da carteira</th>' +
+          '</tr></thead><tbody>' + r.linhas.map(linhaPortfolioHTML).join('') + '</tbody></table></div>' +
+          (r.semCotacao ? '<p class="painel-sub pf-nota">' + r.semCotacao + ' moeda(s) sem cotação ao vivo entram no saldo pelo custo.</p>' : '')
+        : '<div class="painel"><p class="painel-sub">Nenhuma moeda em carteira agora. O lucro realizado das suas vendas continua no resumo acima.</p></div>';
+
+    return '<div class="painel pf-hero">' +
+        '<p class="saldo-rotulo">Saldo do portfólio</p>' +
+        '<p class="saldo" id="pf-saldo"></p>' +
+        '<p class="pf-var"><span id="pf-var"></span><span class="pf-var-rotulo">nas últimas 24h</span></p>' +
+        '<div class="grade-4 pf-cartoes">' +
+        cartaoResumoHTML('Custo total', 'pf-custo') +
+        cartaoResumoHTML('Lucro não realizado', 'pf-lucro', true) +
+        cartaoResumoHTML('Lucro realizado', 'pf-realizado', true) +
+        cartaoResumoHTML('Resultado total', 'pf-resultado', true) +
+        '</div></div>' +
+
+        '<div class="painel"><div class="grafico-barra">' +
+        '<div><p class="painel-titulo">Evolução do patrimônio</p>' +
+        '<p class="painel-sub" style="margin-bottom: 0;">Reconstruída dia a dia: o que você tinha em cada dia, pelo preço daquele dia.</p></div>' +
+        '<div class="segmentado" role="group" aria-label="Período">' + periodos + '</div></div>' +
+        '<div class="pf-legenda"><span><i class="pf-traco" style="background: #3987e5;"></i>Patrimônio</span>' +
+        '<span><i class="pf-traco pf-tracejado"></i>Custo</span></div>' +
+        '<div class="grafico-area"><div class="grafico grafico-pf" id="pf-grafico"></div>' +
+        '<div class="grafico-legenda" id="pf-grafico-legenda"></div>' +
+        '<div class="grafico-msg" id="pf-grafico-msg">Carregando histórico…</div></div>' +
+        '<p class="painel-sub pf-nota" id="pf-grafico-nota" hidden></p></div>' +
+
+        '<div class="painel"><p class="painel-titulo">Alocação</p>' +
+        '<p class="painel-sub">Quanto cada moeda pesa no saldo.</p>' +
+        '<div class="rosca-area"><div id="pf-rosca">' + roscaHTML(r, fatias) + '</div>' +
+        '<div id="pf-rosca-leg">' + legendaAlocacaoHTML(r, fatias) + '</div></div></div>' +
+
+        tabela;
+}
+
+// ---------- preços ----------
+function precoInicialDaLinha(l, tickers, usdtbrl) {
+    var d = l.par ? tickers[l.par] : null;
+    if (d && usdtbrl) {
+        l.preco = l.par === 'USDTBRL' ? Number(d.lastPrice) : Number(d.lastPrice) * usdtbrl;
+        l.var24h = Number(d.priceChangePercent);
+        l.aoVivo = true;
+        return;
+    }
+    var m = mercado.porId[l.id];          // pacote diário: pode ter horas
+    l.preco = m && m.preco > 0 ? m.preco : null;
+    l.var24h = m && m.var24h != null ? m.var24h : null;
+    l.aoVivo = false;
+}
+
+function carregarPrecosPortfolio(pg) {
+    var pares = [];
+    pg.linhas.forEach(function (l) { if (l.par && pares.indexOf(l.par) === -1) pares.push(l.par); });
+    if (!pares.length) { pg.linhas.forEach(function (l) { precoInicialDaLinha(l, {}, null); }); return Promise.resolve(); }
+    var simbolos = pares.slice();
+    if (simbolos.indexOf('USDTBRL') === -1) simbolos.push('USDTBRL');
+    return fetch(BINANCE + '/api/v3/ticker/24hr?symbols=' + encodeURIComponent(JSON.stringify(simbolos)))
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function (lista) {
+            var por = {};
+            lista.forEach(function (d) { por[d.symbol] = d; });
+            pg.usdtbrl = por.USDTBRL ? Number(por.USDTBRL.lastPrice) : null;
+            pg.linhas.forEach(function (l) { precoInicialDaLinha(l, por, pg.usdtbrl); });
+        })
+        .catch(function () { pg.linhas.forEach(function (l) { precoInicialDaLinha(l, {}, null); }); });
+}
+
+function aplicarTickPortfolio(simbolo, fechamento, abertura) {
+    var pg = portfolioPg;
+    if (!pg) return;
+    pg.linhas.forEach(function (l) {
+        if (l.par !== simbolo) return;
+        var taxa = simbolo === 'USDTBRL' ? 1 : pg.usdtbrl;
+        if (!taxa) return;
+        l.preco = fechamento * taxa;
+        if (abertura > 0) l.var24h = (fechamento / abertura - 1) * 100;
+        l.aoVivo = true;
+    });
+    if (pg.agendado) return;
+    pg.agendado = true;      // o lote inteiro (várias moedas) redesenha uma vez só
+    setTimeout(function () { pg.agendado = false; if (portfolioPg === pg) atualizarPortfolioTela(); }, 0);
+}
+
+// ---------- atualização na tela ----------
+function escreverBRL(id, valor, tipo) {
+    var el = document.getElementById(id);
+    if (!el) return null;
+    el.setAttribute('data-brl', valor);
+    if (tipo) el.setAttribute('data-tipo', tipo);
+    el.textContent = formatarMoeda(valor, tipo);
+    return el;
+}
+
+function classeGanho(el, valor) {
+    if (!el) return;
+    el.classList.toggle('ganho', valor > 0);
+    el.classList.toggle('perda', valor < 0);
+}
+
+function atualizarPortfolioTela() {
+    var pg = portfolioPg;
+    if (!pg || !document.getElementById('pf-saldo')) return;
+    var r = calcularPortfolio(pg);
+    pg.ultimo = r;
+
+    // saldo grande: desliza até o valor novo
+    var saldoEl = document.getElementById('pf-saldo');
+    var de = Number(saldoEl.getAttribute('data-brl'));
+    saldoEl.setAttribute('data-brl', r.saldo);
+    if (pg.primeiraLeitura || !isFinite(de)) saldoEl.textContent = formatarMoeda(r.saldo);
+    else animarNumero(saldoEl, de, r.saldo, function (v) { return formatarMoeda(v); }, 450);
+
+    var v24 = document.getElementById('pf-var');
+    if (v24) {
+        v24.innerHTML = r.var24hPct === null ? '<span class="sem-dado">—</span>' :
+            '<span class="var ' + (r.var24h >= 0 ? 'alta' : 'queda') + '" data-brl="' + r.var24h + '">' + formatarMoeda(r.var24h) + '</span> ' + varHTML(r.var24hPct, true);
+    }
+
+    escreverBRL('pf-custo', r.custo);
+    var lucro = escreverBRL('pf-lucro', r.lucroNR);
+    classeGanho(lucro, r.lucroNR);
+    var notaL = document.getElementById('pf-lucro-nota');
+    if (notaL) notaL.textContent = !r.linhas.length ? 'sem moedas em carteira' : (r.lucroNRpct === null ? 'custo zero' : formatarPct(r.lucroNRpct) + ' sobre o custo');
+    var real = escreverBRL('pf-realizado', r.realizado.total);
+    classeGanho(real, r.realizado.total);
+    var notaR = document.getElementById('pf-realizado-nota');
+    if (notaR) notaR.textContent = r.realizado.vendas ? r.realizado.vendas + (r.realizado.vendas === 1 ? ' venda' : ' vendas') : 'sem vendas ainda';
+    var res = escreverBRL('pf-resultado', r.lucroNR + r.realizado.total);
+    classeGanho(res, r.lucroNR + r.realizado.total);
+    var notaT = document.getElementById('pf-resultado-nota');
+    if (notaT) notaT.textContent = 'não realizado mais realizado';
+
+    // tabela: só as células que mudam, com pisca no preço
+    r.linhas.forEach(function (x) {
+        var tr = document.querySelector('#tabela-portfolio tr[data-moeda-id="' + x.l.id + '"]');
+        if (!tr) return;
+        var preco = tr.querySelector('[data-cel="preco"]');
+        if (preco && x.l.preco !== null) {
+            var antes = Number(preco.getAttribute('data-brl'));
+            if (Math.abs(x.l.preco - antes) / (antes || 1) > 1e-7) {
+                preco.setAttribute('data-brl', x.l.preco);
+                if (!pg.primeiraLeitura) piscar(preco, x.l.preco > antes);
+                animarNumero(preco, antes, x.l.preco, function (v) { return formatarMoeda(v, 'preco'); }, 450);
+            }
+        }
+        tr.querySelector('[data-cel="var24h"]').innerHTML = pctCelula(x.l.var24h);
+        if (x.saldo !== null) tr.querySelector('[data-cel="saldo"]').innerHTML = '<span data-brl="' + x.saldo + '">' + formatarMoeda(x.saldo) + '</span>';
+        tr.querySelector('[data-cel="lucro"]').innerHTML = lucroCelulaHTML(x);
+        tr.querySelector('[data-cel="pct"]').textContent = formatarBR(x.pct, 1) + '%';
+        preencherValores(tr);
+    });
+
+    // rosca e legenda
+    var acumulado = 0;
+    pg.fatias.forEach(function (f, i) {
+        var base = baseDaFatia(r, f);
+        var frac = r.saldo > 0 ? base / r.saldo : 0;
+        var comp = Math.max(frac * ROSCA_C - 2, 0);
+        var seg = document.querySelector('.rosca-fatia[data-fatia="' + i + '"]');
+        if (seg) {
+            seg.setAttribute('stroke-dasharray', comp.toFixed(2) + ' ' + (ROSCA_C - comp).toFixed(2));
+            seg.setAttribute('stroke-dashoffset', (-acumulado).toFixed(2));
+        }
+        acumulado += frac * ROSCA_C;
+        var leg = document.querySelector('[data-fatia-leg="' + i + '"]');
+        if (leg) {
+            leg.querySelector('.rosca-pct').textContent = formatarBR(frac * 100, 1) + '%';
+            var val = leg.querySelector('.rosca-valor');
+            val.setAttribute('data-brl', base);
+            val.textContent = formatarMoeda(base);
+        }
+    });
+
+    atualizarUltimoPontoPortfolio(r);
+    pg.primeiraLeitura = false;
+}
+
+// ---------- gráfico de evolução ----------
+function buscarKlinesDiarias(simbolo, desdeMs) {
+    var url = BINANCE + '/api/v3/klines?symbol=' + simbolo + '&interval=1d&startTime=' + desdeMs + '&limit=1000';
+    return fetch(url).then(function (r) { if (!r.ok) throw new Error('klines ' + r.status); return r.json(); });
+}
+
+// { 'AAAA-MM-DD': fechamento } em reais, por moeda
+function buscarHistoricosPortfolio(pg, transacoes) {
+    var primeiro = ordenarTransacoes(transacoes)[0].data;
+    var limite = new Date(); limite.setUTCDate(limite.getUTCDate() - 998);
+    var desde = new Date(primeiro + 'T00:00:00Z');
+    if (desde < limite) desde = limite;
+    desde.setUTCDate(desde.getUTCDate() - 1);
+    var desdeMs = desde.getTime();
+
+    var ids = [];
+    transacoes.forEach(function (t) {
+        pernasDaTransacao(t).forEach(function (p) { if (ids.indexOf(p.moedaId) === -1) ids.push(p.moedaId); });
+    });
+    return obterPrecosBinance().then(function (binance) {
+        var pares = {};
+        ids.forEach(function (id) {
+            var m = mercado.porId[id];
+            var par = m ? parBinanceDe(m, binance) : null;
+            if (par) pares[id] = par;
+        });
+        var simbolos = [];
+        Object.keys(pares).forEach(function (id) { if (simbolos.indexOf(pares[id]) === -1) simbolos.push(pares[id]); });
+        if (simbolos.indexOf('USDTBRL') === -1) simbolos.push('USDTBRL');
+        return Promise.all(simbolos.map(function (s) {
+            return buscarKlinesDiarias(s, desdeMs).then(function (k) { return [s, k]; });
+        })).then(function (resp) {
+            var porPar = {};
+            resp.forEach(function (x) {
+                var mapa = {};
+                x[1].forEach(function (c) { mapa[new Date(c[0]).toISOString().slice(0, 10)] = Number(c[4]); });
+                porPar[x[0]] = mapa;
+            });
+            var dolar = porPar.USDTBRL || {};
+            var dias = Object.keys(dolar).sort();
+            var precos = {};
+            Object.keys(pares).forEach(function (id) {
+                var mapa = porPar[pares[id]];
+                var saida = {};
+                if (pares[id] === 'USDTBRL') {
+                    saida = mapa;
+                } else {
+                    var taxa = null;
+                    Object.keys(mapa).sort().forEach(function (dia) {
+                        if (dolar[dia] !== undefined) taxa = dolar[dia];
+                        if (taxa !== null) saida[dia] = mapa[dia] * taxa;
+                    });
+                }
+                precos[id] = saida;
+            });
+            return precos;
+        });
+    });
+}
+
+function pontosDoPeriodo(pg) {
+    var todos = pg.evolucao.pontos;
+    var dias = PF_PERIODOS[pg.periodo];
+    if (!dias) return todos;
+    return todos.slice(Math.max(todos.length - dias, 0));
+}
+
+function escalarPonto(v) {
+    return v * fatorExibicao();
+}
+
+function desenharEvolucao(ajustar) {
+    var pg = portfolioPg;
+    if (!pg || !pg.chart || !pg.evolucao) return;
+    var pontos = pontosDoPeriodo(pg);
+    pg.serieValor.setData(pontos.map(function (p) { return { time: p.time, value: escalarPonto(p.valor) }; }));
+    pg.serieCusto.setData(pontos.map(function (p) { return { time: p.time, value: escalarPonto(p.custo) }; }));
+    if (ajustar) pg.chart.timeScale().fitContent();
+}
+
+function atualizarUltimoPontoPortfolio(r) {
+    var pg = portfolioPg;
+    if (!pg || !pg.serieValor || !pg.evolucao || !pg.evolucao.pontos.length) return;
+    var ultimo = pg.evolucao.pontos[pg.evolucao.pontos.length - 1];
+    ultimo.valor = r.saldo;
+    ultimo.custo = r.custo;
+    pg.serieValor.update({ time: ultimo.time, value: escalarPonto(ultimo.valor) });
+    pg.serieCusto.update({ time: ultimo.time, value: escalarPonto(ultimo.custo) });
+}
+
+function criarGraficoPortfolio() {
+    var pg = portfolioPg;
+    var LW = window.LightweightCharts;
+    var chart = LW.createChart(document.getElementById('pf-grafico'), {
+        autoSize: true,
+        layout: { background: { type: 'solid', color: 'transparent' }, textColor: corCss('--texto-2'), fontFamily: 'Manrope, system-ui, sans-serif', fontSize: 12 },
+        grid: { vertLines: { color: corCss('--borda') }, horzLines: { color: corCss('--borda') } },
+        rightPriceScale: { borderColor: corCss('--borda'), scaleMargins: { top: 0.12, bottom: 0.08 } },
+        timeScale: { borderColor: corCss('--borda') },
+        crosshair: {
+            mode: LW.CrosshairMode.Normal,
+            vertLine: { color: corCss('--texto-3'), labelBackgroundColor: corCss('--superficie-3') },
+            horzLine: { color: corCss('--texto-3'), labelBackgroundColor: corCss('--superficie-3') },
+        },
+        localization: { priceFormatter: formatarExibido },
+    });
+    pg.chart = chart;
+    var formato = { type: 'custom', formatter: formatarExibido, minMove: 1e-10 };
+    pg.serieCusto = chart.addLineSeries({ color: corCss('--texto-3'), lineWidth: 2, lineStyle: LW.LineStyle.Dashed, priceFormat: formato, lastValueVisible: false, priceLineVisible: false });
+    pg.serieValor = chart.addLineSeries({ color: '#3987e5', lineWidth: 2, priceFormat: formato, lastValueVisible: true, priceLineVisible: true });
+    chart.subscribeCrosshairMove(function (param) {
+        var leg = document.getElementById('pf-grafico-legenda');
+        if (!leg || !portfolioPg) return;
+        var v = param && param.seriesData && param.seriesData.get(pg.serieValor);
+        var c = param && param.seriesData && param.seriesData.get(pg.serieCusto);
+        if (!param || !param.time || !v) { leg.innerHTML = ''; return; }
+        var quando = new Date(param.time + 'T00:00:00Z').toLocaleDateString('pt-BR', { timeZone: 'UTC', day: '2-digit', month: 'short', year: 'numeric' });
+        leg.innerHTML = quando + ' · Patrimônio <strong>' + formatarExibido(v.value) + '</strong>' +
+            (c ? ' · Custo <strong>' + formatarExibido(c.value) + '</strong>' : '');
+    });
+}
+
+function carregarEvolucao() {
+    var pg = portfolioPg;
+    var transacoes = lerBanco().transacoes;
+    if (!transacoes.length) return;
+    var msg = document.getElementById('pf-grafico-msg');
+    buscarHistoricosPortfolio(pg, transacoes).then(function (precos) {
+        if (portfolioPg !== pg) return;
+        var hoje = new Date().toISOString().slice(0, 10);
+        pg.evolucao = reconstruirEvolucao(transacoes, precos, hoje);
+        return carregarLightweight().then(function () {
+            if (portfolioPg !== pg) return;
+            criarGraficoPortfolio();
+            desenharEvolucao(true);
+            if (pg.ultimo) atualizarUltimoPontoPortfolio(pg.ultimo);
+            if (msg) msg.hidden = true;
+            var nota = document.getElementById('pf-grafico-nota');
+            if (nota && pg.evolucao.aCusto.length) {
+                nota.hidden = false;
+                nota.textContent = 'Sem histórico de preço na Binance, entram pelo custo: ' +
+                    pg.evolucao.aCusto.map(function (id) { return infoMoeda(id).simbolo; }).join(', ') + '.';
+            }
+        });
+    }).catch(function () {
+        if (portfolioPg !== pg || !msg) return;
+        msg.hidden = false;
+        msg.textContent = 'Não consegui carregar o histórico de preços agora. Recarregue a página para tentar de novo.';
+    });
+}
+
+ROTAS['/portfolio'].montar = function () {
+    var raiz = document.getElementById('pf-conteudo');
+    var banco = lerBanco();
+    if (!banco.transacoes.length) { raiz.innerHTML = portfolioVazioHTML(); return; }
+
+    var carteira = carteiraAtual();
+    var realizado = { total: 0, vendas: 0 };
+    Object.keys(carteira.realizado).forEach(function (k) { realizado.total += carteira.realizado[k]; realizado.vendas++; });
+
+    var pronto = mercado.lista.length ? Promise.resolve() : carregarMercado().catch(function () {});
+    pronto.then(function () {
+        if (rotaAtual !== '/portfolio' || !document.getElementById('pf-conteudo')) return;
+        var pg = portfolioPg = { linhas: [], realizado: realizado, periodo: 'Tudo', primeiraLeitura: true, usdtbrl: null };
+
+        return obterPrecosBinance().catch(function () { return {}; }).then(function (binance) {
+            Object.keys(carteira.posicoes).forEach(function (id) {
+                var p = carteira.posicoes[id];
+                if (p.quantidade <= QTD_EPSILON) return;
+                var m = mercado.porId[id];
+                pg.linhas.push({ id: id, info: infoMoeda(id), pos: p, par: m ? parBinanceDe(m, binance) : null, preco: null, var24h: null, aoVivo: false });
+            });
+            return carregarPrecosPortfolio(pg);
+        }).then(function () {
+            if (portfolioPg !== pg) return;
+            var r = calcularPortfolio(pg);
+            r.linhas.sort(function (a, b) { return b.base - a.base; });
+            pg.linhas = r.linhas.map(function (x) { return x.l; });
+            pg.fatias = montarFatias(r);
+            raiz.innerHTML = portfolioHTML(pg, r, pg.fatias);
+            preencherValores(raiz);
+            estado.ouvir('conexao', atualizarStatusConexao, true);
+            atualizarStatusConexao(estado.ler('conexao') || 'conectando');
+            atualizarPortfolioTela();
+
+            estado.ouvir('moeda', function () {
+                preencherValores();
+                desenharEvolucao(false);
+                if (pg.ultimo) atualizarPortfolioTela();
+            }, true);
+            estado.ouvir('taxas', function () { desenharEvolucao(false); }, true);
+
+            var pares = [];
+            pg.linhas.forEach(function (l) { if (l.par && pares.indexOf(l.par) === -1) pares.push(l.par); });
+            if (pares.length) {
+                var streams = pares.map(function (p) { return p.toLowerCase() + '@miniTicker'; });
+                if (pares.indexOf('USDTBRL') === -1) streams.push('usdtbrl@miniTicker');
+                pg.amortecedor = criarAmortecedor(function (simbolo, t) { aplicarTickPortfolio(simbolo, t.c, t.o); });
+                pg.canal = abrirCanalAoVivo(streams, function (simbolo, c, o) {
+                    if (simbolo === 'USDTBRL') pg.usdtbrl = c;
+                    pg.amortecedor.guardar(simbolo, { c: c, o: o });
+                });
+            } else {
+                estado.definir('conexao', 'off');
+            }
+            carregarEvolucao();
+        });
+    });
+};
+
+document.addEventListener('click', function (ev) {
+    var per = ev.target.closest('[data-pf-periodo]');
+    if (!per || !portfolioPg) return;
+    portfolioPg.periodo = per.getAttribute('data-pf-periodo');
+    document.querySelectorAll('[data-pf-periodo]').forEach(function (b) {
+        b.setAttribute('aria-pressed', b === per ? 'true' : 'false');
+    });
+    desenharEvolucao(true);
+});
 
 
 /* =================================================================
