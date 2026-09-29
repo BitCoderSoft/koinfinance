@@ -14,8 +14,8 @@ Este documento resume o que foi construído até aqui (etapas 0, 0.1 e 1, feitas
 |---|---|
 | Arquivo principal | `koin.html` (single-file: HTML + CSS + JS, sem build) |
 | Versão | `0.1.0` (vira `1.0.0` ao fechar a Etapa 7) |
-| Etapas concluídas | 0 (fundação), 0.1 (navegação no topo), 1 (mercado), 1.1 (CoinGecko com chave), 1.2 (tabela larga), 2 (página da moeda), 2.1 (sem chave do usuário), 3 (motor e lançamentos) |
-| Próxima etapa | 4 (portfólio) |
+| Etapas concluídas | 0 (fundação), 0.1 (navegação no topo), 1 (mercado), 1.1 (CoinGecko com chave), 1.2 (tabela larga), 2 (página da moeda), 2.1 (sem chave do usuário), 3 (motor e lançamentos), 4 (portfólio) |
+| Próxima etapa | 5 (extras: balanceamento, objetivos, alertas, backup) |
 | Pendência aberta | Confirmar no navegador (com a chave) que o Mercado sai do modo simplificado (ver "Verificação pendente") |
 
 ---
@@ -72,7 +72,7 @@ Raios por hierarquia: controle 8px, cartão 14px, painel 18px.
 - Navegação horizontal no topo, alinhada à largura do conteúdo (1240px). Links diretos + **grupos com menu suspenso** no estilo do CoinMarketCap: seções com título, item com ícone em círculo de latão, nome e uma linha de descrição.
 - Com mouse, o menu abre ao passar por cima e fecha com folga de 180ms; no toque, abre e fecha no clique; Esc e clique fora fecham.
 - Item ativo: fio de latão colado na borda de baixo do topo. Página dentro de um grupo acende o botão do grupo.
-- O menu é montado a partir das listas `NAV` e `NAV_CONTA`. Para crescer, acrescente itens ou seções ali.
+- O menu é montado a partir das listas `NAV` e `NAV_CONTA` (grupos hoje: Portfólio, Análise). Para crescer, acrescente itens ou seções ali.
 
 ### Movimento
 - Preço que muda pisca verde ou vermelho (estilo Binance) e o número desliza até o valor novo (`piscar`, `animarNumero`).
@@ -197,6 +197,16 @@ Testado só com respostas simuladas no formato das documentações. Falta confir
 
 ---
 
+### Etapa 4 · Portfólio (entregue)
+- **Menu:** "Lançamentos" virou submenu de "Portfólio" (grupo `Portfólio` em `NAV`, com os itens Portfólio e Lançamentos). O botão do grupo acende nas duas rotas. Na tela do Portfólio há o botão "Lançamentos" (e "Novo lançamento") no cabeçalho.
+- **Resumo:** saldo grande (Unbounded) na moeda de exibição, variação das últimas 24h (R$ e %), custo total, lucro não realizado (e % sobre o custo), lucro realizado, resultado total (não realizado mais realizado). Saldo desliza até o valor novo a cada atualização.
+- **Evolução real do patrimônio:** `reconstruirEvolucao` (função pura, 11 testes em Node) reconstrói dia a dia do 1º lançamento até hoje: quantidade que havia em cada dia x fechamento daquele dia. Segunda linha tracejada com o custo. Preços: klines diárias da Binance (par USDT x USDTBRL do mesmo dia), uma chamada por moeda que a carteira já teve. Dia sem preço repete o último. **Moeda sem histórico na Binance entra pelo custo** e a tela avisa quais. Períodos 1M, 3M, 6M, 1A, Tudo. O último ponto (hoje) acompanha o saldo ao vivo. Segue a moeda de exibição.
+- **Alocação (rosca):** SVG próprio, animado (as fatias deslizam quando os pesos mudam). As 5 maiores moedas têm cor própria e o resto vai para "Outras" (cinza). **A cor segue a moeda** (ordem de entrada na carteira), não o tamanho. Paleta categórica validada com o validador da skill `dataviz` no fundo escuro (`#131A29`), inclusive fechando o anel: azul, laranja, violeta, latão, magenta. **Ficam de fora verde e vermelho** (reservados para alta e queda). Fatias com 2px de respiro, legenda com % e valor.
+- **Tabela de ativos:** moeda, preço ao vivo (pisca), 24h, quantidade (com "X sem custo"), preço médio de compra, custo, saldo, lucro (R$ e %) e % da carteira. **Rentabilidade pelo valor** (saldo menos custo, sobre o custo). Posição de custo zero mostra "custo zero" no lugar da %.
+- **Ao vivo:** REST `ticker/24hr` na abertura e WebSocket (`abrirCanalAoVivo`, reconexão crescente) com o amortecedor de 5s. Verificado: uma mudança do saldo a cada 5s.
+- **Moeda sem cotação ao vivo** (sem par na Binance ou fora do pacote diário): usa o preço do pacote e, sem preço, entra no saldo pelo custo (aviso abaixo da tabela).
+- `sairDoPortfolio()` roda em todo `desenhar()` e limpa socket, timers e gráfico.
+
 ### Etapa 3 · Motor e lançamentos (entregue)
 Portado do `dash-finance.html` (só a parte cripto: `[CRIPTO v2]`, `[CRIPTO v2.1]`, `[MOTOR v2]`), sem usuário e sem bolsa.
 - **Motor puro** (bloco `[MOTOR:início]`/`[MOTOR:fim]` no HTML): `pernasDaTransacao`, `ordenarTransacoes` (data, prioridade no dia, `criadoEm`, id), `processarCarteira` (custo, `qtdComCusto`, preço médio de compra, resíduo de ponto flutuante), `primeiroFuroDeSaldo`, `verificarCronologia` (salvar, editar e excluir). Recebe listas e devolve resultado, sem ler nem gravar nada.
@@ -222,13 +232,6 @@ Portado do `dash-finance.html` (só a parte cripto: `[CRIPTO v2]`, `[CRIPTO v2.1
 - `sairDaMoeda()` roda em todo `desenhar()` e limpa socket, timers e gráfico.
 
 ## Próximas etapas
-
-### Etapa 4 · Portfólio
-- Saldo grande (Unbounded) em R$/US$/₿, custo total, lucro realizado e não realizado, variação 24h da carteira.
-- **Evolução real do patrimônio:** reconstruída dia a dia (quantidade que havia em cada dia × preço daquele dia), não o custo acumulado.
-- Alocação em rosca animada (ECharts ou ApexCharts via CDN).
-- Tabela de ativos: preço, 24h, quantidade (com "sem custo" em verde quando houver entrada gratuita), PM de compra, custo, saldo atual, lucro, % da carteira. Rentabilidade pelo valor (saldo ÷ custo), não pelo PM.
-- Posição de custo zero: mostra valor atual e "custo zero" no lugar da porcentagem.
 
 ### Etapa 5 · Extras
 - **Balanceamento:** alocação ideal por moeda ou grupo, nota 0 a 10 por moeda, peso ideal, desvio em pontos percentuais, simulador de aporte (só compra, guloso pela maior falta). Vocabulário: "alocação ideal", "nota", "peso ideal", "desvio". A palavra "meta" fica reservada para Objetivos.
