@@ -2611,54 +2611,162 @@ body:has(#gaveta.aberta) .avisos {
 
 /* =================================================================
    TELAS DE IDENTIFICAÇÃO  [ETAPA 6]
-   Sobreposição de tela cheia antes do app carregar.
+   Desktop: painel da marca à esquerda + formulário à direita.
+   Mobile: só o formulário, com logotipo pequeno no topo.
    ================================================================= */
 
 .tela-entrada {
     position: fixed;
     inset: 0;
-    background: var(--bg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px 16px;
-    overflow-y: auto;
+    display: grid;
+    grid-template-columns: 420px 1fr;
     z-index: 1000;
+    overflow: hidden;
 }
 
-.tela-caixa {
-    width: 100%;
-    max-width: 400px;
+/* ── painel esquerdo: marca ───────────────────────────────────────*/
+.tela-marca {
+    background: var(--superficie);
+    border-right: 1px solid var(--borda);
     display: flex;
     flex-direction: column;
-    gap: 16px;
-}
-
-.tela-logo {
-    display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 8px;
+    justify-content: center;
+    gap: 20px;
+    padding: 48px 40px;
+    position: relative;
+    overflow: hidden;
 }
 
-.tela-logo svg {
-    width: 36px;
-    height: 36px;
+/* anel decorativo de fundo */
+.tela-marca::before {
+    content: '';
+    position: absolute;
+    width: 520px;
+    height: 520px;
+    border-radius: 50%;
+    border: 1px solid rgba(233, 185, 73, 0.08);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
 }
 
-.tela-logo-nome {
+.tela-marca::after {
+    content: '';
+    position: absolute;
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+    border: 1px solid rgba(233, 185, 73, 0.12);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.tela-marca-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    position: relative;
+    z-index: 1;
+}
+
+.tela-marca-logo svg {
+    width: 72px;
+    height: 72px;
+    filter: drop-shadow(0 0 24px rgba(233, 185, 73, 0.35));
+}
+
+.tela-marca-nome {
     font-family: 'Unbounded', sans-serif;
-    font-size: 20px;
+    font-size: 32px;
     font-weight: 700;
     color: var(--marca);
     letter-spacing: -0.02em;
 }
 
+.tela-marca-tagline {
+    font-size: 15px;
+    color: var(--texto-3);
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    line-height: 1.5;
+    max-width: 260px;
+}
+
+.tela-marca-rodape {
+    position: absolute;
+    bottom: 24px;
+    font-size: 12px;
+    color: var(--texto-3);
+    letter-spacing: 0.02em;
+}
+
+/* ── painel direito: formulário ──────────────────────────────────*/
+.tela-form {
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+    padding: 48px 40px;
+}
+
+.tela-caixa {
+    width: 100%;
+    max-width: 340px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
 .tela-titulo {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 700;
     color: var(--texto);
+    margin: 0 0 2px;
+}
+
+.tela-subtitulo {
+    font-size: 13px;
+    color: var(--texto-2);
     margin: 0;
+    line-height: 1.5;
+}
+
+/* ── campos de formulário da tela de entrada ─────────────────────*/
+.tela-form .entrada {
+    height: 40px;
+    font-size: 14px;
+}
+
+.campo-grupo {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.campo-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--texto-2);
+}
+
+.campo-nota {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--texto-3);
+}
+
+.erro-campo {
+    font-size: 12px;
+    color: var(--queda);
+    margin-top: 2px;
 }
 
 .tela-texto {
@@ -2669,11 +2777,11 @@ body:has(#gaveta.aberta) .avisos {
 }
 
 .tela-aviso {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--texto-2);
-    background: var(--superficie-2);
-    border: 1px solid var(--borda);
-    border-radius: 8px;
+    background: rgba(233, 185, 73, 0.07);
+    border: 1px solid rgba(233, 185, 73, 0.22);
+    border-radius: 10px;
     padding: 10px 12px;
     margin: 0;
     line-height: 1.5;
@@ -2683,47 +2791,51 @@ body:has(#gaveta.aberta) .avisos {
     background: none;
     border: none;
     color: var(--marca);
-    font-size: 14px;
+    font-size: 13px;
     cursor: pointer;
-    padding: 4px 0;
+    padding: 2px 0;
     text-align: left;
+    font-family: inherit;
 }
 
 .tela-link:hover { text-decoration: underline; }
 
 .tela-link-sair {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--texto-3);
 }
 
-.tela-link-sair:hover {
-    color: var(--queda);
-}
+.tela-link-sair:hover { color: var(--queda); }
 
 .tela-voltar {
-    display: block;
-    margin: 12px auto 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     color: var(--texto-3);
     font-size: 13px;
+    margin-top: 4px;
+    align-self: flex-start;
 }
 
 .tela-pin-resultado {
-    font-size: 15px;
+    font-size: 14px;
     color: var(--texto);
-    background: var(--superficie-2);
+    background: var(--superficie);
     border: 1px solid var(--borda);
-    border-radius: 8px;
-    padding: 12px 16px;
-    margin-top: 4px;
+    border-radius: 10px;
+    padding: 14px 16px;
 }
 
 .tela-pin-resultado strong {
-    color: var(--marca);
+    display: block;
     font-family: 'Unbounded', sans-serif;
-    letter-spacing: 0.1em;
+    font-size: 22px;
+    color: var(--marca);
+    letter-spacing: 0.18em;
+    margin-top: 6px;
 }
 
-/* lista de perfis */
+/* ── lista de perfis ─────────────────────────────────────────────*/
 .perfis-lista {
     display: flex;
     flex-wrap: wrap;
@@ -2734,20 +2846,23 @@ body:has(#gaveta.aberta) .avisos {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    padding: 14px 12px;
+    gap: 10px;
+    padding: 18px 14px;
     background: var(--superficie);
     border: 2px solid var(--borda);
-    border-radius: 14px;
+    border-radius: 16px;
     cursor: pointer;
     flex: 1;
-    min-width: 90px;
-    transition: border-color 0.15s;
+    min-width: 100px;
+    max-width: 140px;
+    transition: border-color 0.15s, background 0.15s;
 }
 
-.perfil-card:hover,
+.perfil-card:hover { background: var(--superficie-2); }
+
 .perfil-card.ativo {
     border-color: var(--marca);
+    background: var(--superficie-2);
 }
 
 .perfil-card-nome {
@@ -2755,43 +2870,80 @@ body:has(#gaveta.aberta) .avisos {
     font-weight: 600;
     color: var(--texto);
     text-align: center;
-    word-break: break-all;
+    word-break: break-word;
 }
 
+.perfil-novo { border-style: dashed; }
+
 .perfil-novo .avatar-novo {
+    width: 52px;
+    height: 52px;
     background: var(--superficie-2);
     border: 2px dashed var(--borda);
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
+    font-size: 24px;
     color: var(--texto-3);
-    border-radius: 50%;
 }
 
-/* área do PIN (aparece ao selecionar perfil) */
+/* ── área de PIN ao selecionar perfil ────────────────────────────*/
 .pin-area {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding-top: 4px;
+    gap: 12px;
+    padding: 18px;
+    background: var(--superficie);
+    border: 1px solid var(--borda);
+    border-radius: 14px;
 }
 
 .pin-area-quem {
     font-size: 14px;
-    font-weight: 600;
-    color: var(--texto);
+    color: var(--texto-2);
     margin: 0;
 }
 
-.pin-entrada {
-    font-family: 'Unbounded', sans-serif;
-    letter-spacing: 0.3em;
-    font-size: 20px;
-    text-align: center;
+.pin-area-quem strong {
+    color: var(--texto);
 }
 
-/* avatar circular */
+/* ── caixas OTP ──────────────────────────────────────────────────*/
+.otp-grupo {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.otp-digito {
+    width: 42px;
+    height: 50px;
+    background: var(--bg);
+    border: 2px solid var(--borda);
+    border-radius: 10px;
+    color: var(--texto);
+    font-family: 'Unbounded', sans-serif;
+    font-size: 18px;
+    text-align: center;
+    caret-color: var(--marca);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    padding: 0;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.otp-digito:focus {
+    outline: none;
+    border-color: var(--marca);
+    box-shadow: 0 0 0 3px rgba(233, 185, 73, 0.18);
+}
+
+.otp-digito.preenchido {
+    border-color: var(--superficie-3);
+}
+
+/* ── avatar circular ─────────────────────────────────────────────*/
 .avatar {
     border-radius: 50%;
     display: flex;
@@ -2803,7 +2955,7 @@ body:has(#gaveta.aberta) .avisos {
     flex-shrink: 0;
 }
 
-/* avatar no topo (computador) */
+/* ── avatar no topo (computador) ─────────────────────────────────*/
 .usuario-topo {
     display: flex;
     align-items: center;
@@ -2811,17 +2963,54 @@ body:has(#gaveta.aberta) .avisos {
     margin-left: 8px;
 }
 
-/* avatar no topo mobile */
+/* ── avatar no topo mobile ───────────────────────────────────────*/
 .usuario-mobile-nome {
     font-size: 14px;
     font-weight: 600;
     color: var(--texto);
 }
 
+/* ── mobile: colapsar o painel da marca ──────────────────────────*/
 @media (max-width: 768px) {
-    .perfil-card {
-        padding: 12px 10px;
+    .tela-entrada {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+        overflow-y: auto;
     }
+
+    .tela-marca {
+        border-right: none;
+        border-bottom: 1px solid var(--borda);
+        flex-direction: row;
+        justify-content: flex-start;
+        padding: 18px 20px;
+        gap: 12px;
+    }
+
+    .tela-marca::before,
+    .tela-marca::after { display: none; }
+
+    .tela-marca-logo {
+        flex-direction: row;
+        gap: 10px;
+    }
+
+    .tela-marca-logo svg { width: 32px; height: 32px; filter: none; }
+    .tela-marca-nome { font-size: 20px; }
+    .tela-marca-tagline { display: none; }
+    .tela-marca-rodape { display: none; }
+
+    .tela-form {
+        padding: 28px 20px;
+        justify-content: flex-start;
+    }
+
+    .tela-caixa { max-width: 100%; }
+
+    .otp-digito { width: 40px; height: 48px; font-size: 16px; }
+    .otp-grupo { gap: 6px; }
+
+    .perfil-card { min-width: 80px; padding: 14px 10px; }
 }
 </style>
 </head>
@@ -5244,9 +5433,24 @@ function atualizarInfoUsuario() {
 
 // ─── Telas de entrada ─────────────────────────────────────────────
 var _usuarioSelecionadoId = null;   // qual perfil foi clicado na lista
+var PIN_DIGITOS = 6;                // fixo: 6 dígitos para todos os perfis
 
-function _logoTela() {
-    return '<div class="tela-logo">' + MARCA_SVG + '<span class="tela-logo-nome">' + APP.nome + '</span></div>';
+function _painelMarca() {
+    return '<div class="tela-marca">' +
+        '<div class="tela-marca-logo">' + MARCA_SVG + '<span class="tela-marca-nome">' + APP.nome + '</span></div>' +
+        '<p class="tela-marca-tagline">Seu portfólio cripto,<br>sempre com você.</p>' +
+        '<span class="tela-marca-rodape">BitCoderSoft</span>' +
+        '</div>';
+}
+
+function _otpHTML(grupoId, hiddenId, erroId) {
+    var boxes = '';
+    for (var i = 0; i < PIN_DIGITOS; i++) {
+        boxes += '<input type="password" inputmode="numeric" maxlength="1" class="otp-digito" autocomplete="off" aria-label="Dígito ' + (i + 1) + '">';
+    }
+    return '<div class="otp-grupo" id="' + grupoId + '">' + boxes + '</div>' +
+        '<input type="hidden" id="' + hiddenId + '">' +
+        '<div class="erro-campo" id="' + erroId + '" hidden></div>';
 }
 
 function telaListaHTML(usuarios) {
@@ -5255,22 +5459,22 @@ function telaListaHTML(usuarios) {
             avatarHTML(u, 52) + '<span class="perfil-card-nome">' + escapar(u.nomeUsuario) + '</span></button>';
     }).join('');
     var pinArea = '<div id="pin-area" class="pin-area" hidden>' +
-        '<p class="pin-area-quem" id="pin-area-quem"></p>' +
-        '<input type="password" inputmode="numeric" class="entrada pin-entrada" id="pin-entrada" placeholder="PIN" maxlength="6" autocomplete="current-password">' +
-        '<div id="pin-erro" class="erro-campo" hidden></div>' +
+        '<p class="pin-area-quem" id="pin-area-quem">PIN de <strong id="pin-area-nome"></strong></p>' +
+        _otpHTML('otp-login', 'pin-val', 'pin-erro') +
         '<button type="button" class="botao botao-marca botao-cheio" data-login-submit>Entrar</button>' +
         '<button type="button" class="tela-link" data-tela="esqueci">Esqueci meu PIN</button>' +
         '</div>';
-    return _logoTela() +
-        '<h2 class="tela-titulo">Bem-vindo de volta</h2>' +
+    return '<h2 class="tela-titulo">Bem-vindo de volta</h2>' +
+        '<p class="tela-subtitulo">Escolha seu perfil para continuar.</p>' +
         '<div class="perfis-lista">' + cards +
-        '<button type="button" class="perfil-card perfil-novo" data-tela="criar"><div class="avatar avatar-novo" style="width:52px;height:52px">+</div><span class="perfil-card-nome">Novo perfil</span></button>' +
+        '<button type="button" class="perfil-card perfil-novo" data-tela="criar">' +
+        '<div class="avatar-novo"></div><span class="perfil-card-nome">Novo perfil</span></button>' +
         '</div>' + pinArea;
 }
 
 function telaCriarHTML() {
-    return _logoTela() +
-        '<h2 class="tela-titulo">Criar perfil</h2>' +
+    return '<h2 class="tela-titulo">Criar perfil</h2>' +
+        '<p class="tela-subtitulo">Seus dados ficam só neste aparelho.</p>' +
         '<div class="campo-grupo">' +
         '<label class="campo-label" for="novo-nome">Nome de usuário <span class="campo-nota">(sem espaços)</span></label>' +
         '<input type="text" class="entrada" id="novo-nome" placeholder="ErisvaldoCorreia" maxlength="30" autocomplete="off">' +
@@ -5280,34 +5484,27 @@ function telaCriarHTML() {
         '<input type="email" class="entrada" id="novo-email" placeholder="email@exemplo.com" autocomplete="email">' +
         '<div class="erro-campo" id="erro-email" hidden></div></div>' +
         '<div class="campo-grupo">' +
-        '<label class="campo-label">Comprimento do PIN</label>' +
-        '<div class="segmentado">' +
-        '<button type="button" data-pin-comp="4" aria-pressed="true">4 dígitos</button>' +
-        '<button type="button" data-pin-comp="6" aria-pressed="false">6 dígitos</button>' +
-        '</div></div>' +
+        '<label class="campo-label">Criar PIN (6 dígitos)</label>' +
+        _otpHTML('otp-pin', 'novo-pin', 'erro-pin') +
+        '</div>' +
         '<div class="campo-grupo">' +
-        '<label class="campo-label" for="novo-pin">PIN</label>' +
-        '<input type="password" inputmode="numeric" class="entrada pin-entrada" id="novo-pin" placeholder="••••" maxlength="4" autocomplete="new-password">' +
-        '<div class="erro-campo" id="erro-pin" hidden></div></div>' +
-        '<div class="campo-grupo">' +
-        '<label class="campo-label" for="novo-pin-conf">Confirmar PIN</label>' +
-        '<input type="password" inputmode="numeric" class="entrada pin-entrada" id="novo-pin-conf" placeholder="••••" maxlength="4" autocomplete="new-password">' +
-        '<div class="erro-campo" id="erro-pin-conf" hidden></div></div>' +
-        '<p class="tela-aviso">⚠ Guarde seu PIN. Se esquecer, você poderá recuperá-lo com o e-mail cadastrado.</p>' +
+        '<label class="campo-label">Confirmar PIN</label>' +
+        _otpHTML('otp-pin-conf', 'novo-pin-conf', 'erro-pin-conf') +
+        '</div>' +
+        '<p class="tela-aviso">Guarde seu PIN em local seguro. Se esquecer, você poderá recuperá-lo usando o e-mail cadastrado.</p>' +
         '<button type="button" class="botao botao-marca botao-cheio" id="btn-criar-perfil">Criar perfil</button>' +
         '<div class="erro-campo" id="erro-criar" hidden></div>';
 }
 
 function telaEsqueciHTML() {
-    return _logoTela() +
-        '<h2 class="tela-titulo">Recuperar PIN</h2>' +
-        '<p class="tela-texto">Digite o e-mail cadastrado no perfil. Se estiver correto, seu PIN será mostrado.</p>' +
+    return '<h2 class="tela-titulo">Recuperar PIN</h2>' +
+        '<p class="tela-texto">Digite o e-mail cadastrado. Se estiver correto, seu PIN de ' + PIN_DIGITOS + ' dígitos será exibido.</p>' +
         '<div class="campo-grupo">' +
         '<label class="campo-label" for="rec-email">E-mail</label>' +
         '<input type="email" class="entrada" id="rec-email" placeholder="email@exemplo.com" autocomplete="email">' +
         '</div>' +
         '<button type="button" class="botao botao-marca botao-cheio" id="btn-recuperar">Mostrar meu PIN</button>' +
-        '<div class="tela-pin-resultado" id="rec-resultado" hidden></div>' +
+        '<div class="tela-pin-resultado" id="rec-resultado" hidden><span>Seu PIN</span></div>' +
         '<div class="erro-campo" id="rec-erro" hidden></div>';
 }
 
@@ -5315,12 +5512,14 @@ function mostrarTelaDeEntrada(usuarios) {
     _usuarioSelecionadoId = null;
     var app = document.getElementById('app');
     var telaNome = usuarios.length === 0 ? 'criar' : 'lista';
-    app.innerHTML = '<div class="tela-entrada" id="tela-entrada">' +
-        '<div class="tela-caixa" id="tela-caixa">' +
+    app.innerHTML = '<div class="tela-entrada">' +
+        _painelMarca() +
+        '<div class="tela-form"><div class="tela-caixa" id="tela-caixa">' +
         (telaNome === 'criar' ? telaCriarHTML() : telaListaHTML(usuarios)) +
         '</div>' +
         (usuarios.length > 0 ? '<button type="button" class="tela-link tela-voltar" id="tela-voltar" hidden data-tela-voltar>← Voltar</button>' : '') +
-        '</div>';
+        '</div></div>';
+    if (telaNome === 'criar') { ligarOTP('otp-pin', 'novo-pin'); ligarOTP('otp-pin-conf', 'novo-pin-conf'); }
 }
 
 function trocarSubtela(nome, usuarios) {
@@ -5332,12 +5531,61 @@ function trocarSubtela(nome, usuarios) {
         if (voltar) voltar.hidden = true;
     } else if (nome === 'criar') {
         caixa.innerHTML = telaCriarHTML();
+        ligarOTP('otp-pin', 'novo-pin');
+        ligarOTP('otp-pin-conf', 'novo-pin-conf');
         if (voltar) voltar.hidden = false;
     } else if (nome === 'esqueci') {
         caixa.innerHTML = telaEsqueciHTML();
         if (voltar) voltar.hidden = false;
     }
     _usuarioSelecionadoId = null;
+}
+
+// ─── OTP: caixas de dígito ────────────────────────────────────────
+function ligarOTP(grupoId, hiddenId) {
+    var grupo = document.getElementById(grupoId);
+    var hidden = document.getElementById(hiddenId);
+    if (!grupo || !hidden) return;
+    var inputs = grupo.querySelectorAll('.otp-digito');
+    function sync() {
+        var val = '';
+        inputs.forEach(function (d) {
+            val += d.value;
+            d.classList.toggle('preenchido', d.value.length === 1);
+        });
+        hidden.value = val;
+    }
+    inputs.forEach(function (inp, i) {
+        inp.addEventListener('input', function () {
+            // garante só dígito
+            inp.value = inp.value.replace(/\D/g, '').slice(-1);
+            sync();
+            if (inp.value && i < inputs.length - 1) inputs[i + 1].focus();
+        });
+        inp.addEventListener('keydown', function (e) {
+            if (e.key === 'Backspace' && !inp.value && i > 0) {
+                inputs[i - 1].value = '';
+                inputs[i - 1].classList.remove('preenchido');
+                inputs[i - 1].focus();
+                sync();
+            }
+            // Ctrl/Cmd+V handled via paste
+        });
+        inp.addEventListener('paste', function (e) {
+            e.preventDefault();
+            var text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+            inputs.forEach(function (d, j) { d.value = text[j] || ''; });
+            sync();
+            var last = Math.min(text.length, inputs.length) - 1;
+            if (last >= 0) inputs[last].focus();
+        });
+        // foco no 1º ao clicar em qualquer caixa do grupo
+        inp.addEventListener('focus', function () {
+            var primeiroVazio = -1;
+            inputs.forEach(function (d, j) { if (!d.value && primeiroVazio < 0) primeiroVazio = j; });
+            if (primeiroVazio > i) inputs[primeiroVazio].focus();
+        });
+    });
 }
 
 // ─── Lógica das telas ─────────────────────────────────────────────
@@ -5356,9 +5604,9 @@ function _setarOcupado(btnId, ocupado, textoOriginal) {
 
 function tentarLogin() {
     if (!_usuarioSelecionadoId) return;
-    var pin = (document.getElementById('pin-entrada') || {}).value || '';
+    var pin = (document.getElementById('pin-val') || {}).value || '';
     _mostrarErro('pin-erro', '');
-    if (!pin) { _mostrarErro('pin-erro', 'Digite o PIN.'); return; }
+    if (pin.length < PIN_DIGITOS) { _mostrarErro('pin-erro', 'Digite os ' + PIN_DIGITOS + ' dígitos do PIN.'); return; }
     var btn = document.querySelector('[data-login-submit]');
     if (btn) { btn.disabled = true; btn.textContent = 'Aguarde…'; }
     var usuario = buscarUsuarioPorId(_usuarioSelecionadoId);
@@ -5369,6 +5617,11 @@ function tentarLogin() {
             iniciarApp();
         } else {
             _mostrarErro('pin-erro', 'PIN incorreto. Verifique e tente novamente.');
+            // limpar caixas
+            var grupo = document.getElementById('otp-login');
+            if (grupo) grupo.querySelectorAll('.otp-digito').forEach(function (d) { d.value = ''; d.classList.remove('preenchido'); });
+            if (document.getElementById('pin-val')) document.getElementById('pin-val').value = '';
+            if (grupo) grupo.querySelector('.otp-digito').focus();
             if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
         }
     }).catch(function () {
@@ -5398,8 +5651,9 @@ function criarPerfil() {
     if (ok && usuarios.some(function (u) { return u.nomeUsuario.toLowerCase() === nome.toLowerCase(); })) {
         _mostrarErro('erro-nome', 'Já existe um perfil com esse nome.'); ok = false;
     }
-    if (ok && !pin) { _mostrarErro('erro-pin', 'Digite o PIN.'); ok = false; }
-    if (ok && !/^[0-9]{4}$|^[0-9]{6}$/.test(pin)) { _mostrarErro('erro-pin', 'O PIN deve ter 4 ou 6 dígitos numéricos.'); ok = false; }
+    if (ok && pin.length < PIN_DIGITOS) { _mostrarErro('erro-pin', 'Preencha todos os ' + PIN_DIGITOS + ' dígitos.'); ok = false; }
+    if (ok && !/^\d+$/.test(pin)) { _mostrarErro('erro-pin', 'Use apenas dígitos numéricos.'); ok = false; }
+    if (ok && conf.length < PIN_DIGITOS) { _mostrarErro('erro-pin-conf', 'Confirme todos os ' + PIN_DIGITOS + ' dígitos.'); ok = false; }
     if (ok && pin !== conf) { _mostrarErro('erro-pin-conf', 'Os PINs não coincidem.'); ok = false; }
     if (!ok) return;
     _setarOcupado('btn-criar-perfil', true, 'Criar perfil');
@@ -5430,7 +5684,7 @@ function recuperarPIN() {
     var btn = document.getElementById('btn-recuperar');
     decriptarPIN(usuario.pinDados, email)
         .then(function (pin) {
-            if (res) { res.hidden = false; res.innerHTML = 'Seu PIN é: <strong>' + escapar(pin) + '</strong>'; }
+            if (res) { res.hidden = false; res.innerHTML = '<span>Seu PIN</span><strong>' + escapar(pin) + '</strong>'; }
             if (btn) { btn.disabled = false; btn.textContent = 'Mostrar meu PIN'; }
         })
         .catch(function () {
@@ -5459,12 +5713,16 @@ document.addEventListener('click', function (ev) {
         _usuarioSelecionadoId = card.getAttribute('data-perfil');
         var u = buscarUsuarioPorId(_usuarioSelecionadoId);
         var area = document.getElementById('pin-area');
-        var quem = document.getElementById('pin-area-quem');
+        var nomeEl = document.getElementById('pin-area-nome');
         if (area && u) {
             area.hidden = false;
-            if (quem) quem.textContent = u.nomeUsuario;
-            var inp = document.getElementById('pin-entrada');
-            if (inp) { inp.value = ''; inp.focus(); }
+            if (nomeEl) nomeEl.textContent = u.nomeUsuario;
+            // limpar OTP e religar
+            var grupo = document.getElementById('otp-login');
+            if (grupo) grupo.querySelectorAll('.otp-digito').forEach(function (d) { d.value = ''; d.classList.remove('preenchido'); });
+            if (document.getElementById('pin-val')) document.getElementById('pin-val').value = '';
+            ligarOTP('otp-login', 'pin-val');
+            setTimeout(function () { var g = document.getElementById('otp-login'); if (g) g.querySelector('.otp-digito').focus(); }, 50);
         }
         document.querySelectorAll('.perfil-card').forEach(function (c) { c.classList.toggle('ativo', c === card); });
         return;
@@ -5482,24 +5740,10 @@ document.addEventListener('click', function (ev) {
     if (ev.target.closest('[data-tela-voltar]')) { trocarSubtela('lista'); return; }
     // sair da conta
     if (ev.target.closest('[data-sair]')) { sair(); return; }
-    // PIN comprimento (na tela de criar)
-    var compBtn = ev.target.closest('[data-pin-comp]');
-    if (compBtn) {
-        var comp = compBtn.getAttribute('data-pin-comp');
-        document.querySelectorAll('[data-pin-comp]').forEach(function (b) { b.setAttribute('aria-pressed', b === compBtn ? 'true' : 'false'); });
-        ['novo-pin', 'novo-pin-conf'].forEach(function (id) {
-            var el = document.getElementById(id);
-            if (el) { el.maxLength = Number(comp); el.placeholder = comp === '4' ? '••••' : '••••••'; }
-        });
-        return;
-    }
 });
 
 document.addEventListener('keydown', function (ev) {
-    if (ev.key === 'Enter' && ev.target.id === 'pin-entrada') { tentarLogin(); }
-    if (ev.key === 'Enter' && (ev.target.id === 'novo-pin-conf' || ev.target.id === 'novo-email' || ev.target.id === 'novo-pin')) {
-        criarPerfil();
-    }
+    if (ev.key === 'Enter' && ev.target.id === 'novo-email') { criarPerfil(); }
     if (ev.key === 'Enter' && ev.target.id === 'rec-email') { recuperarPIN(); }
 });
 
