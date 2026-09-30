@@ -1905,6 +1905,46 @@ body:has(#gaveta.aberta) .avisos {
     color: var(--alta);
 }
 
+/* ── backup [ETAPA 7] ────────────────────────────────────────────*/
+.backup-acoes {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+}
+
+.backup-previa {
+    background: var(--superficie-2);
+    border: 1px solid var(--borda);
+    border-radius: var(--r-cartao);
+    padding: 14px 16px;
+    margin-top: 14px;
+    font-size: var(--t-sm);
+    color: var(--texto-2);
+    line-height: 1.6;
+}
+
+.backup-previa strong {
+    display: block;
+    color: var(--texto);
+    font-size: var(--t-md);
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.backup-previa-aviso {
+    color: var(--marca);
+    font-size: var(--t-xs);
+    margin-top: 8px;
+}
+
+.backup-confirma {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+}
+
 /* telas médias: o bloco CELULAR (Etapa 5), no fim do CSS, cuida do celular.
    Aqui só evitamos quebrar abaixo de 1000px. */
 @media (max-width: 1000px) {
@@ -3488,6 +3528,8 @@ var ICONES = {
     mais: '<path d="M12 5v14M5 12h14"/>',
     alta: '<path d="M5 15l7-7 7 7"/>',
     queda: '<path d="M5 9l7 7 7-7"/>',
+    exportar: '<path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2M12 3v12M8 11l4 4 4-4"/>',
+    importar: '<path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2M16 7l-4-4-4 4M12 3v12"/>',
 };
 
 function icone(nome) {
@@ -3930,6 +3972,21 @@ function paginaAjustes() {
             claude: 'Preview do Claude: salvando no armazenamento do artefato.',
             memoria: 'Modo temporário: este ambiente bloqueia armazenamento, nada fica salvo ao recarregar.',
         }[modoArmazenamento] + '</p></div>' +
+        // [ETAPA 7] painel de backup
+        (function () {
+            var temSnapshot = !!(armazem.json(chaveSnapshot(), null));
+            return '<div class="painel">' +
+                '<p class="painel-titulo">Backup</p>' +
+                '<p class="painel-sub">Exporte seus lançamentos como arquivo JSON para guardar ou migrar para outro aparelho. Ao importar, os dados atuais são substituídos (você pode desfazer logo depois).</p>' +
+                '<div class="backup-acoes">' +
+                '<button type="button" class="botao botao-neutro" data-backup-exportar>' + icone('exportar') + 'Exportar backup</button>' +
+                '<button type="button" class="botao botao-neutro" data-backup-importar>' + icone('importar') + 'Importar backup</button>' +
+                (temSnapshot ? '<button type="button" class="botao botao-fantasma" data-backup-desfazer>Desfazer última importação</button>' : '') +
+                '</div>' +
+                '<input type="file" id="backup-input" accept=".json" hidden>' +
+                '<div id="backup-previa" class="backup-previa" hidden></div>' +
+                '</div>';
+        })() +
         '</div>';
 }
 
@@ -7409,6 +7466,152 @@ document.addEventListener('change', function (ev) {
     desenharTabela(false);
 });
 
+
+/* =================================================================
+   BACKUP  [ETAPA 7]
+   Exportar/importar JSON versionado (v1 = portfólio único).
+   Formato: { versao, app, exportadoEm, usuario, banco, prefs }
+   Compatibilidade futura: código de importação verifica `versao`
+   antes de processar; v2 (multi-portfólio) importa v1 como portfólio
+   único chamado "Principal". Ver memory/project_backup-versioning-plan.md
+   ================================================================= */
+
+function chaveSnapshot() {
+    var id = sessaoAtual();
+    return id ? 'BACKUP_SNAPSHOT_' + id : 'BACKUP_SNAPSHOT';
+}
+
+function exportarBackup() {
+    var u = buscarUsuarioPorId(sessaoAtual());
+    var banco = lerBanco();
+    var dados = {
+        versao: 1,
+        app: 'koin',
+        exportadoEm: new Date().toISOString(),
+        usuario: { nomeUsuario: u ? u.nomeUsuario : '' },
+        banco: banco,
+        prefs: {
+            moeda: prefs.moeda,
+            favoritos: prefs.favoritos || []
+        }
+    };
+    var json = JSON.stringify(dados, null, 2);
+    var blob = new Blob([json], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'koin-backup-' + hojeISO() + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    avisar('Backup exportado.', 'sucesso');
+}
+
+function validarBackup(dados) {
+    if (!dados || dados.app !== 'koin') return 'Arquivo não é um backup do Koin.';
+    if (typeof dados.versao !== 'number') return 'Backup sem versão. Arquivo pode estar corrompido.';
+    if (dados.versao !== 1) return 'Versão ' + dados.versao + ' não suportada nesta versão do Koin.';
+    if (!dados.banco || !Array.isArray(dados.banco.transacoes)) return 'Arquivo corrompido: dados de transações ausentes.';
+    return null;
+}
+
+function previaBackup(dados) {
+    var b = dados.banco;
+    var total = b.transacoes.length;
+    var nMoedas = Object.keys(b.moedas || {}).length;
+    var datas = b.transacoes.map(function (t) { return t.data; }).filter(Boolean).sort();
+    var periodo = datas.length
+        ? formatarDataBR(datas[0]) + ' a ' + formatarDataBR(datas[datas.length - 1])
+        : 'sem lançamentos';
+    return {
+        resumo: total + ' lançamento(s) · ' + nMoedas + ' moeda(s) · ' + periodo,
+        usuario: dados.usuario && dados.usuario.nomeUsuario ? dados.usuario.nomeUsuario : '—'
+    };
+}
+
+function confirmarImportacao(dados) {
+    armazem.set(chaveSnapshot(), JSON.stringify(lerBanco()));
+    gravarBanco(dados.banco);
+    if (dados.prefs) {
+        if (dados.prefs.moeda && MOEDAS[dados.prefs.moeda]) {
+            prefs.moeda = dados.prefs.moeda;
+        }
+        if (Array.isArray(dados.prefs.favoritos)) {
+            prefs.favoritos = dados.prefs.favoritos;
+        }
+        salvarPrefs();
+        estado.definir('moeda', prefs.moeda);
+    }
+    avisar('Backup importado com sucesso.', 'sucesso');
+    desenhar();
+}
+
+function desfazerImportacao() {
+    var snap = armazem.json(chaveSnapshot(), null);
+    if (!snap) { avisar('Nenhuma importação para desfazer.', 'erro'); return; }
+    gravarBanco(snap);
+    armazem.remove(chaveSnapshot());
+    avisar('Importação desfeita. Dados anteriores restaurados.', 'sucesso');
+    desenhar();
+}
+
+// wires o input de arquivo na página Ajustes
+ROTAS['/ajustes'].montar = function () {
+    var input = document.getElementById('backup-input');
+    if (!input) return;
+    input.addEventListener('change', function () {
+        var file = input.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            var dados;
+            try { dados = JSON.parse(e.target.result); } catch (_) {
+                avisar('Arquivo inválido: não é um JSON legível.', 'erro');
+                return;
+            }
+            var erro = validarBackup(dados);
+            if (erro) { avisar(erro, 'erro'); return; }
+            var prev = previaBackup(dados);
+            var previa = document.getElementById('backup-previa');
+            if (previa) {
+                previa.hidden = false;
+                previa.innerHTML =
+                    '<strong>Arquivo válido</strong>' +
+                    '<span>Exportado por: ' + escapar(prev.usuario) + '</span><br>' +
+                    '<span>' + escapar(prev.resumo) + '</span>' +
+                    '<p class="backup-previa-aviso">Os dados atuais serão substituídos. Você poderá desfazer logo depois.</p>' +
+                    '<div class="backup-confirma">' +
+                    '<button type="button" class="botao botao-marca" data-backup-confirmar>Confirmar importação</button>' +
+                    '<button type="button" class="botao botao-fantasma" data-backup-cancelar>Cancelar</button>' +
+                    '</div>';
+                previa._dadosPendentes = dados;
+            }
+            input.value = '';
+        };
+        reader.readAsText(file);
+    });
+};
+
+document.addEventListener('click', function (ev) {
+    if (ev.target.closest('[data-backup-exportar]')) { exportarBackup(); return; }
+    if (ev.target.closest('[data-backup-importar]')) {
+        var inp = document.getElementById('backup-input');
+        if (inp) inp.click();
+        return;
+    }
+    if (ev.target.closest('[data-backup-confirmar]')) {
+        var previa = document.getElementById('backup-previa');
+        if (previa && previa._dadosPendentes) confirmarImportacao(previa._dadosPendentes);
+        return;
+    }
+    if (ev.target.closest('[data-backup-cancelar]')) {
+        var previa2 = document.getElementById('backup-previa');
+        if (previa2) { previa2.hidden = true; previa2.innerHTML = ''; previa2._dadosPendentes = null; }
+        return;
+    }
+    if (ev.target.closest('[data-backup-desfazer]')) { desfazerImportacao(); return; }
+});
 
 /* =================================================================
    INÍCIO  [ETAPA 6: verificar sessão antes de iniciar o app]
