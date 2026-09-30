@@ -2543,6 +2543,22 @@ body:has(#gaveta.aberta) .avisos {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    /* [ETAPA 6.3 · 30/09/2026] "Seus lançamentos" na página da moeda: linha
+       de compra/venda tinha data + etiqueta + quantidade + preço tudo
+       espremido numa linha só, e o preço acabava quebrando no meio (R$
+       de um lado, o número do outro). Só as linhas COM valor (com-valor,
+       ver lancamentosMoedaHTML) ganham quebra; entrada/saída sem custo
+       continua numa linha única, como sempre foi. */
+    .lanc-lista li.com-valor {
+        flex-wrap: wrap;
+        row-gap: 4px;
+    }
+
+    .lanc-lista li.com-valor .lanc-valor {
+        flex: 0 0 100%;
+        text-align: right;
+    }
+
     /* ---------- gaveta de lançamento em tela cheia ---------- */
     .gaveta {
         width: 100vw;
@@ -6625,7 +6641,13 @@ function lancamentosMoedaHTML(m) {
             var doDestino = t.moedaDestinoId === m.id;
             var qtd = doDestino ? '+' + textoQuantidade(t.quantidadeDestino) : ((t.tipo === 'COMPRA' || t.tipo === 'ENTRADA') ? '+' : '-') + textoQuantidade(t.quantidade);
             var total = valorTotalDoLancamento(t);
-            return '<li><span class="lanc-data">' + formatarDataBR(t.data) + '</span>' + etiquetaTipoHTML(t.tipo) +
+            // [ETAPA 6.3 · 30/09/2026] a classe "com-valor" só entra quando
+            // existe R$ pra mostrar (compra/venda). É ela que o celular usa
+            // pra decidir se quebra o preço numa segunda linha (ver o CSS
+            // dentro do bloco CELULAR, perto do resto de "Seus lançamentos").
+            // Entrada/saída sem custo não tem valor, então a linha continua
+            // como sempre foi.
+            return '<li class="' + (total !== null ? 'com-valor' : '') + '"><span class="lanc-data">' + formatarDataBR(t.data) + '</span>' + etiquetaTipoHTML(t.tipo) +
                 '<span class="lanc-qtd">' + qtd + ' ' + escapar(m.simbolo) + '</span>' +
                 (total !== null ? '<span class="lanc-valor" data-brl="' + total + '"></span>' : '<span class="lanc-valor"></span>') + '</li>';
         }).join('') + '</ul>' +
