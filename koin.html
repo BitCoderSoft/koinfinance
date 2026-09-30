@@ -1932,6 +1932,7 @@ body:has(#gaveta.aberta) .avisos {
    ================================================================= */
 .botao-busca-mobile,
 .botao-menu,
+.moeda-chip,
 .menu-mobile,
 .ord-mobile {
     display: none;
@@ -1975,8 +1976,17 @@ body:has(#gaveta.aberta) .avisos {
     }
 
     .botao-busca-mobile,
-    .botao-menu {
+    .botao-menu,
+    .moeda-chip {
         display: flex;
+    }
+
+    /* [ETAPA 6.2] largura fixa: "US$" é o rótulo mais longo dos três,
+       sem isso o botão pula de tamanho a cada troca de moeda */
+    .moeda-chip {
+        min-width: 38px;
+        font-size: 13px;
+        font-weight: 700;
     }
 
     .topo-direita .segmentado button {
@@ -3003,15 +3013,45 @@ body:has(#gaveta.aberta) .avisos {
     flex-shrink: 0;
 }
 
-/* ── avatar no topo (computador) ─────────────────────────────────*/
+/* ── avatar no topo  [ETAPA 6.2 · 30/09/2026] ──────────────────────
+   Virou <button>, e um <button> sem reset herda a cara nativa do
+   navegador (fundo cinza-claro, borda) — era a caixa branca em volta do
+   avatar. appearance:none tira o visual de controle de formulário;
+   background/border explícitos tiram o resto. */
 .usuario-topo {
+    appearance: none;
+    background: none;
+    background-color: transparent;
+    border: none;
+    outline: none;
+    padding: 4px;
+    margin-left: 4px;
+    border-radius: 999px;
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-left: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background-color 120ms ease;
 }
 
-/* ── avatar no topo mobile ───────────────────────────────────────*/
+.usuario-topo:hover {
+    background-color: var(--superficie-2);
+}
+
+.usuario-topo-nome {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--texto-2);
+    white-space: nowrap;
+}
+
+/* "Sair" dentro do botão do avatar: alvo de toque maior que o texto */
+.usuario-topo .tela-link-sair {
+    padding: 4px 2px;
+}
+
+/* ── avatar no topo mobile (nome dentro do menu aberto) ────────────*/
 .usuario-mobile-nome {
     font-size: 14px;
     font-weight: 600;
@@ -3342,6 +3382,13 @@ function seletorMoedaHTML() {
         }).join('') + '</div>';
 }
 
+// [ETAPA 6.2] botão único do celular (ver atualizarChipMoeda)
+function chipMoedaMobileHTML() {
+    var atual = estado.ler('moeda') || 'BRL';
+    return '<button type="button" id="moeda-chip" class="botao-icone moeda-chip" data-moeda-ciclo aria-label="Trocar moeda de exibição">' +
+        MOEDAS[atual].rotulo + '</button>';
+}
+
 function atualizarSeletoresMoeda() {
     var atual = estado.ler('moeda');
     var taxas = estado.ler('taxas') || {};
@@ -3352,6 +3399,34 @@ function atualizarSeletoresMoeda() {
         b.disabled = m !== 'BRL' && !taxas[m];
         if (b.disabled) b.title = 'Sem cotação de ' + MOEDAS[m].nome + ' agora (sem conexão com a Binance).';
     });
+    atualizarChipMoeda(atual, taxas); // [ETAPA 6.2]
+}
+
+// [ETAPA 6.2 · 30/09/2026] CHIP DE MOEDA DO CELULAR
+// O seletor de 3 botões (R$ / US$ / ₿) tem uns 125px — de sobra no
+// computador, mas foi uma das duas causas do sanduíche sumir em tela
+// estreita (a outra era o avatar, ver atualizarInfoUsuario). No topo do
+// celular ele vira UM botão só (~38px, do tamanho dos outros ícones),
+// mostrando a moeda atual; tocar cicla pra próxima disponível (pula a que
+// estiver sem cotação). O seletor de 3 botões continua igual em Ajustes.
+function ordemMoedasDisponiveis(taxas) {
+    return Object.keys(MOEDAS).filter(function (m) { return m === 'BRL' || taxas[m]; });
+}
+
+function proximaMoeda(atual, taxas) {
+    var disponiveis = ordemMoedasDisponiveis(taxas);
+    var i = disponiveis.indexOf(atual);
+    return disponiveis[(i + 1) % disponiveis.length] || 'BRL';
+}
+
+function atualizarChipMoeda(atual, taxas) {
+    var chip = document.getElementById('moeda-chip');
+    if (!chip) return;
+    chip.textContent = MOEDAS[atual].rotulo;
+    var prox = proximaMoeda(atual, taxas);
+    chip.title = ordemMoedasDisponiveis(taxas).length > 1
+        ? 'Mostrando em ' + MOEDAS[atual].nome + '. Toque pra ver em ' + MOEDAS[prox].nome + '.'
+        : 'Mostrando em ' + MOEDAS[atual].nome + '. Sem cotação pra converter agora.';
 }
 
 
@@ -3646,14 +3721,24 @@ function cascaHTML() {
         '<input class="entrada" id="busca-global" type="search" placeholder="Buscar moeda" aria-label="Buscar moeda" autocomplete="off"></div>' +
         '<div class="pulso" id="pulso" hidden title="Bitcoin em reais, Binance">' +
         '<span class="pulso-ponto"></span>BTC <strong class="preco-vivo" id="pulso-preco">—</strong><span id="pulso-var"></span></div>' +
-        seletorMoedaHTML() +
+        // [ETAPA 6.2 · 30/09/2026] no computador continua o seletor de 3
+        // botões (assim como o restante do topo não muda); no celular ele
+        // some daqui e vira o chip único logo abaixo — era um dos dois
+        // motivos do sanduíche ficar fora da tela (o outro era o avatar).
+        '<span class="so-computador">' + seletorMoedaHTML() + '</span>' +
+        chipMoedaMobileHTML() +
         '<div class="nav-grupo" data-grupo>' +
         '<button type="button" class="botao-icone" data-grupo-botao aria-haspopup="true" aria-expanded="false" aria-controls="menu-conta"' +
         ' aria-label="Ajustes e projeto" data-grupo-rotas="' + NAV_CONTA.map(function (s) { return rotasDoGrupo([s]); }).join(' ') + '">' +
         icone('ajustes') + '</button>' +
         menuSuspensoHTML(NAV_CONTA, 'menu-conta', 'direita') + '</div>' +
-        // [ETAPA 6] avatar do perfil logado + botão de sair (só computador)
-        '<div id="usuario-topo" class="usuario-topo so-computador"></div>' +
+        // [ETAPA 6.2] o mesmo botão serve pras duas larguras: no computador
+        // mostra avatar+nome+"Sair" (atualizarInfoUsuario preenche); no
+        // celular fica só o avatar (os outros dois saem por so-computador,
+        // igual antes, mas agora sem o rival que os derrubava — ver a nota
+        // grande logo depois desta função) e o toque nele ABRE O MENU,
+        // porque "Sair" já mora no rodapé do menu (obra da etapa anterior).
+        '<button type="button" id="usuario-topo" class="usuario-topo" data-usuario-topo aria-label="Sua conta"></button>' +
         // [ETAPA 5] só aparecem no celular (ver bloco CELULAR no CSS)
         '<button type="button" class="botao-icone botao-busca-mobile" data-busca-toggle aria-label="Buscar moeda">' + icone('busca') + '</button>' +
         '<button type="button" class="botao-icone botao-menu" data-menu-abrir aria-label="Abrir menu" aria-controls="menu-mobile">' + ICONE_MENU + '</button>' +
@@ -5473,11 +5558,14 @@ function avatarHTML(usuario, tam) {
 function atualizarInfoUsuario() {
     var u = buscarUsuarioPorId(sessaoAtual());
     if (!u) return;
-    // avatar no topo (computador)
+    // [ETAPA 6.2] avatar sempre; nome e "Sair" só aparecem no computador
+    // (so-computador). No celular esse botão vira o segundo jeito de abrir
+    // o menu — ver o listener de [data-usuario-topo].
     var topo = document.getElementById('usuario-topo');
     if (topo) {
-        topo.innerHTML = avatarHTML(u, 34) +
-            '<button type="button" class="tela-link tela-link-sair" data-sair title="Sair da conta">Sair</button>';
+        topo.innerHTML = avatarHTML(u, 30) +
+            '<span class="usuario-topo-nome so-computador">' + escapar(u.nomeUsuario) + '</span>' +
+            '<span class="tela-link tela-link-sair so-computador" data-sair title="Sair da conta">Sair</span>';
     }
     // bloco do usuário no rodapé do menu mobile
     var mobBloco = document.getElementById('menu-usuario-mobile');
@@ -7245,6 +7333,27 @@ document.addEventListener('click', function (ev) {
         return;
     }
     if (ev.target.closest('[data-menu-fechar]')) { fecharMenuMobile(); return; }
+
+    var chipMoeda = ev.target.closest('[data-moeda-ciclo]');
+    if (chipMoeda) {
+        var taxasAtuais = estado.ler('taxas') || {};
+        trocarMoeda(proximaMoeda(estado.ler('moeda'), taxasAtuais));
+        return;
+    }
+
+    // [ETAPA 6.2] avatar do topo: no celular é o segundo jeito de abrir o
+    // menu (pedido original do Junior: "acesso pelo ícone do usuário"). Só
+    // dispara se o toque não foi no "Sair" (que só existe visível no
+    // computador, com sua própria ação).
+    var avatarTopo = ev.target.closest('[data-usuario-topo]');
+    if (avatarTopo && !ev.target.closest('[data-sair]') && ehTelaPequena()) {
+        var menuAv = document.getElementById('menu-mobile');
+        fecharBuscaMobile();
+        menuAv.classList.add('aberto');
+        menuAv.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        return;
+    }
 
     if (ev.target.closest('[data-busca-toggle]')) {
         var topo = document.querySelector('.topo');
