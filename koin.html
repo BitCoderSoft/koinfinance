@@ -1702,8 +1702,32 @@ body:has(#gaveta.aberta) .avisos {
 
 #pf-conteudo > .painel + .painel,
 #pf-conteudo > .painel + .pf-nota,
-#pf-conteudo > .painel + .painel-tabela {
+#pf-conteudo > .painel + .painel-tabela,
+#pf-conteudo > .pf-topo-grade + .painel {
     margin-top: 16px;
+}
+
+/* [ETAPA 6.1] painel superior do portfólio: saldo+cards à esquerda, gráfico à direita */
+.pf-topo-grade {
+    display: grid;
+    grid-template-columns: 5fr 7fr;
+    gap: 20px;
+    align-items: stretch;
+}
+
+/* cards em 2×2 no painel esquerdo (mais estreito) */
+.pf-topo-grade .pf-cartoes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* saldo fica no topo, cards colam no fundo */
+.pf-topo-grade .pf-hero {
+    display: flex;
+    flex-direction: column;
+}
+
+.pf-topo-grade .pf-cartoes {
+    margin-top: auto;
 }
 
 .pf-hero .saldo {
@@ -1885,6 +1909,7 @@ body:has(#gaveta.aberta) .avisos {
    Aqui só evitamos quebrar abaixo de 1000px. */
 @media (max-width: 1000px) {
     .grade-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .pf-topo-grade { grid-template-columns: 1fr; }
     .grade-2 { grid-template-columns: minmax(0, 1fr); }
     .estatisticas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .moeda-colunas { grid-template-columns: minmax(0, 1fr); }
@@ -2017,7 +2042,30 @@ body:has(#gaveta.aberta) .avisos {
     .menu-mobile-nav {
         flex: 1;
         overflow-y: auto;
-        padding: 8px 12px 28px;
+        padding: 8px 12px 16px;
+    }
+
+    /* [ETAPA 6] rodapé do menu: avatar + nome + sair */
+    .menu-mobile-usuario {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+        gap: 10px;
+        padding: 14px 16px;
+        border-top: 1px solid var(--borda);
+    }
+
+    .menu-usuario-bloco {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .menu-usuario-bloco span {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--texto);
     }
 
     .menu-mobile .menu-secao + .menu-secao {
@@ -3559,13 +3607,18 @@ function menuMobileHTML() {
         return secoes(n.secoes, n.grupo);
     }).join('') + secoes(NAV_CONTA);
 
+    // [ETAPA 6] bloco do usuário fica no rodapé do menu; preenchido por atualizarInfoUsuario()
+    var usuarioBloco = '<div class="menu-mobile-usuario" id="menu-usuario-mobile" hidden>' +
+        '<div class="menu-usuario-bloco"><div id="menu-usuario-avatar"></div>' +
+        '<span id="menu-usuario-nome"></span></div>' +
+        '<button type="button" class="tela-link tela-link-sair" data-sair>Sair</button>' +
+        '</div>';
     return '<div class="menu-mobile" id="menu-mobile" aria-hidden="true">' +
-        // [ETAPA 6] nome do usuário logado; preenchido por atualizarInfoUsuario()
         '<div class="menu-mobile-topo"><span class="marca">' + MARCA_SVG + '<span class="marca-nome">' + APP.nome + '</span></span>' +
-        '<span class="usuario-mobile-nome" id="usuario-nome-mobile"></span>' +
         '<button type="button" class="botao-icone" data-menu-fechar aria-label="Fechar menu">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
-        '<nav class="menu-mobile-nav" aria-label="Menu">' + corpo + '</nav></div>';
+        '<nav class="menu-mobile-nav" aria-label="Menu">' + corpo + '</nav>' +
+        usuarioBloco + '</div>';
 }
 
 function cascaHTML() {
@@ -5426,9 +5479,15 @@ function atualizarInfoUsuario() {
         topo.innerHTML = avatarHTML(u, 34) +
             '<button type="button" class="tela-link tela-link-sair" data-sair title="Sair da conta">Sair</button>';
     }
-    // nome no menu mobile
-    var nomeMob = document.getElementById('usuario-nome-mobile');
-    if (nomeMob) nomeMob.textContent = u.nomeUsuario;
+    // bloco do usuário no rodapé do menu mobile
+    var mobBloco = document.getElementById('menu-usuario-mobile');
+    if (mobBloco) {
+        var mobAv = document.getElementById('menu-usuario-avatar');
+        var mobNome = document.getElementById('menu-usuario-nome');
+        if (mobAv) mobAv.innerHTML = avatarHTML(u, 32);
+        if (mobNome) mobNome.textContent = u.nomeUsuario;
+        mobBloco.hidden = false;
+    }
 }
 
 // ─── Telas de entrada ─────────────────────────────────────────────
@@ -6729,7 +6788,9 @@ function portfolioHTML(pg, r, fatias) {
           (r.semCotacao ? '<p class="painel-sub pf-nota">' + r.semCotacao + ' moeda(s) sem cotação ao vivo entram no saldo pelo custo.</p>' : '')
         : '<div class="painel"><p class="painel-sub">Nenhuma moeda em carteira agora. O lucro realizado das suas vendas continua no resumo acima.</p></div>';
 
-    return '<div class="painel pf-hero">' +
+    // [ETAPA 6.1] painel superior: saldo+cards à esquerda, gráfico à direita no desktop
+    return '<div class="pf-topo-grade">' +
+        '<div class="painel pf-hero">' +
         '<p class="saldo-rotulo">Saldo do portfólio</p>' +
         '<p class="saldo" id="pf-saldo"></p>' +
         '<p class="pf-var"><span id="pf-var"></span><span class="pf-var-rotulo">nas últimas 24h</span></p>' +
@@ -6750,6 +6811,7 @@ function portfolioHTML(pg, r, fatias) {
         '<div class="grafico-legenda" id="pf-grafico-legenda"></div>' +
         '<div class="grafico-msg" id="pf-grafico-msg">Carregando histórico…</div></div>' +
         '<p class="painel-sub pf-nota" id="pf-grafico-nota" hidden></p></div>' +
+        '</div>' +
 
         '<div class="painel"><p class="painel-titulo">Alocação</p>' +
         '<p class="painel-sub">Quanto cada moeda pesa no saldo.</p>' +
