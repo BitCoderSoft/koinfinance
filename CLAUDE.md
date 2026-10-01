@@ -4,7 +4,7 @@ Projeto da BitCoderSoft. Nome provisório: **Koin** (pode mudar; trocar em `APP.
 
 App web de gestão de portfólio só de criptomoedas, pensado para virar PWA instalável. Inspiração visual e de produto: CoinMarketCap, CoinGecko e as telas de mercado da Binance. Destino: publicação no portfólio da BitCoderSoft.
 
-Este documento resume o que foi construído até aqui (etapas 0–6, iniciadas no claude.ai e continuadas no VS Code) e o plano das próximas etapas.
+Este documento resume o que foi construído até aqui (etapas 0–7.2, iniciadas no claude.ai e continuadas no VS Code) e o plano das próximas etapas.
 
 ---
 
@@ -14,9 +14,9 @@ Este documento resume o que foi construído até aqui (etapas 0–6, iniciadas n
 |---|---|
 | Arquivo principal | `koin.html` (single-file: HTML + CSS + JS, sem build) |
 | Versão | `0.1.0` (vira `1.0.0` ao fechar a Etapa 8) |
-| Etapas concluídas | 0 (fundação), 0.1 (navegação no topo), 1 (mercado), 1.1 (CoinGecko com chave), 1.2 (tabela larga), 2 (página da moeda), 2.1 (sem chave do usuário), 3 (motor e lançamentos), 4 (portfólio), 4.1 e 5.1 (ajustes do relatório de testes), 5 (responsivo no celular), 6 (identificação: perfis, PIN, sessão) |
-| Próxima etapa | 6.1 (seletor de portfólio no cabeçalho, confirmado pelo autor), depois 7 (extras) e 8 (PWA) |
-| Pendência aberta | Confirmar no navegador (com a chave) que o Mercado sai do modo simplificado (ver "Verificação pendente") |
+| Etapas concluídas | 0 (fundação), 0.1 (navegação no topo), 1 (mercado), 1.1 (CoinGecko com chave), 1.2 (tabela larga), 2 (página da moeda), 2.1 (sem chave do usuário), 3 (motor e lançamentos), 4 (portfólio), 4.1 e 5.1 (ajustes do relatório de testes), 5 (responsivo no celular), 6 (identificação), 6.1 (painel de login OTP), 6.2 (portfólio e menu mobile), 6.3 (header e lançamentos mobile), 7 (backup), 7.1 (lançamentos mobile), 7.2 (rendimento e detalhe de lançamentos) |
+| Próxima etapa | Seletor de portfólio no cabeçalho da página Portfólio (confirmado pelo autor, sem número definido ainda), depois demais extras (balanceamento, objetivos, alertas) e Etapa 8 (PWA) |
+| Pendência aberta | — |
 
 ---
 
@@ -96,7 +96,7 @@ Tudo dentro de um IIFE em `'use strict'`, dividido em blocos com cabeçalho de c
 8. **Roteador** (`ROTAS`, `NAV`, `NAV_CONTA`, `resolverRota`, `navegar`) [HERANÇA]
 9. **Casca** (`cascaHTML`, menus suspensos, `desenhar`)
 10. **Pulso do mercado** (BTC no topo)
-11. **Páginas** (Portfólio, Ajustes, Sistema visual, placeholders)
+11. **Páginas** (Portfólio, Ajustes, placeholders)
 12. **Mercado** (Etapa 1)
 13. **Início**
 
@@ -133,7 +133,7 @@ Qualquer elemento com `data-brl="1234.56"` é preenchido por `preencherValores()
 - **Notação brasileira:** vírgula nos decimais, ponto nos milhares. Sempre pelos formatadores.
 - **Formatação humana do código:** uma propriedade CSS por linha, blocos separados, comentários explicando o porquê. Nada de CSS compactado em uma linha (o código é inspecionável num site publicado).
 - **Textos da interface:** português simples, frase em caixa normal, sem travessão separando ideias, sem frases de efeito. Botão diz o que faz ("Salvar chave", não "Enviar").
-- **Página "Sistema visual"** (menu da engrenagem) é a vitrine dos componentes. Sai do menu antes da publicação.
+- ~~**Página "Sistema visual"**~~ removida na Etapa 7.2 (andaime de desenvolvimento, não faz sentido exposta ao usuário).
 
 ---
 
@@ -237,7 +237,42 @@ Múltiplos perfis por dispositivo. Cada perfil tem nome de usuário (sem espaço
 - **Info do usuário na casca:** avatar + botão "Sair" no topo (computador, `.usuario-topo`); nome do perfil no cabeçalho do menu sanduíche (celular).
 - **`sair()`:** encerra sessão, limpa sockets/timers, redesenha a tela de entrada.
 - **Mensagem de PIN esquecido:** aviso visível na tela de cadastro pedindo para guardar bem o PIN.
-- **Próxima iteração confirmada pelo autor:** seletor de portfólio/perfil no cabeçalho da página Portfólio (Etapa 6.1).
+
+### Etapa 6.1 · Ajustes no painel de login (entregue)
+Origem: relatório de testes de 29/09/2026.
+- **PIN fixo em 6 dígitos** para todos os perfis (removida a escolha de 4 ou 6 dígitos pelo usuário; `PIN_DIGITOS = 6`).
+- **Caixas OTP-style** para entrada do PIN: 6 campos individuais com navegação automática, paste e limpeza (`_otpHTML`, `ligarOTP`). Substituiu o campo de texto único.
+- **Layout em duas colunas:** painel da marca à esquerda (fundo, anel decorativo, logotipo) e formulário à direita. No celular o painel da marca colapsa e só o formulário aparece.
+
+### Etapa 6.2 · Ajustes no portfólio e menu mobile (entregue)
+- **Painel superior do portfólio em desktop:** saldo e cards à esquerda (2×2), gráfico de evolução à direita.
+- **Chip de moeda no celular:** botão único (~38px) no topo que cicla pela próxima moeda disponível (R$ → US$ → ₿ → R$). Substituiu o seletor de 3 botões, que era uma das causas do ícone de sanduíche ficar oculto em telas estreitas (`atualizarChipMoeda`, `proximaMoeda`).
+- **Avatar no topo mobile:** toque no avatar abre o menu sanduíche (segunda forma de abrir, pedido do relatório de testes).
+- **"Sair" no rodapé do menu mobile:** saiu do topo e foi para o rodapé do menu sanduíche junto com o nome do perfil.
+
+### Etapa 6.3 · Fix do header e lançamentos mobile (entregue)
+- Ajustes finos no cabeçalho do celular para acomodar marca, chip de moeda, ícone de busca e sanduíche sem sobreposição.
+- **"Seus lançamentos" na página da moeda (celular):** linhas de compra/venda com preço recebem classe `com-valor` e no celular o valor quebra para uma segunda linha, evitando que "R$" fique de um lado e o número do outro.
+
+### Etapa 7 · Backup — exportação e importação (entregue)
+- **Exportar portfólio como JSON** (botão em Ajustes): formato `v1` versionado (`{ versao, app, exportadoEm, usuario, banco, prefs }`).
+- **Importar JSON** com prévia antes de confirmar: mostra número de transações, moedas cadastradas e período coberto. A confirmação é uma segunda ação explícita.
+- **Snapshot antes de importar** (`KOIN_BACKUP_SNAPSHOT_<userId>`): guarda o estado anterior. Botão "Desfazer última importação" fica visível enquanto o snapshot existir.
+- Formato já preparado para v2 (multi-portfólio): ao importar um v1 num sistema futuro com portfólios, será tratado como portfólio único "Principal". Ver memória `project_backup-versioning-plan`.
+
+### Etapa 7.1 · Ajuste nos lançamentos mobile (entregue)
+- Continuação da Etapa 6.3 (commit separado): "Seus lançamentos" na página da moeda no celular — ajuste fino de CSS para o quebra de linha funcionar em todos os contextos sem interferência.
+- Pequenos ajustes de compatibilidade PWA (meta tags) na `<head>`.
+
+### Etapa 7.2 · Rendimento e detalhe de lançamentos (entregue)
+- **Novo tipo RENDIMENTO:** staking, DeFi, mining e cashback. Custo zero, idêntico à ENTRADA no motor (`pernasDaTransacao`, `processarCarteira`, `PRIORIDADE_NO_DIA`). Badge verde-água suave (`--alta` com opacidade baixa).
+- **Remoção da página "Sistema Visual"** (andaime de desenvolvimento, não faz sentido exposta ao usuário).
+- **Tooltip `?` ao lado de "Operação"** na gaveta de lançamento: painel com descrição dos 6 tipos, abre e fecha por botão.
+- **Campo "Nota (opcional)"** na gaveta: texto livre guardado em `registro.descricao`, exibido na gaveta de detalhe.
+- **Gaveta mais larga no desktop** (500 → 600px) para os 6 badges de operação caberem em uma linha.
+- **Seletor de operação no celular** (`<select>`): substituiu os botões segmentados que não cabiam em larguras pequenas.
+- **Gaveta de detalhe (somente leitura):** clicar numa linha da tabela de lançamentos abre a gaveta com todos os campos, botões "Editar" (reabre em modo edição) e "Excluir" (`gavetaDetalheHTML`, `abrirDetalhe`).
+- **Tabela de lançamentos simplificada:** colunas Taxas e Lucro realizado removidas da linha (ficam na gaveta de detalhe). Passa de 8 para 6 colunas.
 
 ### Etapa 4 · Portfólio (entregue)
 - **Menu:** "Lançamentos" virou submenu de "Portfólio" (grupo `Portfólio` em `NAV`, com os itens Portfólio e Lançamentos). O botão do grupo acende nas duas rotas. Na tela do Portfólio há o botão "Lançamentos" (e "Novo lançamento") no cabeçalho.
@@ -275,16 +310,16 @@ Portado do `dash-finance.html` (só a parte cripto: `[CRIPTO v2]`, `[CRIPTO v2.1
 
 ## Próximas etapas
 
-### Etapa 6.1 · Seletor de portfólio (confirmado pelo autor)
+### Seletor de portfólio (confirmado pelo autor, número a definir)
 - Seletor de portfólio no cabeçalho da página de Portfólio (não na nav).
 - Permite trocar de portfólio/perfil sem sair da tela.
 - Portfólios pertencem a um único perfil.
 
-### Etapa 7 · Extras
+### Demais extras da Etapa 7 (a numerar)
+Backup entregue na Etapa 7. Ainda falta:
 - **Balanceamento:** alocação ideal por moeda ou grupo, nota 0 a 10 por moeda, peso ideal, desvio em pontos percentuais, simulador de aporte (só compra, guloso pela maior falta). Vocabulário: "alocação ideal", "nota", "peso ideal", "desvio". A palavra "meta" fica reservada para Objetivos.
 - **Objetivos:** patrimônio total, patrimônio numa moeda, com progresso, aporte mensal (informado ou média real) e conclusão estimada. Concluídos guardados com data.
 - **Alertas de preço** (no app; notificação de sistema depois do PWA).
-- **Backup:** exportar/importar JSON com prévia, verificação da carteira e "desfazer última importação" (portar do Dash Finance, tag `[BACKUP v1]`).
 
 ### Etapa 8 · PWA
 - Separar em `index.html` + `manifest.webmanifest` + `sw.js` + ícones (192, 512, maskable).
@@ -301,7 +336,7 @@ Nada disso foi feito ainda. Fazer junto com a Etapa 8 (PWA) ou antes de qualquer
 1. **Chave da CoinGecko no código** (`CG_CHAVE_PADRAO`): publicada, qualquer um copia a chave e todos dividem a cota de 10 mil chamadas por mês do plano Demo (com 1 chamada por dia por aparelho, ~330 usuários diários esgotam o mês). Solução: um intermediário (Cloudflare Worker gratuito) que guarda a chave, busca `/coins/markets` a cada poucos minutos e entrega a resposta em cache; o app chama o Worker, nunca a CoinGecko. **Ao montar o Worker, gerar chave nova e apagar a atual** (ela já apareceu fora do repositório).
 2. **Biblioteca de gráficos por CDN** (`LW_URL`, unpkg, já com SRI): para o PWA, incluir o arquivo no cache do service worker (ou servir junto do app), senão o gráfico some offline.
 3. **Testar pelo endereço publicado**, não pelo arquivo: abrindo por `content://downloads` cada download novo pode virar outra origem e os lançamentos "somem". Publicar no GitHub Pages (mesmo em rascunho) e testar pela URL. É também pré-requisito do PWA.
-4. **Página "Sistema visual":** tirar do menu (Projeto) antes de publicar; a rota pode ficar só pelo endereço.
+4. ~~**Página "Sistema visual":** tirar do menu antes de publicar~~ — **feito na Etapa 7.2** (página removida).
 
 ---
 
