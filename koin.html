@@ -1417,6 +1417,15 @@ main#miolo {
     margin-bottom: 16px;
 }
 
+/* [ETAPA 7.4] filtro por tipo na página de lançamentos */
+.filtro-lanc-select {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    font-size: var(--t-sm);
+    color: var(--texto-3);
+}
+
 .tabela-lanc th:nth-child(-n+3),
 .tabela-lanc td:nth-child(-n+3) {
     text-align: left;
@@ -2550,6 +2559,19 @@ body:has(#gaveta.aberta) .avisos {
 
     .lanc-resumo {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    /* [ETAPA 7.4] filtro de lançamentos: segmentado some, seletor aparece */
+    .filtro-lanc-segmentado {
+        display: none;
+    }
+    .filtro-lanc-select {
+        display: flex;
+    }
+    .filtro-lanc-select select {
+        flex: 1;
+        height: 40px;
+        color: var(--texto-2);
     }
 
 
@@ -6375,6 +6397,10 @@ function salvarPelaGaveta() {
 }
 
 document.addEventListener('click', function (ev) {
+    // [ETAPA 7.4] filtro por tipo de operação
+    var filtroBtn = ev.target.closest('[data-filtro-lanc]');
+    if (filtroBtn) { atualizarFiltroLanc(filtroBtn.getAttribute('data-filtro-lanc')); return; }
+
     var novo = ev.target.closest('[data-lanc-novo]');
     if (novo) { abrirLancamento({ moedaId: novo.getAttribute('data-moeda') || null }); return; }
 
@@ -6584,18 +6610,40 @@ function linhaLancamentoHTML(t) {
         '<td>' + totalCel + '</td></tr>';
 }
 
+// [ETAPA 7.4] estado do filtro de lançamentos (persiste na sessão, igual a mercado.aba)
+var filtroLanc = 'TODAS';
+
+var FILTROS_LANC = [['TODAS', 'Todas']].concat(TIPOS_ORDEM.map(function (k) { return [k, TIPOS[k]]; }));
+
+function filtroBarraLancHTML() {
+    var botoes = FILTROS_LANC.map(function (f) {
+        return '<button type="button" data-filtro-lanc="' + f[0] + '" aria-pressed="' + (filtroLanc === f[0] ? 'true' : 'false') + '">' + f[1] + '</button>';
+    }).join('');
+    var opcoes = FILTROS_LANC.map(function (f) {
+        return '<option value="' + f[0] + '"' + (filtroLanc === f[0] ? ' selected' : '') + '>' + f[1] + '</option>';
+    }).join('');
+    return '<div class="barra-tabela">' +
+        '<div class="segmentado filtro-lanc-segmentado" role="group" aria-label="Filtrar por tipo de operação">' + botoes + '</div>' +
+        '<label class="filtro-lanc-select"><span>Tipo</span><select class="entrada" id="filtro-lanc-mobile">' + opcoes + '</select></label>' +
+        '</div>';
+}
+
 function paginaLancamentos() {
     var banco = lerBanco();
     var carteira = processarCarteira(ordenarTransacoes(banco.transacoes));
     var lista = ordenarTransacoes(banco.transacoes).reverse();   // mais recente primeiro
+    var listaFiltrada = filtroLanc === 'TODAS' ? lista : lista.filter(function (t) { return t.tipo === filtroLanc; });
     var realizadoTotal = Object.keys(carteira.realizado).reduce(function (s, k) { return s + carteira.realizado[k]; }, 0);
     var temVenda = Object.keys(carteira.realizado).length > 0;
 
     var corpo;
     if (lista.length) {
+        var linhas = listaFiltrada.length
+            ? listaFiltrada.map(function (t) { return linhaLancamentoHTML(t); }).join('')
+            : '<tr><td colspan="6" class="tabela-vazia">Nenhum lançamento do tipo "' + escapar(TIPOS[filtroLanc] || filtroLanc) + '".</td></tr>';
         corpo = '<div class="painel painel-tabela"><table class="tabela tabela-lanc"><thead><tr>' +
             '<th>Data</th><th>Operação</th><th>Moeda</th><th>Quantidade</th><th>Preço</th><th>Valor total</th>' +
-            '</tr></thead><tbody>' + lista.map(function (t) { return linhaLancamentoHTML(t); }).join('') + '</tbody></table></div>';
+            '</tr></thead><tbody id="lanc-corpo">' + linhas + '</tbody></table></div>';
     } else {
         corpo = '<div class="painel"><p class="painel-titulo">Nenhum lançamento ainda</p>' +
             '<p class="painel-sub">Registre a sua primeira compra, entrada ou conversão. Ela passa a valer no preço médio e no lucro da moeda.</p>' +
@@ -6606,12 +6654,47 @@ function paginaLancamentos() {
         '<div class="pagina-cabecalho"><div><h1>Lançamentos</h1>' +
         '<p>Compras, vendas, entradas, saídas e conversões. Cada lançamento é conferido na linha do tempo: nenhuma baixa pode ficar sem saldo.</p></div>' +
         '<button type="button" class="botao botao-marca" data-lanc-novo>' + icone('mais') + 'Novo lançamento</button></div>' +
-        (lista.length ? '<div class="grade-2 lanc-resumo"><div class="cartao"><p class="indicador-rotulo">Lançamentos</p><p class="indicador-valor">' + lista.length + '</p></div>' +
+        (lista.length ? '<div class="grade-2 lanc-resumo"><div class="cartao"><p class="indicador-rotulo">Lançamentos</p><p class="indicador-valor" id="lanc-count">' + listaFiltrada.length + '</p></div>' +
             '<div class="cartao"><p class="indicador-rotulo">Lucro realizado</p><p class="indicador-valor">' +
             (temVenda ? '<span class="var ' + (realizadoTotal >= 0 ? 'alta' : 'queda') + '" data-brl="' + realizadoTotal + '"></span>' : '<span class="sem-dado sem-dado-legenda">sem vendas ainda</span>') +
             '</p></div></div>' : '') +
+        (lista.length ? filtroBarraLancHTML() : '') +
         corpo + '</div>';
 }
+
+function atualizarFiltroLanc(novo) {  // [ETAPA 7.4]
+    filtroLanc = novo;
+    // sincroniza botões do segmentado
+    document.querySelectorAll('[data-filtro-lanc]').forEach(function (b) {
+        b.setAttribute('aria-pressed', b.getAttribute('data-filtro-lanc') === novo ? 'true' : 'false');
+    });
+    // sincroniza seletor mobile
+    var sel = document.getElementById('filtro-lanc-mobile');
+    if (sel) sel.value = novo;
+    // re-renderiza só o tbody
+    var banco = lerBanco();
+    var lista = ordenarTransacoes(banco.transacoes).reverse();
+    var listaFiltrada = novo === 'TODAS' ? lista : lista.filter(function (t) { return t.tipo === novo; });
+    var tbody = document.getElementById('lanc-corpo');
+    if (tbody) {
+        tbody.innerHTML = listaFiltrada.length
+            ? listaFiltrada.map(function (t) { return linhaLancamentoHTML(t); }).join('')
+            : '<tr><td colspan="6" class="tabela-vazia">Nenhum lançamento do tipo "' + escapar(TIPOS[novo] || novo) + '".</td></tr>';
+        preencherValores(tbody);
+    }
+    // atualiza o contador de lançamentos
+    var countEl = document.getElementById('lanc-count');
+    if (countEl) countEl.textContent = listaFiltrada.length;
+}
+
+ROTAS['/lancamentos'].montar = function () {  // [ETAPA 7.4]
+    var sel = document.getElementById('filtro-lanc-mobile');
+    if (sel) {
+        sel.addEventListener('change', function () {
+            atualizarFiltroLanc(this.value);
+        });
+    }
+};
 
 // ---------- moeda: sua posição e seus lançamentos ----------
 function posicaoDaMoeda(id) {
