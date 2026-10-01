@@ -957,47 +957,6 @@ main#miolo {
 }
 
 
-/* ---------- página "Sistema" (vitrine do design) ---------- */
-.amostras-cor {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 10px;
-}
-
-.amostra {
-    border-radius: var(--r-cartao);
-    border: 1px solid var(--borda);
-    overflow: hidden;
-    font-size: var(--t-xs);
-}
-
-.amostra-cor {
-    height: 64px;
-}
-
-.amostra-info {
-    padding: 8px 10px;
-    background: var(--superficie);
-    color: var(--texto-2);
-}
-
-.amostra-info strong {
-    display: block;
-    color: var(--texto);
-    font-size: var(--t-sm);
-}
-
-.escala-tipo p + p {
-    margin-top: 10px;
-}
-
-.linha-botoes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
-}
-
 
 /* =================================================================
    MERCADO  [ETAPA 1]
@@ -1507,6 +1466,12 @@ main#miolo {
     color: var(--info);
 }
 
+/* [ETAPA 7] rendimento: staking, DeFi, mining, cashback — verde-água suave */
+.etiqueta-tipo.t-rendimento {
+    background: rgba(34, 195, 142, 0.12);
+    color: var(--alta);
+}
+
 .seta-conv {
     color: var(--texto-3);
     margin: 0 2px;
@@ -1533,6 +1498,7 @@ main#miolo {
 .tabela-lanc .col-acoes {
     white-space: nowrap;
 }
+
 
 .lanc-lista {
     list-style: none;
@@ -1588,7 +1554,7 @@ main#miolo {
     right: 0;
     bottom: 0;
     z-index: 61;
-    width: min(500px, 100vw);
+    width: min(600px, 100vw);
     display: flex;
     flex-direction: column;
     background: var(--superficie);
@@ -1601,7 +1567,7 @@ main#miolo {
 
 /* com a gaveta aberta, os avisos saem da frente dos botões dela */
 body:has(#gaveta.aberta) .avisos {
-    right: calc(min(500px, 100vw) + 20px);
+    right: calc(min(600px, 100vw) + 20px);
 }
 
 #gaveta.aberta .gaveta-fundo {
@@ -1654,6 +1620,11 @@ body:has(#gaveta.aberta) .avisos {
     flex-wrap: wrap;
 }
 
+/* [ETAPA 7] seletor de tipo na gaveta: só no celular */
+.tipo-select-mobile {
+    display: none;
+}
+
 .campo-ajuda {
     font-size: var(--t-xs);
     color: var(--texto-3);
@@ -1682,11 +1653,133 @@ body:has(#gaveta.aberta) .avisos {
     line-height: 1.5;
 }
 
+/* [ETAPA 7] painel de ajuda dos tipos de operação */
+.botao-ajuda-tipo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid var(--texto-3);
+    background: transparent;
+    color: var(--texto-3);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.botao-ajuda-tipo:hover,
+.botao-ajuda-tipo:focus-visible {
+    border-color: var(--marca);
+    color: var(--marca);
+    outline: none;
+}
+
+.ajuda-ops {
+    display: none;
+    padding: 12px 14px;
+    border-radius: var(--r-controle);
+    background: var(--superficie-2);
+    border: 1px solid var(--borda);
+    font-size: var(--t-xs);
+    line-height: 1.5;
+}
+
+.ajuda-ops.aberta {
+    display: block;
+}
+
+.ajuda-ops dl {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ajuda-ops dt {
+    font-weight: 700;
+    color: var(--texto);
+    margin-bottom: 1px;
+}
+
+.ajuda-ops dd {
+    margin: 0;
+    color: var(--texto-2);
+}
+
 @media (prefers-reduced-motion: reduce) {
     .gaveta,
     .gaveta-fundo {
         transition: none;
     }
+}
+
+/* [ETAPA 7] cursor clicável nas linhas da tabela de lançamentos */
+.tabela-lanc tbody tr[data-lanc-ver] {
+    cursor: pointer;
+}
+
+.tabela-lanc tbody tr[data-lanc-ver]:hover td {
+    background: var(--superficie-2);
+}
+
+/* gaveta em modo "ver": lista de campos com rótulo e valor */
+.detalhe-lista {
+    display: flex;
+    flex-direction: column;
+}
+
+.detalhe-linha {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--borda);
+    font-size: var(--t-sm);
+}
+
+.detalhe-linha:last-child {
+    border-bottom: none;
+}
+
+.detalhe-linha dt {
+    color: var(--texto-2);
+    flex-shrink: 0;
+}
+
+.detalhe-linha dd {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 7px;
+    font-weight: 600;
+    color: var(--texto);
+    word-break: break-word;
+}
+
+/* ícone de moeda menor e proporcional dentro do detalhe */
+.detalhe-lista .moeda-logo,
+.detalhe-lista .moeda-icone {
+    width: 20px;
+    height: 20px;
+    font-size: 9px;
+}
+
+.detalhe-nota {
+    padding: 10px 12px;
+    border-radius: var(--r-controle);
+    background: var(--superficie-2);
+    font-size: var(--t-xs);
+    color: var(--texto-2);
+    font-style: italic;
+    line-height: 1.5;
 }
 
 
@@ -2493,55 +2586,36 @@ body:has(#gaveta.aberta) .avisos {
     }
 
     /* ---------- lançamentos: cada um vira um cartão ---------- */
-    .tabela-lanc tbody tr {
+    /* [ETAPA 7] tabela de lançamentos vira cartão clicável */
+    .tabela-lanc tbody tr[data-lanc-ver] {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
-        grid-template-areas: "tipo data" "moeda moeda" "qtd total" "realizado realizado" "acoes acoes";
+        grid-template-areas: "tipo data" "moeda moeda" "qtd total";
         align-items: center;
         gap: 8px 12px;
         padding: 14px;
         border-bottom: 1px solid var(--borda);
     }
 
-    .tabela-lanc tbody tr:last-child {
+    .tabela-lanc tbody tr[data-lanc-ver]:last-child {
         border-bottom: none;
     }
 
+    /* [ETAPA 7] 6 colunas: Data, Operação, Moeda, Qtd, Preço, Valor total */
     .tabela-lanc td:nth-child(1) { grid-area: data; justify-self: end; color: var(--texto-2); font-size: var(--t-sm); }
     .tabela-lanc td:nth-child(2) { grid-area: tipo; justify-self: start; }
     .tabela-lanc td.col-moeda-lanc { display: block; grid-area: moeda; min-width: 0; }
     .tabela-lanc td:nth-child(4) { grid-area: qtd; color: var(--texto-2); font-size: var(--t-sm); }
-    .tabela-lanc td:nth-child(7) { grid-area: total; text-align: right; font-weight: 700; }
-    .tabela-lanc td:nth-child(8) { grid-area: realizado; font-size: var(--t-sm); }
+    .tabela-lanc td:nth-child(6) { grid-area: total; text-align: right; font-weight: 700; }
 
-    .tabela-lanc td:nth-child(5),
-    .tabela-lanc td:nth-child(6),
-    .tabela-lanc td:nth-child(8):not(:has(.var)) {
+    .tabela-lanc td:nth-child(5) {
         display: none;
-    }
-
-    .tabela-lanc td:nth-child(8)::before {
-        content: "Lucro realizado ";
-        color: var(--texto-3);
-    }
-
-    .tabela-lanc td.col-acoes {
-        display: flex;
-        grid-area: acoes;
-        justify-content: flex-end;
-        gap: 8px;
-        padding-top: 4px;
-    }
-
-    .tabela-lanc .col-acoes .botao {
-        flex: 1;
-        height: 38px;
-        border-color: var(--borda-forte);
     }
 
     .lanc-resumo {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
 
     /* [ETAPA 6.3 · 30/09/2026] "Seus lançamentos" na página da moeda: linha
        de compra/venda tinha data + etiqueta + quantidade + preço tudo
@@ -2576,6 +2650,15 @@ body:has(#gaveta.aberta) .avisos {
     .gaveta .segmentado button {
         padding: 6px 8px;
         font-size: 13px;
+    }
+
+    /* [ETAPA 7] tipo de operação: troca botões por seletor no celular */
+    .tipo-select-mobile {
+        display: block;
+    }
+
+    .segmentado-tipo {
+        display: none;
     }
 
     .gaveta-pe {
@@ -3586,7 +3669,6 @@ var ROTAS = {
     '/balanceamento': { titulo: 'Balanceamento',  icone: 'balanceamento', etapa: 6, render: paginaEmBreve },
     '/objetivos':     { titulo: 'Objetivos',      icone: 'objetivos',     etapa: 6, render: paginaEmBreve },
     '/ajustes':       { titulo: 'Ajustes',        icone: 'ajustes',       render: paginaAjustes },
-    '/sistema':       { titulo: 'Sistema visual', icone: 'sistema',       render: paginaSistema },
     // [ETAPA 1] rota com parâmetro: /moeda/bitcoin, /moeda/ethereum...
     '/moeda':         { titulo: 'Moeda',          icone: 'mercado',       etapa: 2, render: paginaMoeda, dinamica: true },
 };
@@ -3637,12 +3719,6 @@ var NAV_CONTA = [
         titulo: 'Preferências',
         itens: [
             { rota: '/ajustes', desc: 'Moeda, tema e armazenamento' },
-        ],
-    },
-    {
-        titulo: 'Projeto',
-        itens: [
-            { rota: '/sistema', desc: 'Cores, tipos e componentes' },
         ],
     },
 ];
@@ -4005,115 +4081,6 @@ function paginaAjustes() {
         })() +
         '</div>';
 }
-
-
-/* ---------- Sistema visual: vitrine pra aprovar o design ---------- */
-// moedas de demonstração com preço SIMULADO (passeio aleatório), só pra
-// ver o pisca e a animação funcionando sem depender de rede
-var DEMO = [
-    { s: 'BTC', n: 'Bitcoin', p: 612345.67, cor: '#F7931A', v: 1.24 },
-    { s: 'ETH', n: 'Ethereum', p: 13988.60, cor: '#8C9EFF', v: -0.82 },
-    { s: 'SOL', n: 'Solana', p: 1047.30, cor: '#14F195', v: 3.41 },
-    { s: 'DOGE', n: 'Dogecoin', p: 0.8712, cor: '#C2A633', v: -2.07 },
-    { s: 'PEPE', n: 'Pepe', p: 0.00005871, cor: '#4C9A2A', v: 7.9 },
-];
-
-function paginaSistema() {
-    var cores = [
-        ['Tinta', '--bg', '#0D111C', 'fundo do app'],
-        ['Superfície', '--superficie', '#131A29', 'painéis'],
-        ['Superfície 2', '--superficie-2', '#1A2334', 'cartões, hover'],
-        ['Borda', '--borda', '#232E44', 'divisões'],
-        ['Texto', '--texto', '#E7ECF5', 'principal'],
-        ['Texto 2', '--texto-2', '#A3AEC4', 'secundário'],
-        ['Latão', '--marca', '#E9B949', 'marca, foco, ação principal'],
-        ['Alta', '--alta', '#22C38E', 'só pra valorização'],
-        ['Queda', '--queda', '#F2555A', 'só pra desvalorização'],
-    ];
-
-    var linhasDemo = DEMO.map(function (m, i) {
-        return '<tr data-demo="' + i + '">' +
-            '<td class="rank">' + (i + 1) + '</td>' +
-            '<td><div class="celula-moeda"><span class="moeda-icone" style="background: ' + m.cor + ';">' + m.s.slice(0, 2) + '</span>' +
-            '<div><strong>' + m.n + '</strong> <span>' + m.s + '</span></div></div></td>' +
-            '<td><span class="preco-vivo" data-brl="' + m.p + '" data-tipo="preco"></span></td>' +
-            '<td data-demo-var>' + varHTML(m.v, true) + '</td>' +
-            '</tr>';
-    }).join('');
-
-    return '<div class="pagina">' +
-        '<div class="pagina-cabecalho"><div><h1>Sistema visual</h1>' +
-        '<p>Vitrine da fundação: cores, tipos e componentes que as próximas etapas vão usar. Esta página sai do menu antes da publicação.</p></div></div>' +
-
-        '<div class="painel"><p class="painel-titulo">Cores</p>' +
-        '<p class="painel-sub">Fundo em tinta azul, não preto. Latão é a cor da marca; verde e vermelho só aparecem pra alta e queda.</p>' +
-        '<div class="amostras-cor">' + cores.map(function (c) {
-            return '<div class="amostra"><div class="amostra-cor" style="background: var(' + c[1] + ');"></div>' +
-                '<div class="amostra-info"><strong>' + c[0] + '</strong>' + c[2] + ' · ' + c[3] + '</div></div>';
-        }).join('') + '</div></div>' +
-
-        '<div class="grade-2" style="margin-top: 16px;">' +
-        '<div class="painel escala-tipo"><p class="painel-titulo">Tipografia</p>' +
-        '<p class="painel-sub">Manrope na interface, com números de largura fixa. Unbounded só na marca e no saldo.</p>' +
-        '<p class="saldo" data-brl="48213.77"></p>' +
-        '<p style="font-size: var(--t-2xl); font-weight: 800; letter-spacing: -0.02em;">Título de página</p>' +
-        '<p style="font-size: var(--t-lg); font-weight: 700;">Título de painel</p>' +
-        '<p>Texto corrido da interface, em 15px.</p>' +
-        '<p style="font-size: var(--t-sm); color: var(--texto-2);">Texto secundário e apoio, em 13px.</p>' +
-        '</div>' +
-
-        '<div class="painel"><p class="painel-titulo">Controles</p>' +
-        '<p class="painel-sub">Botões por hierarquia, campo com foco em latão, seletor segmentado.</p>' +
-        '<div class="linha-botoes">' +
-        '<button type="button" class="botao botao-marca" data-demo-aviso="sucesso">' + icone('mais') + 'Novo lançamento</button>' +
-        '<button type="button" class="botao botao-neutro" data-demo-aviso="erro">Mostrar um erro</button>' +
-        '<button type="button" class="botao botao-fantasma">Cancelar</button>' +
-        '</div>' +
-        '<div class="campo" style="margin-top: 18px;"><label for="demo-campo">Quantidade</label>' +
-        '<input class="entrada" id="demo-campo" type="text" inputmode="decimal" placeholder="0,00"></div>' +
-        '<div style="margin-top: 18px;" class="linha-botoes">' + seletorMoedaHTML() +
-        '<span style="font-size: var(--t-sm); color: var(--texto-2);">Mesmo seletor do topo: os dois andam juntos.</span></div>' +
-        '</div></div>' +
-
-        '<div class="painel" style="margin-top: 16px;"><p class="painel-titulo">Preço ao vivo</p>' +
-        '<p class="painel-sub">Preços simulados mudando a cada 1,5 segundo: o fundo pisca em verde ou vermelho e o número desliza até o valor novo. Troque a moeda no topo e veja a tabela se reescrever sem recarregar.</p>' +
-        '<table class="tabela"><thead><tr><th>#</th><th>Moeda</th><th>Preço</th><th>24h</th></tr></thead><tbody>' + linhasDemo + '</tbody></table>' +
-        '</div>' +
-
-        '<div class="painel"><p class="painel-titulo">Indicadores e carregamento</p>' +
-        '<p class="painel-sub">Cartões de indicador e o esqueleto que aparece enquanto um dado chega.</p>' +
-        '<div class="grade-4">' +
-        '<div class="cartao"><p class="indicador-rotulo">Investido</p><p class="indicador-valor" data-brl="38860"></p></div>' +
-        '<div class="cartao"><p class="indicador-rotulo">Lucro não realizado</p><p class="indicador-valor" style="color: var(--alta);" data-brl="2151.40"></p></div>' +
-        '<div class="cartao"><p class="indicador-rotulo">Variação 24h</p><p class="indicador-valor">' + varHTML(-1.37) + '</p></div>' +
-        '<div class="cartao"><p class="indicador-rotulo">Carregando</p><span class="esqueleto" style="width: 70%; height: 18px; margin-top: 10px;"></span></div>' +
-        '</div></div>' +
-        '</div>';
-}
-
-ROTAS['/sistema'].montar = function (miolo) {
-    var precos = DEMO.map(function (m) { return m.p; });
-    var timer = setInterval(function () {
-        if (!document.body.contains(miolo) || rotaAtual !== '/sistema') { clearInterval(timer); return; }
-        var i = Math.floor(Math.random() * DEMO.length);
-        var antes = precos[i];
-        var depois = antes * (1 + (Math.random() - 0.48) * 0.006);
-        precos[i] = depois;
-        var linha = miolo.querySelector('[data-demo="' + i + '"]');
-        if (!linha) return;
-        var el = linha.querySelector('.preco-vivo');
-        el.setAttribute('data-brl', depois);
-        piscar(el, depois > antes);
-        animarNumero(el, antes, depois, function (v) { return formatarMoeda(v, 'preco'); }, 500);
-    }, 1500);
-
-    miolo.querySelectorAll('[data-demo-aviso]').forEach(function (b) {
-        b.addEventListener('click', function () {
-            var t = b.getAttribute('data-demo-aviso');
-            avisar(t === 'sucesso' ? 'Lançamento salvo.' : 'A quantidade precisa ser maior que zero.', t);
-        });
-    });
-};
 
 
 /* =================================================================
@@ -5356,8 +5323,8 @@ document.addEventListener('click', function (ev) {
 
 var QTD_EPSILON = 1e-9;   // tolerância de ponto flutuante em quantidades
 
-var TIPOS = { COMPRA: 'Compra', VENDA: 'Venda', ENTRADA: 'Entrada', SAIDA: 'Saída', CONVERSAO: 'Conversão' };
-var TIPOS_ORDEM = ['COMPRA', 'VENDA', 'ENTRADA', 'SAIDA', 'CONVERSAO'];
+var TIPOS = { COMPRA: 'Compra', VENDA: 'Venda', ENTRADA: 'Entrada', SAIDA: 'Saída', CONVERSAO: 'Conversão', RENDIMENTO: 'Rendimento' };  // [ETAPA 7]
+var TIPOS_ORDEM = ['COMPRA', 'VENDA', 'ENTRADA', 'SAIDA', 'CONVERSAO', 'RENDIMENTO'];  // [ETAPA 7]
 var TIPOS_COM_PRECO = { COMPRA: true, VENDA: true };
 var TIPOS_DE_BAIXA = { VENDA: true, SAIDA: true, CONVERSAO: true };
 
@@ -5369,6 +5336,7 @@ function pernasDaTransacao(t) {
     switch (t.tipo) {
         case 'COMPRA':
         case 'ENTRADA':
+        case 'RENDIMENTO':   // [ETAPA 7] custo zero, como ENTRADA
             return [{ moedaId: t.moedaId, delta: t.quantidade }];
         case 'VENDA':
         case 'SAIDA':
@@ -5386,7 +5354,7 @@ function pernasDaTransacao(t) {
 // No mesmo dia o que ENTRA (compra, entrada) vem antes da conversão, que vem
 // antes do que SAI (venda, saída). Assim a ordem de digitação dos lançamentos
 // do mesmo dia não muda o resultado. Cálculo e validação usam sempre esta.
-var PRIORIDADE_NO_DIA = { COMPRA: 0, ENTRADA: 0, CONVERSAO: 1, VENDA: 2, SAIDA: 2 };
+var PRIORIDADE_NO_DIA = { COMPRA: 0, ENTRADA: 0, RENDIMENTO: 0, CONVERSAO: 1, VENDA: 2, SAIDA: 2 };  // [ETAPA 7]
 
 function ordenarTransacoes(lista) {
     return lista.slice().sort(function (a, b) {
@@ -5454,7 +5422,7 @@ function processarCarteira(ordenadas) {
             p.quantidade += t.quantidade;
             p.custoTotal += delta;
             p.qtdComCusto += t.quantidade;
-        } else if (t.tipo === 'ENTRADA') {
+        } else if (t.tipo === 'ENTRADA' || t.tipo === 'RENDIMENTO') {   // [ETAPA 7]
             pos(t.moedaId).quantidade += t.quantidade;
         } else if (t.tipo === 'VENDA' || t.tipo === 'SAIDA') {
             var saiu = baixar(pos(t.moedaId), t.quantidade);
@@ -6140,6 +6108,9 @@ function validarLancamento(d, editId) {
         dados.quantidadeDestino = qd;
     }
 
+    var desc = String(d.descricao || '').trim();
+    if (desc) dados.descricao = desc;  // [ETAPA 7] opcional
+
     // linha do tempo: só roda com os campos que ela usa já válidos
     var podeSimular = !erros.tipo && !erros.moeda && !erros.quantidade && !erros.data && !erros.destino && !erros.quantidadeDestino;
     if (podeSimular) {
@@ -6183,6 +6154,7 @@ function salvarLancamento(dados, editId) {
         taxas: TIPOS_COM_PRECO[dados.tipo] ? dados.taxas : 0,
         data: dados.data,
     };
+    if (dados.descricao) registro.descricao = dados.descricao;  // [ETAPA 7]
     if (dados.tipo === 'CONVERSAO') {
         cadastrar(dados.destino);
         registro.moedaDestinoId = dados.destino.id;
@@ -6193,6 +6165,7 @@ function salvarLancamento(dados, editId) {
         var t = banco.transacoes.filter(function (x) { return x.id === editId; })[0];
         delete t.moedaDestinoId;
         delete t.quantidadeDestino;
+        delete t.descricao;  // [ETAPA 7] limpa antes de Object.assign para remover quando apagada
         Object.assign(t, registro);   // edição preserva id e criadoEm (mesma posição na ordem)
     } else {
         banco.transacoes.push(Object.assign({ id: banco.proximoId++, criadoEm: Date.now() }, registro));
@@ -6268,6 +6241,7 @@ var NOTA_DA_OPERACAO = {
     SAIDA: 'Saída tira a quantidade junto com o custo proporcional (pelo preço médio), sem receber reais. Use para taxa de rede, envio a terceiros ou perda.',
     CONVERSAO: 'O custo que sai da moeda de origem passa inteiro para o destino. Nenhuma cotação em reais entra na conta, e o total investido não muda.',
     VENDA: 'O lucro realizado é o valor recebido (quantidade x preço, menos taxas) menos o custo da parte vendida, pelo preço médio.',
+    RENDIMENTO: 'Rendimento soma a quantidade com custo zero, igual à entrada gratuita. Use para staking, DeFi, mining ou cashback de exchange.',  // [ETAPA 7]
 };
 
 function corpoLancamentoHTML(v, e, editId) {
@@ -6279,8 +6253,23 @@ function corpoLancamentoHTML(v, e, editId) {
         return '<button type="button" data-lanc-tipo="' + k + '" aria-pressed="' + (k === tipo) + '">' + TIPOS[k] + '</button>';
     }).join('');
 
+    var ajudaOpsHTML = '<div class="ajuda-ops" id="ajuda-ops"><dl>' +
+        '<dt>Compra</dt><dd>Você adquiriu a moeda pagando com fiat (real, dólar) ou stablecoin (USDT, USDC…). Define o custo de aquisição.</dd>' +
+        '<dt>Venda</dt><dd>Você desfez a posição recebendo fiat ou stablecoin. O lucro realizado é calculado aqui.</dd>' +
+        '<dt>Entrada</dt><dd>Você recebeu moeda de outra carteira — sua ou de terceiros — sem comprar. Transferência, pagamento recebido.</dd>' +
+        '<dt>Saída</dt><dd>Você enviou moeda para outra carteira. Sem venda, sem lucro calculado.</dd>' +
+        '<dt>Conversão</dt><dd>Você trocou uma cripto por outra diretamente (ex.: BTC por ETH). O custo da origem é transferido para o destino.</dd>' +
+        '<dt>Rendimento</dt><dd>Você ganhou moeda sem comprar nem transferir: staking, DeFi, mining, cashback de exchange.</dd>' +
+        '</dl></div>';
+
     var html = (e._geral ? '<div class="campo-erro-caixa">' + escapar(e._geral) + '</div>' : '') +
-        '<div class="campo"><label>Operação</label><div class="segmentado segmentado-quebra" role="group" aria-label="Operação">' + botoesTipo + '</div>' +
+        '<div class="campo"><div style="display:flex;align-items:center;gap:6px;"><label style="margin:0;">Operação</label>' +
+        '<button type="button" class="botao-ajuda-tipo" data-ajuda-tipo aria-label="O que cada operação faz" aria-expanded="false" aria-controls="ajuda-ops">?</button></div>' +
+        ajudaOpsHTML +
+        '<select class="entrada tipo-select-mobile" id="l-tipo-select">' +
+        TIPOS_ORDEM.map(function (k) { return '<option value="' + k + '"' + (k === tipo ? ' selected' : '') + '>' + TIPOS[k] + '</option>'; }).join('') +
+        '</select>' +
+        '<div class="segmentado segmentado-quebra segmentado-tipo" role="group" aria-label="Operação" style="margin-top:8px;">' + botoesTipo + '</div>' +
         (e.tipo ? '<p class="campo-erro">' + escapar(e.tipo) + '</p>' : '') + '</div>';
 
     html += campoLancHTML('l-moeda', ehConv ? 'Moeda de origem' : 'Moeda',
@@ -6312,6 +6301,10 @@ function corpoLancamentoHTML(v, e, editId) {
             '<input class="entrada" type="text" inputmode="decimal" name="taxas" id="l-taxas" autocomplete="off" placeholder="0,00" value="' + escapar(v.taxas || '') + '">',
             'Opcional. Taxas da corretora ou da rede, em reais.', e.taxas);
     }
+
+    html += campoLancHTML('l-descricao', 'Nota (opcional)',
+        '<input class="entrada" type="text" name="descricao" id="l-descricao" autocomplete="off" placeholder="Ex.: compra na Binance, staking Lido…" value="' + escapar(v.descricao || '') + '">',
+        null, null);  // [ETAPA 7]
 
     if (NOTA_DA_OPERACAO[tipo]) html += '<p class="nota-operacao">' + NOTA_DA_OPERACAO[tipo] + '</p>';
     return html;
@@ -6347,6 +6340,7 @@ function abrirLancamento(opcoes) {
             taxas: t.taxas ? numeroParaCampo(t.taxas, 8) : '',
             destino: t.moedaDestinoId || '',
             quantidadeDestino: t.quantidadeDestino ? numeroParaCampo(t.quantidadeDestino, 8) : '',
+            descricao: t.descricao || '',  // [ETAPA 7]
         };
     } else if (opcoes.moedaId) {
         valores.moeda = opcoes.moedaId;
@@ -6461,9 +6455,45 @@ document.addEventListener('click', function (ev) {
         return;
     }
 
+    // [ETAPA 7] gaveta em modo "ver" — abre ao clicar na linha, exceto na célula da moeda
+    var ver = ev.target.closest('[data-lanc-ver]');
+    if (ver && !ev.target.closest('[data-rota]')) {
+        abrirDetalhe(Number(ver.getAttribute('data-lanc-ver')));
+        return;
+    }
+    // botão "Editar" dentro da gaveta de detalhe → troca para modo edição
+    var verEditar = ev.target.closest('[data-ver-editar]');
+    if (verEditar) {
+        var editarId = Number(verEditar.getAttribute('data-ver-editar'));
+        fecharLancamento();
+        abrirLancamento({ editId: editarId });
+        return;
+    }
+    // botão "Excluir" dentro da gaveta de detalhe
+    var verExcluir = ev.target.closest('[data-ver-excluir]');
+    if (verExcluir) {
+        if (!window.confirm('Excluir este lançamento?')) return;
+        var motivoVer = excluirLancamento(Number(verExcluir.getAttribute('data-ver-excluir')));
+        fecharLancamento();
+        if (motivoVer) { avisar(motivoVer, 'erro'); return; }
+        avisar('Lançamento excluído.', 'sucesso');
+        desenhar();
+        return;
+    }
+
     if (!lanc) return;
     if (ev.target.closest('[data-lanc-fechar]')) { fecharLancamento(); return; }
     if (ev.target.closest('[data-lanc-salvar]')) { salvarPelaGaveta(); return; }
+    // [ETAPA 7] botão ? — abre/fecha o painel de explicação das operações
+    if (ev.target.closest('[data-ajuda-tipo]')) {
+        var btn = ev.target.closest('[data-ajuda-tipo]');
+        var painel = document.getElementById('ajuda-ops');
+        if (painel) {
+            var aberta = painel.classList.toggle('aberta');
+            btn.setAttribute('aria-expanded', aberta ? 'true' : 'false');
+        }
+        return;
+    }
     var tipo = ev.target.closest('[data-lanc-tipo]');
     if (tipo) {
         var campos = lerCamposLancamento();
@@ -6483,6 +6513,19 @@ document.addEventListener('click', function (ev) {
 
 document.addEventListener('change', function (ev) {
     if (lanc && ev.target.id === 'l-moeda') moedaMudou();
+    // [ETAPA 7] seletor de tipo no celular — mesma lógica dos botões data-lanc-tipo
+    if (lanc && ev.target.id === 'l-tipo-select') {
+        var campos = lerCamposLancamento();
+        campos.tipo = ev.target.value;
+        var m = resolverMoeda(campos.moeda);
+        if (m) campos.moeda = m.id;
+        ['quantidade', 'preco'].forEach(function (n) {
+            var el = document.querySelector('#gaveta [name=' + n + ']');
+            if (el && el.dataset.auto === '1') campos[n] = '';
+        });
+        redesenharCorpoLancamento(campos);
+        aplicarAutopreenchimento();
+    }
 });
 
 document.addEventListener('input', function (ev) {
@@ -6525,7 +6568,70 @@ function valorTotalDoLancamento(t) {
     return null;
 }
 
-function linhaLancamentoHTML(t, realizado) {
+// [ETAPA 7] abre a gaveta em modo "ver" (somente leitura)
+function gavetaDetalheHTML(t, carteira) {
+    function linha(rotulo, valor) {
+        return '<div class="detalhe-linha"><dt>' + rotulo + '</dt><dd>' + valor + '</dd></div>';
+    }
+    function brl(v, tipo) { return '<span data-brl="' + v + '"' + (tipo ? ' data-tipo="' + tipo + '"' : '') + '></span>'; }
+
+    var m = infoMoeda(t.moedaId);
+    var total = valorTotalDoLancamento(t);
+    var real = carteira.realizado[t.id];
+
+    var conteudo = linha('Operação', etiquetaTipoHTML(t.tipo)) +
+        linha('Moeda', logoHTML(m) + ' ' + escapar(m.nome) + ' <span style="color:var(--texto-3);">' + escapar(m.simbolo) + '</span>') +
+        linha('Data', formatarDataBR(t.data));
+
+    if (t.tipo === 'CONVERSAO') {
+        var md = infoMoeda(t.moedaDestinoId);
+        conteudo += linha('Qtd. enviada', textoQuantidade(t.quantidade) + ' ' + escapar(m.simbolo));
+        conteudo += linha('Qtd. recebida', textoQuantidade(t.quantidadeDestino) + ' ' + escapar(md.simbolo));
+        conteudo += linha('Destino', logoHTML(md) + ' ' + escapar(md.nome) + ' <span style="color:var(--texto-3);">' + escapar(md.simbolo) + '</span>');
+    } else {
+        conteudo += linha('Quantidade', textoQuantidade(t.quantidade) + ' ' + escapar(m.simbolo));
+    }
+
+    if (TIPOS_COM_PRECO[t.tipo]) {
+        conteudo += linha('Preço unitário', brl(t.precoUnitario, 'preco'));
+        if (t.taxas) conteudo += linha('Taxas', brl(t.taxas));
+    }
+
+    if (total !== null) conteudo += linha('Valor total', brl(total));
+    if (real !== undefined) conteudo += linha('Lucro realizado',
+        '<span class="var ' + (real >= 0 ? 'alta' : 'queda') + '" data-brl="' + real + '"></span>');
+
+    return '<div class="gaveta-fundo" data-lanc-fechar></div>' +
+        '<div class="gaveta" id="gaveta-painel" role="dialog" aria-modal="true" aria-labelledby="gaveta-titulo">' +
+        '<div class="gaveta-topo"><h2 id="gaveta-titulo">Lançamento</h2>' +
+        '<button type="button" class="botao-icone" data-lanc-fechar aria-label="Fechar">&times;</button></div>' +
+        '<div class="gaveta-corpo"><dl class="detalhe-lista">' + conteudo + '</dl>' +
+        (t.descricao ? '<div class="detalhe-nota" style="margin-top:14px;">' + escapar(t.descricao) + '</div>' : '') +
+        '</div>' +
+        '<div class="gaveta-pe">' +
+        '<button type="button" class="botao botao-fantasma" data-lanc-fechar>Fechar</button>' +
+        '<button type="button" class="botao botao-fantasma" data-ver-excluir="' + t.id + '" style="color:var(--queda);">Excluir</button>' +
+        '<button type="button" class="botao botao-marca" data-ver-editar="' + t.id + '">Editar</button>' +
+        '</div></div>';
+}
+
+function abrirDetalhe(id) {
+    var banco = lerBanco();
+    var t = banco.transacoes.filter(function (x) { return x.id === id; })[0];
+    if (!t) return;
+    var carteira = processarCarteira(ordenarTransacoes(banco.transacoes));
+    lanc = { editId: null, valores: {}, erros: {}, modo: 'ver', transacaoId: id };
+    var raiz = document.getElementById('gaveta');
+    raiz.innerHTML = gavetaDetalheHTML(t, carteira);
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function () {
+        raiz.classList.add('aberta');
+        preencherValores(raiz);
+    });
+}
+
+function linhaLancamentoHTML(t) {
+    // [ETAPA 7] Taxas e Lucro realizado saíram da linha — ficam na gaveta de detalhe
     var qtd = textoQuantidade(t.quantidade);
     var moedaCel = moedaCelulaHTML(t.moedaId);
     if (t.tipo === 'CONVERSAO') {
@@ -6533,18 +6639,13 @@ function linhaLancamentoHTML(t, realizado) {
         moedaCel += ' <span class="seta-conv">&rarr;</span> ' + moedaCelulaHTML(t.moedaDestinoId);
     }
     var total = valorTotalDoLancamento(t);
-    var totalCel = total !== null ? '<span data-brl="' + total + '"></span>' : (t.tipo === 'ENTRADA' ? '<span class="sem-dado">custo zero</span>' : '<span class="sem-dado">—</span>');
+    var totalCel = total !== null ? '<span data-brl="' + total + '"></span>' :
+        ((t.tipo === 'ENTRADA' || t.tipo === 'RENDIMENTO') ? '<span class="sem-dado">custo zero</span>' : '<span class="sem-dado">—</span>');
     var precoCel = TIPOS_COM_PRECO[t.tipo] ? '<span data-brl="' + t.precoUnitario + '" data-tipo="preco"></span>' : '<span class="sem-dado">—</span>';
-    var taxasCel = TIPOS_COM_PRECO[t.tipo] && t.taxas ? '<span data-brl="' + t.taxas + '"></span>' : '<span class="sem-dado">—</span>';
-    var real = realizado[t.id];
-    var realCel = real === undefined ? '<span class="sem-dado">—</span>' :
-        '<span class="var ' + (real >= 0 ? 'alta' : 'queda') + '" data-brl="' + real + '"></span>';
 
-    return '<tr><td>' + formatarDataBR(t.data) + '</td><td>' + etiquetaTipoHTML(t.tipo) + '</td>' +
-        '<td class="col-moeda-lanc">' + moedaCel + '</td><td>' + qtd + '</td><td>' + precoCel + '</td><td>' + taxasCel + '</td>' +
-        '<td>' + totalCel + '</td><td>' + realCel + '</td>' +
-        '<td class="col-acoes"><button type="button" class="botao botao-fantasma botao-pequeno" data-lanc-editar="' + t.id + '">Editar</button>' +
-        '<button type="button" class="botao botao-fantasma botao-pequeno" data-lanc-excluir="' + t.id + '">Excluir</button></td></tr>';
+    return '<tr data-lanc-ver="' + t.id + '"><td>' + formatarDataBR(t.data) + '</td><td>' + etiquetaTipoHTML(t.tipo) + '</td>' +
+        '<td class="col-moeda-lanc">' + moedaCel + '</td><td>' + qtd + '</td><td>' + precoCel + '</td>' +
+        '<td>' + totalCel + '</td></tr>';
 }
 
 function paginaLancamentos() {
@@ -6557,8 +6658,8 @@ function paginaLancamentos() {
     var corpo;
     if (lista.length) {
         corpo = '<div class="painel painel-tabela"><table class="tabela tabela-lanc"><thead><tr>' +
-            '<th>Data</th><th>Operação</th><th>Moeda</th><th>Quantidade</th><th>Preço</th><th>Taxas</th><th>Valor total</th><th>Lucro realizado</th><th></th>' +
-            '</tr></thead><tbody>' + lista.map(function (t) { return linhaLancamentoHTML(t, carteira.realizado); }).join('') + '</tbody></table></div>';
+            '<th>Data</th><th>Operação</th><th>Moeda</th><th>Quantidade</th><th>Preço</th><th>Valor total</th>' +
+            '</tr></thead><tbody>' + lista.map(function (t) { return linhaLancamentoHTML(t); }).join('') + '</tbody></table></div>';
     } else {
         corpo = '<div class="painel"><p class="painel-titulo">Nenhum lançamento ainda</p>' +
             '<p class="painel-sub">Registre a sua primeira compra, entrada ou conversão. Ela passa a valer no preço médio e no lucro da moeda.</p>' +
