@@ -980,6 +980,24 @@ main#miolo {
 .destaque-nome { font-weight: 700; }
 .destaque-preco { color: var(--texto-2); }
 
+/* [ETAPA 8 · 02/10/2026] resultado de busca fora das 100 maiores (Mercado) */
+.busca-externa {
+    margin-top: 16px;
+}
+
+.busca-externa-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* etiqueta da moeda extra no cabeçalho da sua própria página, no lugar do
+   "#N no ranking" — mesmo visual, só mais discreto, por não ser um dado
+   de posição, é só um aviso */
+.moeda-etiqueta-extra {
+    color: var(--texto-3);
+}
+
 .destaque-numeros {
     display: flex;
     flex-direction: column;
@@ -1165,6 +1183,8 @@ main#miolo {
     text-align: center !important;
     padding: 40px 20px !important;
     color: var(--texto-2);
+    white-space: normal !important;   /* [ETAPA 8.1 · 02/10/2026] é frase, não número: pode quebrar linha */
+    overflow-wrap: break-word;
 }
 
 /* moeda sem cotação ao vivo: preço um tom abaixo, sem pisca */
@@ -2023,8 +2043,14 @@ body:has(#gaveta.aberta) .avisos {
 
     html {
         -webkit-text-size-adjust: 100%;
+        overflow-x: hidden;   /* [ETAPA 8.1] trava também aqui, não só no body (ver nota abaixo) */
     }
 
+    /* [ETAPA 8.1] "overflow-x: hidden" só no body não garante nada: o
+       scroll horizontal da página é controlado pelo elemento raiz (html).
+       Com as duas travas, mesmo um elemento largo demais que escape de
+       novo no futuro fica contido, em vez de arrastar a página inteira de
+       lado (foi exatamente o que aconteceu aqui). */
     body {
         overflow-x: hidden;
     }
@@ -2356,8 +2382,14 @@ body:has(#gaveta.aberta) .avisos {
     }
 
     .tabela-mercado td.tabela-vazia {
+        /* [ETAPA 8.1 · 02/10/2026] "grid-area: auto" é atalho pras quatro
+           propriedades de posição no grid, incluindo grid-column — então
+           ele desfazia o "grid-column: 1 / -1" de cima, bem na mesma regra.
+           A célula ficava espremida na largura da 1ª coluna (uns 40px) e,
+           assim que o texto virou texto que quebra linha (ver .tabela-vazia
+           geral, logo abaixo), quebrava letra por letra dentro desse
+           espaço minúsculo. */
         grid-column: 1 / -1;
-        grid-area: auto;
         text-align: center;
     }
 
@@ -2561,8 +2593,15 @@ body:has(#gaveta.aberta) .avisos {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    /* [ETAPA 7.4] filtro de lançamentos: segmentado some, seletor aparece */
-    .filtro-lanc-segmentado {
+    /* [ETAPA 7.5 · 01/10/2026] filtro de lançamentos no celular: só o
+       seletor aparece, os botões somem. ".barra-tabela .segmentado" (regra
+       genérica da faixa de abas do Mercado, logo acima) tem a MESMA
+       especificidade que ".filtro-lanc-segmentado" sozinha e vinha depois
+       no arquivo, então vencia — os botões apareciam esticados e com
+       rolagem horizontal em vez de sumir. A correção usa a mesma dupla de
+       classes (.barra-tabela .filtro-lanc-segmentado), empatando em
+       especificidade; como vem depois no arquivo, ganha o empate. */
+    .barra-tabela .filtro-lanc-segmentado {
         display: none;
     }
     .filtro-lanc-select {
@@ -4543,12 +4582,90 @@ function desenharTabela(primeiraVez) {
     if (!lista.length) {
         var vazio = mercado.aba === 'favoritas' && !mercado.busca
             ? 'Nenhuma favorita ainda. Toque na estrela ao lado de uma moeda pra acompanhar ela aqui.'
-            : mercado.busca ? 'Nenhuma moeda encontrada pra "' + escapar(mercado.busca) + '".' : 'Nada por aqui agora.';
+            : mercado.busca ? 'Nenhuma moeda encontrada pra "' + escapar(mercado.busca) + '" entre as 100 maiores.' : 'Nada por aqui agora.';
         corpo.innerHTML = '<tr><td colspan="10" class="tabela-vazia">' + vazio + '</td></tr>';
+        atualizarBuscaExterna();  // [ETAPA 8]
         return;
     }
     corpo.innerHTML = lista.map(function (m) { return linhaHTML(m, primeiraVez); }).join('');
     preencherValores(corpo);
+    atualizarBuscaExterna();  // [ETAPA 8] busca de outra vez esvaziou: limpa o painel de fora
+}
+
+// [ETAPA 8 · 02/10/2026] LUPA DO MERCADO, FORA DAS 100 MAIORES
+// Só dispara quando a tabela das 100 já ficou vazia pra essa busca — não
+// tem sentido gastar uma chamada externa se a resposta já está ali embaixo.
+// Mesmo motor de busca da gaveta (buscarMoedaExterna). Preço e variação de
+// 24h vêm da Binance numa chamada só (igual o portfólio já faz), só pros
+// resultados que tiverem par — sem isso, "decidir se compra ou não" citado
+// pelo Junior ficaria sem a parte mais importante: o preço.
+var buscaMercadoTimer = null;
+
+function atualizarBuscaExterna() {
+    var caixa = document.getElementById('busca-externa-mercado');
+    if (!caixa) return;
+    var termo = mercado.busca.trim();
+    clearTimeout(buscaMercadoTimer);
+
+    if (!termo || termo.length < 2 || moedasFiltradas().length > 0) {
+        caixa.innerHTML = '';
+        return;
+    }
+
+    buscaMercadoTimer = setTimeout(function () {
+        if (mercado.busca.trim() !== termo) return;  // já digitou outra coisa
+        caixa.innerHTML = '<div class="painel busca-externa"><p class="painel-sub">Procurando "' + escapar(termo) + '" fora das 100 maiores…</p></div>';
+
+        buscarMoedaExterna(termo).then(function (lista) {
+            if (mercado.busca.trim() !== termo) return;
+            if (!lista.length) {
+                caixa.innerHTML = '<div class="painel busca-externa"><p class="painel-sub">Não achei nenhuma moeda com esse nome, nem fora das 100 maiores.</p></div>';
+                return;
+            }
+            obterPrecosBinance().catch(function () { return {}; }).then(function (precos) {
+                var taxa = precos.USDTBRL;
+                var pares = [];
+                lista.forEach(function (m) {
+                    var par = m.simbolo + 'USDT';
+                    if (taxa && precos[par] > 0) {
+                        m.parBinance = par;
+                        if (pares.indexOf(par) === -1) pares.push(par);
+                    }
+                });
+                if (!pares.length) { desenharBuscaExterna(caixa, termo, lista, {}); return; }
+                var simbolos = pares.concat(['USDTBRL']);
+                fetch(BINANCE + '/api/v3/ticker/24hr?symbols=' + encodeURIComponent(JSON.stringify(simbolos)))
+                    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+                    .then(function (dados) {
+                        var por = {};
+                        dados.forEach(function (d) { por[d.symbol] = d; });
+                        desenharBuscaExterna(caixa, termo, lista, por);
+                    })
+                    .catch(function () { desenharBuscaExterna(caixa, termo, lista, {}); });
+            });
+        });
+    }, 400);
+}
+
+function desenharBuscaExterna(caixa, termo, lista, tickers24h) {
+    if (mercado.busca.trim() !== termo) return;  // a resposta demorou e a pessoa já saiu da busca
+    var taxa = tickers24h.USDTBRL ? Number(tickers24h.USDTBRL.lastPrice) : null;
+    var linhas = lista.map(function (m) {
+        var d = m.parBinance ? tickers24h[m.parBinance] : null;
+        var preco = '<span class="sem-dado">sem cotação</span>';
+        var variacao = '<span></span>';
+        if (d && taxa) {
+            preco = '<span class="destaque-preco" data-brl="' + (Number(d.lastPrice) * taxa) + '" data-tipo="preco"></span>';
+            variacao = varHTML(Number(d.priceChangePercent));
+        }
+        return '<li><a role="link" tabindex="0" class="destaque-linha" data-rota="/moeda/' + escapar(m.id) + '">' +
+            logoHTML(m) + '<span class="destaque-nome">' + escapar(m.nome) + ' <span class="sem-dado">' + escapar(m.simbolo) + '</span></span>' +
+            preco + variacao + '</a></li>';
+    }).join('');
+    caixa.innerHTML = '<div class="painel busca-externa"><p class="painel-titulo">Fora das 100 maiores</p>' +
+        '<p class="painel-sub">Sem ranking nem gráfico de 7 dias, mas com preço ao vivo quando a Binance tiver o par.</p>' +
+        '<ul class="busca-externa-lista">' + linhas + '</ul></div>';
+    preencherValores(caixa);
 }
 
 function destaquesHTML() {
@@ -4653,6 +4770,7 @@ function paginaMercado() {
         '<div class="painel painel-tabela">' +
         '<table class="tabela tabela-mercado" id="tabela-mercado"><thead>' + cabecalhoTabelaHTML() + '</thead>' +
         '<tbody>' + linhasEsqueleto + '</tbody></table></div>' +
+        '<div id="busca-externa-mercado"></div>' +  // [ETAPA 8]
         '</div>';
 }
 
@@ -4898,7 +5016,8 @@ function moedaHTML(m) {
     }).join('');
     return '<div class="moeda-topo">' + logoHTML(m) +
         '<div class="moeda-nome"><h1>' + escapar(m.nome) + '<span>' + escapar(m.simbolo) + '</span></h1>' +
-        (m.rank ? '<span class="moeda-etiqueta">#' + m.rank + ' no ranking</span>' : '') + '</div>' +
+        (m.rank ? '<span class="moeda-etiqueta">#' + m.rank + ' no ranking</span>' :
+            (m.extra ? '<span class="moeda-etiqueta moeda-etiqueta-extra">Fora das 100 maiores</span>' : '')) + '</div>' +
         '<button type="button" class="estrela' + (fav ? ' marcada' : '') + '" data-favorito="' + escapar(m.id) + '" aria-pressed="' + fav + '" aria-label="' +
         (fav ? 'Tirar das favoritas' : 'Marcar como favorita') + '">' + ICONE_ESTRELA + '</button>' +
         '<div class="moeda-preco"><span class="moeda-preco-valor" id="moeda-preco" data-brl="' + m.preco + '" data-tipo="preco"></span>' +
@@ -5193,14 +5312,22 @@ ROTAS['/moeda'].montar = function (miolo) {
     var pronto = mercado.lista.length ? Promise.resolve() : carregarMercado();
     pronto.then(function () {
         if (rotaAtual.indexOf('/moeda') !== 0) return;
-        var m = mercado.porId[id];
         var caixa = document.getElementById('moeda-conteudo');
         if (!caixa) return;
+
+        // [ETAPA 8] não tá no top 100? tenta resolver por fora antes de
+        // desistir (banco, busca desta aba, ou CoinGecko por id como
+        // último recurso — cobre até um link direto pra moeda nunca vista)
+        var prontoM = mercado.porId[id] ? Promise.resolve(mercado.porId[id]) : resolverMoedaExtraPagina(id);
+
+        prontoM.then(function (m) {
+        if (rotaAtual.indexOf('/moeda') !== 0) return;
         if (!m) {
             caixa.innerHTML = '<div class="painel"><p class="painel-titulo">Moeda não encontrada</p>' +
-                '<p class="painel-sub">Ela não está entre as 100 maiores do mercado, então ainda não tenho os dados dela.</p></div>';
+                '<p class="painel-sub">Não achei essa moeda nem nas 100 maiores, nem fora delas.</p></div>';
             return;
         }
+        mercado.porId[id] = m;  // [ETAPA 8] a partir daqui, tudo que já lê mercado.porId funciona igual
         document.title = m.nome + ' (' + m.simbolo + ') · ' + APP.nome;
         moedaPg = { m: m, periodo: '7D', tipo: 'linha', par: null, chart: null, serie: null, dados: null, ws: null, tentativas: 0, convOrigem: 'qtd', usdtbrl: null };
         var pg = moedaPg;
@@ -5226,7 +5353,7 @@ ROTAS['/moeda'].montar = function (miolo) {
 
         obterPrecosBinance().then(function (precos) {
             if (moedaPg !== pg) return;
-            pg.par = parBinanceDe(m, precos);
+            pg.par = m.extra ? m.parBinance : parBinanceDe(m, precos);  // [ETAPA 8]
             pg.usdtbrl = precos.USDTBRL || null;
             abrirSocketMoeda();
             atualizarEstatisticas24h();
@@ -5241,6 +5368,7 @@ ROTAS['/moeda'].montar = function (miolo) {
             estado.definir('conexao', 'off');
             mostrarMensagemGrafico('Não consegui carregar o gráfico agora. Confira a conexão e recarregue a página.');
         });
+        });  // [ETAPA 8] fecha o prontoM.then(function (m) { ... }) de cima
     });
 };
 
@@ -5934,8 +6062,110 @@ function textoQuantidade(n) {
     return textoNumero(Number(n) || 0, 8);
 }
 
+// ---------- moedas fora do pacote diário  [ETAPA 8 · 02/10/2026] ----------
+// O pacote da CoinGecko só traz as 100 maiores. Pra qualquer outra (Pendle,
+// um token novo, etc.), o app busca por fora e confere preço na Binance.
+// Usado em três lugares: campo de moeda da gaveta, lupa do Mercado, e na
+// resolução de preço de moedas já lançadas que não estão no top 100
+// (portfólio e página da própria moeda).
+//
+// NADA disso grava no banco só por ter sido buscado ou visto — só grava
+// quando a pessoa completa um lançamento de verdade (ver salvarLancamento,
+// que já faz isso pra qualquer moeda, de onde quer que ela tenha vindo).
+//
+// moedasExtras: cache da ABA (não persiste), id -> {id, simbolo, nome, logo}.
+// Alimentado pela busca e também por banco.moedas, então uma moeda que já
+// foi lançada antes é achada na hora, sem precisar buscar de novo.
+var moedasExtras = {};
+var buscaMoedaCache = {};   // query em minúsculo -> lista já respondida
+
+// CoinGecko /search: metadados (id, nome, símbolo, logo). Endpoint público,
+// leve, sem chave — bem diferente do /coins/markets, que é limitado a 1
+// chamada por dia (ver CG_CHAVE_PADRAO). Prioriza quem tem market_cap_rank
+// (moeda "de verdade" antes de derivada/variante com nome parecido).
+function buscarMoedaExterna(query) {
+    var termo = String(query || '').trim();
+    if (termo.length < 2) return Promise.resolve([]);
+    var chave = termo.toLowerCase();
+    if (buscaMoedaCache[chave]) return Promise.resolve(buscaMoedaCache[chave]);
+
+    return fetch(COINGECKO + '/search?query=' + encodeURIComponent(termo))
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function (d) {
+            var lista = (d.coins || [])
+                .filter(function (c) { return !mercado.porId[c.id]; })  // já tá no top 100? sobra pra lista de sempre
+                .sort(function (a, b) {
+                    var ra = a.market_cap_rank, rb = b.market_cap_rank;
+                    if (ra == null && rb == null) return 0;
+                    if (ra == null) return 1;
+                    if (rb == null) return -1;
+                    return ra - rb;
+                })
+                .slice(0, 8)
+                .map(function (c) {
+                    var m = { id: c.id, simbolo: String(c.symbol || '').toUpperCase(), nome: c.name, logo: c.large || c.thumb || null };
+                    moedasExtras[m.id] = m;
+                    return m;
+                });
+            buscaMoedaCache[chave] = lista;
+            return lista;
+        })
+        .catch(function () { return []; });
+}
+
+// metadados conhecidos de uma moeda extra, SEM rede: banco (já foi lançada
+// antes) ou cache de busca desta aba. É o que torna o preço ao vivo
+// persistente entre sessões — o portfólio chama isso pra toda posição que
+// não está no pacote diário, sem precisar passar pela busca de novo.
+function infoMoedaExtra(id) {
+    return lerBanco().moedas[id] || moedasExtras[id] || null;
+}
+
+// monta um registro no mesmo formato de mercado.porId, a partir de
+// metadados já em mãos + o mapa de preços da Binance (também já em mãos,
+// evita repetir a chamada quando é chamada várias vezes em sequência).
+// Pura, sem rede.
+function construirMoedaExtra(info, precos) {
+    var par = info.simbolo + 'USDT';
+    var taxa = precos.USDTBRL;
+    var temPar = taxa > 0 && precos[par] > 0;
+    return {
+        id: info.id, simbolo: info.simbolo, nome: info.nome, logo: info.logo || null,
+        rank: null, preco: temPar ? precos[par] * taxa : null,
+        var1h: null, var24h: null, var7d: null, volume: null, valorMercado: null, sparkline: null,
+        max24h: null, min24h: null, ofertaCirculante: null, ofertaTotal: null, ofertaMaxima: null,
+        ath: null, athData: null, atl: null, atlData: null,
+        aoVivo: false, extra: true, parBinance: temPar ? par : null,
+    };
+}
+
+// pra quando ainda não se tem o mapa de preços em mãos (abrir a página de
+// uma moeda direto). Último recurso: se nem o banco nem a busca desta aba
+// conhecem o id (link direto pra uma moeda nunca vista nesta sessão),
+// pergunta pra CoinGecko por esse id específico antes de desistir.
+function resolverMoedaExtraPagina(id) {
+    var info = infoMoedaExtra(id);
+    var pronto = info ? Promise.resolve(info) : fetch(COINGECKO + '/coins/' + encodeURIComponent(id) +
+        '?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false&sparkline=false')
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function (c) {
+            var m = { id: c.id, simbolo: String(c.symbol || '').toUpperCase(), nome: c.name, logo: (c.image && (c.image.large || c.image.thumb)) || null };
+            moedasExtras[m.id] = m;
+            return m;
+        })
+        .catch(function () { return null; });
+
+    return pronto.then(function (info2) {
+        if (!info2) return null;
+        return obterPrecosBinance().catch(function () { return {}; }).then(function (precos) {
+            return construirMoedaExtra(info2, precos);
+        });
+    });
+}
+
 // ---------- catálogo de moedas ----------
 // tudo que dá pra escolher: as 100 do pacote diário + o que já foi lançado
+// + o que a busca já encontrou fora do pacote nesta aba  [ETAPA 8]
 function catalogoMoedas() {
     var banco = lerBanco();
     var mapa = {};
@@ -5943,6 +6173,7 @@ function catalogoMoedas() {
     mercado.lista.forEach(function (m) {
         mapa[m.id] = { id: m.id, simbolo: m.simbolo, nome: m.nome, logo: m.logo };
     });
+    Object.keys(moedasExtras).forEach(function (id) { if (!mapa[id]) mapa[id] = moedasExtras[id]; });  // [ETAPA 8]
     return Object.keys(mapa).map(function (id) { return mapa[id]; })
         .sort(function (a, b) { return a.nome < b.nome ? -1 : 1; });
 }
@@ -6182,7 +6413,7 @@ function infoMoedaTexto(tipo, valor, editId) {
     var m = resolverMoeda(valor);
     if (!m) {
         if (TIPOS_DE_BAIXA[tipo]) return 'Só aparecem as moedas que você tem hoje.';
-        return 'Escolha uma das 100 maiores moedas, pelo nome ou símbolo.';
+        return 'Escolha uma das 100 maiores, ou digite o nome pra buscar outras.';
     }
     var banco = lerBanco();
     var saldo = saldoDaMoeda(banco, m.id, editId);
@@ -6379,6 +6610,47 @@ function moedaMudou() {
     aplicarAutopreenchimento();
 }
 
+// [ETAPA 8 · 02/10/2026] BUSCA EXTERNA NA GAVETA
+// Meio segundo depois de parar de digitar, se o que tá escrito não bateu
+// com nada do catálogo local (top 100 + já lançadas + já achadas nesta
+// aba), pergunta pra CoinGecko. Os resultados entram no <datalist> do
+// próprio campo — mesma lista suspensa de sempre, só que com mais opção.
+// campoId: 'l-moeda' (origem) ou 'l-destino' (conversão).
+var buscaExtraGavetaTimer = null;
+
+function agendarBuscaExtraGaveta(campoId) {
+    clearTimeout(buscaExtraGavetaTimer);
+    var campo = document.getElementById(campoId);
+    if (!campo) return;
+    var valor = campo.value.trim();
+    if (!valor || resolverMoeda(valor)) return;   // vazio, ou já achou local: nada a fazer
+
+    buscaExtraGavetaTimer = setTimeout(function () {
+        var agora = document.getElementById(campoId);
+        if (!agora || agora.value.trim() !== valor) return;  // mudou de ideia enquanto esperava
+        var ajuda = document.getElementById(campoId + '-ajuda');
+        if (ajuda) ajuda.textContent = 'Procurando "' + valor + '" fora das 100 maiores…';
+
+        buscarMoedaExterna(valor).then(function (lista) {
+            var depois = document.getElementById(campoId);
+            if (!depois || depois.value.trim() !== valor) return;  // digitou outra coisa nesse meio tempo
+            var dl = document.getElementById(campoId + '-lista');
+            if (dl) {
+                lista.forEach(function (m) {
+                    var opt = document.createElement('option');
+                    opt.value = rotuloMoeda(m);
+                    dl.appendChild(opt);
+                });
+            }
+            var ajudaDepois = document.getElementById(campoId + '-ajuda');
+            if (!ajudaDepois) return;
+            ajudaDepois.textContent = lista.length
+                ? 'Achei ' + lista.length + ' moeda' + (lista.length > 1 ? 's' : '') + ' fora das 100 maiores. Escolha uma da lista.'
+                : 'Não achei nenhuma moeda com esse nome.';
+        });
+    }, 350);
+}
+
 function salvarPelaGaveta() {
     if (!lanc) return;
     var campos = lerCamposLancamento();
@@ -6492,7 +6764,8 @@ document.addEventListener('change', function (ev) {
 
 document.addEventListener('input', function (ev) {
     if (!lanc) return;
-    if (ev.target.id === 'l-moeda' && ev.target.tagName === 'INPUT') { moedaMudou(); return; }
+    if (ev.target.id === 'l-moeda' && ev.target.tagName === 'INPUT') { moedaMudou(); agendarBuscaExtraGaveta('l-moeda'); return; }
+    if (ev.target.id === 'l-destino') { agendarBuscaExtraGaveta('l-destino'); return; }  // [ETAPA 8]
     // a pessoa digitou por cima de um valor sugerido: agora o campo é dela
     if (ev.target.dataset && ev.target.dataset.auto === '1') {
         delete ev.target.dataset.auto;
@@ -6624,7 +6897,7 @@ function filtroBarraLancHTML() {
     }).join('');
     return '<div class="barra-tabela">' +
         '<div class="segmentado filtro-lanc-segmentado" role="group" aria-label="Filtrar por tipo de operação">' + botoes + '</div>' +
-        '<label class="filtro-lanc-select"><span>Tipo</span><select class="entrada" id="filtro-lanc-mobile">' + opcoes + '</select></label>' +
+        '<label class="filtro-lanc-select"><select class="entrada" id="filtro-lanc-mobile" aria-label="Filtrar por tipo de lançamento">' + opcoes + '</select></label>' +
         '</div>';
 }
 
@@ -7445,7 +7718,16 @@ ROTAS['/portfolio'].montar = function () {
                 var p = carteira.posicoes[id];
                 if (p.quantidade <= QTD_EPSILON) return;
                 var m = mercado.porId[id];
-                pg.linhas.push({ id: id, info: infoMoeda(id), pos: p, par: m ? parBinanceDe(m, binance) : null, preco: null, var24h: null, aoVivo: false });
+                // [ETAPA 8] fora do top 100: toda posição já tem entrada em
+                // banco.moedas (salvarLancamento cadastra sempre), então o
+                // preço ao vivo volta sozinho a cada visita, sem precisar
+                // passar pela busca de novo.
+                if (!m) {
+                    var infoExtra = infoMoedaExtra(id);
+                    if (infoExtra) m = construirMoedaExtra(infoExtra, binance);
+                }
+                var par = m ? (m.extra ? m.parBinance : parBinanceDe(m, binance)) : null;
+                pg.linhas.push({ id: id, info: infoMoeda(id), pos: p, par: par, preco: null, var24h: null, aoVivo: false });
             });
             return carregarPrecosPortfolio(pg);
         }).then(function () {
