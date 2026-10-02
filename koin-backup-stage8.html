@@ -10,9 +10,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
 
-<!-- [ETAPA 9 · 02/10/2026] cliente da Supabase (auth + banco na nuvem), versão travada -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
-
 <style>
 /* =================================================================
    TOKENS  [ETAPA 0]
@@ -5594,58 +5591,81 @@ function verificarCronologia(transacoes, alteracao) {
 // BANCO = { moedas: { id: { id, simbolo, nome, logo } }, transacoes: [...], proximoId }
 // `moedas` guarda o cadastro de cada moeda já lançada, pra a tela de
 /* =================================================================
-   IDENTIFICAÇÃO  [ETAPA 9 · 02/10/2026]
-   Conta de verdade agora, via Supabase Auth. Login é e-mail + senha,
-   mas a senha continua aparecendo na tela como "PIN" de 6 dígitos,
-   igual sempre foi — por baixo, o PIN é que vai como senha pro
-   Supabase. A sessão passa a ser cuidada por ele (dura até a pessoa
-   sair, renovada sozinha, sem a gente ter que reinventar nada disso).
-
-   O nome de quem usa fica guardado como "user metadata" do próprio
-   Supabase, não precisa de tabela nem de política de segurança só
-   pra isso: entra na chave "full_name" no cadastro, que é também a
-   chave que o próprio painel da Supabase já lê pra mostrar a coluna
-   "Display name" na lista de usuários. Se um dia precisarmos de uma
-   tabela própria de perfil, por outro motivo (não esse), ela entra
-   numa etapa futura, sem mexer em nada disso aqui.
-
-   sessaoAtual() precisa continuar SÍNCRONA — é chamada direto, sem
-   esperar nada, em vários pontos do app, inclusive chaveDosBanco().
-   Como a checagem de sessão da Supabase é assíncrona, guardamos quem
-   está logado numa variável assim que a resposta chega, e mantemos
-   ela em dia sozinha via onAuthStateChange: dali em diante,
-   sessaoAtual() só lê essa variável, na hora, sem rede nenhuma.
+   IDENTIFICAÇÃO  [ETAPA 6 · 29/09/2026]
+   Múltiplos perfis por dispositivo. Cada perfil tem nome de usuário
+   (sem espaços), e-mail e PIN (4 ou 6 dígitos). O PIN é cifrado com
+   AES-GCM usando o e-mail como chave (via PBKDF2). "Esqueci meu PIN"
+   decifra e mostra o PIN para quem conhece o e-mail cadastrado.
+   Sessão em sessionStorage: dura enquanto a aba estiver aberta.
    ================================================================= */
 
-var supabaseClient = window.supabase.createClient(
-    'https://aqakltqqcptktdkhitqp.supabase.co',
-    'sb_publishable_2dyg_LR4gPzHkR85zCGmAQ_RnokuCQp'
-);
+// ─── Armazenamento de perfis ─────────────────────────────────────
+function lerUsuarios() {
+    return armazem.json('USUARIOS', []) || [];
+}
+function gravarUsuarios(lista) {
+    armazem.set('USUARIOS', JSON.stringify(lista));
+}
+function buscarUsuarioPorId(id) {
+    return lerUsuarios().filter(function (u) { return u.id === id; })[0] || null;
+}
+function buscarUsuarioPorEmail(email) {
+    var em = (email || '').toLowerCase().trim();
+    return lerUsuarios().filter(function (u) { return u.email === em; })[0] || null;
+}
 
-var _usuarioLogado = null;   // objeto de usuário da Supabase, ou null
-
+// ─── Sessão ───────────────────────────────────────────────────────
+// sessionStorage: survives page reload, not browser/tab close.
+var _sessaoId = null;
 function sessaoAtual() {
-    return _usuarioLogado ? _usuarioLogado.id : null;
+    if (_sessaoId) return _sessaoId;
+    try { _sessaoId = sessionStorage.getItem('KOIN_SESSAO'); } catch (e) {}
+    return _sessaoId;
 }
-
-function nomeDoUsuario(u) {
-    return (u && u.user_metadata && u.user_metadata.full_name) || 'Sem nome';
+function iniciarSessao(id) {
+    _sessaoId = id;
+    try { sessionStorage.setItem('KOIN_SESSAO', id); } catch (e) {}
 }
-
-// única fonte da verdade sobre quem está logado — nada mais escreve em
-// _usuarioLogado direto. Dispara sozinho com o estado atual assim que
-// alguém se inscreve (evento "INITIAL_SESSION"), e de novo a cada login,
-// logout ou renovação de token.
-var _resolverBootAuth = null;
-var _bootAuthPronto = new Promise(function (resolve) { _resolverBootAuth = resolve; });
-
-supabaseClient.auth.onAuthStateChange(function (evento, sessao) {
-    _usuarioLogado = sessao ? sessao.user : null;
-    if (_resolverBootAuth) { _resolverBootAuth(); _resolverBootAuth = null; }
-});
-
 function encerrarSessao() {
-    return supabaseClient.auth.signOut();
+    _sessaoId = null;
+    try { sessionStorage.removeItem('KOIN_SESSAO'); } catch (e) {}
+}
+
+// ─── Crypto: AES-GCM + PBKDF2 ────────────────────────────────────
+function _strBuf(s) { return new TextEncoder().encode(s); }
+function _b64(buf) { return btoa(String.fromCharCode.apply(null, new Uint8Array(buf))); }
+function _debuf(b64) {
+    var s = atob(b64), b = new Uint8Array(s.length);
+    for (var i = 0; i < s.length; i++) b[i] = s.charCodeAt(i);
+    return b.buffer;
+}
+
+function _derivarChave(email, salt) {
+    return crypto.subtle.importKey('raw', _strBuf(email.toLowerCase().trim()), 'PBKDF2', false, ['deriveKey'])
+        .then(function (mat) {
+            return crypto.subtle.deriveKey(
+                { name: 'PBKDF2', salt: salt, iterations: 100000, hash: 'SHA-256' },
+                mat, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
+            );
+        });
+}
+
+function encriptarPIN(pin, email) {
+    var salt = crypto.getRandomValues(new Uint8Array(16));
+    var iv   = crypto.getRandomValues(new Uint8Array(12));
+    return _derivarChave(email, salt).then(function (chave) {
+        return crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, chave, _strBuf(pin));
+    }).then(function (cifrado) {
+        return { encriptado: _b64(cifrado), salt: _b64(salt), iv: _b64(iv) };
+    });
+}
+
+function decriptarPIN(dados, email) {
+    return _derivarChave(email, _debuf(dados.salt)).then(function (chave) {
+        return crypto.subtle.decrypt({ name: 'AES-GCM', iv: _debuf(dados.iv) }, chave, _debuf(dados.encriptado));
+    }).then(function (claro) {
+        return new TextDecoder().decode(claro);
+    });
 }
 
 // ─── Avatar ───────────────────────────────────────────────────────
@@ -5655,37 +5675,39 @@ function corAvatar(nome) {
     for (var i = 0; i < nome.length; i++) soma += nome.charCodeAt(i);
     return AVATAR_CORES[soma % AVATAR_CORES.length];
 }
-function avatarHTML(nome, tam) {
+function avatarHTML(usuario, tam) {
     tam = tam || 40;
-    return '<div class="avatar" style="width:' + tam + 'px;height:' + tam + 'px;background:' + corAvatar(nome) + '" aria-hidden="true">' +
-        escapar(nome.charAt(0).toUpperCase()) + '</div>';
+    return '<div class="avatar" style="width:' + tam + 'px;height:' + tam + 'px;background:' + corAvatar(usuario.nomeUsuario) + '" aria-hidden="true">' +
+        escapar(usuario.nomeUsuario.charAt(0).toUpperCase()) + '</div>';
 }
 
 // ─── Info do usuário na casca ─────────────────────────────────────
 function atualizarInfoUsuario() {
-    if (!_usuarioLogado) return;
-    var nome = nomeDoUsuario(_usuarioLogado);
+    var u = buscarUsuarioPorId(sessaoAtual());
+    if (!u) return;
     // [ETAPA 6.2] avatar sempre; nome e "Sair" só aparecem no computador
     // (so-computador). No celular esse botão vira o segundo jeito de abrir
     // o menu — ver o listener de [data-usuario-topo].
     var topo = document.getElementById('usuario-topo');
     if (topo) {
-        topo.innerHTML = avatarHTML(nome, 30) +
-            '<span class="usuario-topo-nome so-computador">' + escapar(nome) + '</span>' +
+        topo.innerHTML = avatarHTML(u, 30) +
+            '<span class="usuario-topo-nome so-computador">' + escapar(u.nomeUsuario) + '</span>' +
             '<span class="tela-link tela-link-sair so-computador" data-sair title="Sair da conta">Sair</span>';
     }
+    // bloco do usuário no rodapé do menu mobile
     var mobBloco = document.getElementById('menu-usuario-mobile');
     if (mobBloco) {
         var mobAv = document.getElementById('menu-usuario-avatar');
         var mobNome = document.getElementById('menu-usuario-nome');
-        if (mobAv) mobAv.innerHTML = avatarHTML(nome, 32);
-        if (mobNome) mobNome.textContent = nome;
+        if (mobAv) mobAv.innerHTML = avatarHTML(u, 32);
+        if (mobNome) mobNome.textContent = u.nomeUsuario;
         mobBloco.hidden = false;
     }
 }
 
 // ─── Telas de entrada ─────────────────────────────────────────────
-var PIN_DIGITOS = 6;   // mesmo tamanho mínimo de senha configurado no projeto da Supabase
+var _usuarioSelecionadoId = null;   // qual perfil foi clicado na lista
+var PIN_DIGITOS = 6;                // fixo: 6 dígitos para todos os perfis
 
 function _painelMarca() {
     return '<div class="tela-marca">' +
@@ -5705,30 +5727,31 @@ function _otpHTML(grupoId, hiddenId, erroId) {
         '<div class="erro-campo" id="' + erroId + '" hidden></div>';
 }
 
-// [ETAPA 9] a tela de entrada agora é direto e-mail + PIN — o seletor de
-// perfis só fazia sentido quando as contas moravam no aparelho.
-function telaEntrarHTML() {
-    return '<h2 class="tela-titulo">Bem-vindo de volta</h2>' +
-        '<p class="tela-subtitulo">Entre com seu e-mail e seu PIN.</p>' +
-        '<div class="campo-grupo">' +
-        '<label class="campo-label" for="login-email">E-mail</label>' +
-        '<input type="email" class="entrada" id="login-email" placeholder="email@exemplo.com" autocomplete="email">' +
-        '<div class="erro-campo" id="login-erro-email" hidden></div></div>' +
-        '<div class="campo-grupo"><label class="campo-label">PIN</label>' +
+function telaListaHTML(usuarios) {
+    var cards = usuarios.map(function (u) {
+        return '<button type="button" class="perfil-card" data-perfil="' + escapar(u.id) + '">' +
+            avatarHTML(u, 52) + '<span class="perfil-card-nome">' + escapar(u.nomeUsuario) + '</span></button>';
+    }).join('');
+    var pinArea = '<div id="pin-area" class="pin-area" hidden>' +
+        '<p class="pin-area-quem" id="pin-area-quem">PIN de <strong id="pin-area-nome"></strong></p>' +
         _otpHTML('otp-login', 'pin-val', 'pin-erro') +
-        '</div>' +
         '<button type="button" class="botao botao-marca botao-cheio" data-login-submit>Entrar</button>' +
         '<button type="button" class="tela-link" data-tela="esqueci">Esqueci meu PIN</button>' +
-        '<p class="tela-criar-conta-nota">Ainda não tem conta? ' +
-        '<button type="button" class="tela-link" data-tela="criar">Criar conta</button></p>';
+        '</div>';
+    return '<h2 class="tela-titulo">Bem-vindo de volta</h2>' +
+        '<p class="tela-subtitulo">Escolha seu perfil para continuar.</p>' +
+        '<div class="perfis-lista">' + cards +
+        '<button type="button" class="perfil-card perfil-novo" data-tela="criar">' +
+        '<div class="avatar-novo"></div><span class="perfil-card-nome">Novo perfil</span></button>' +
+        '</div>' + pinArea;
 }
 
 function telaCriarHTML() {
-    return '<h2 class="tela-titulo">Criar conta</h2>' +
-        '<p class="tela-subtitulo">Seus lançamentos ficam guardados na nuvem, acessíveis de qualquer aparelho.</p>' +
+    return '<h2 class="tela-titulo">Criar perfil</h2>' +
+        '<p class="tela-subtitulo">Seus dados ficam só neste aparelho.</p>' +
         '<div class="campo-grupo">' +
-        '<label class="campo-label" for="novo-nome">Nome de usuário</label>' +
-        '<input type="text" class="entrada" id="novo-nome" placeholder="Erisvaldo Correia" maxlength="60" autocomplete="name">' +
+        '<label class="campo-label" for="novo-nome">Nome de usuário <span class="campo-nota">(sem espaços)</span></label>' +
+        '<input type="text" class="entrada" id="novo-nome" placeholder="ErisvaldoCorreia" maxlength="30" autocomplete="off">' +
         '<div class="erro-campo" id="erro-nome" hidden></div></div>' +
         '<div class="campo-grupo">' +
         '<label class="campo-label" for="novo-email">E-mail</label>' +
@@ -5742,42 +5765,43 @@ function telaCriarHTML() {
         '<label class="campo-label">Confirmar PIN</label>' +
         _otpHTML('otp-pin-conf', 'novo-pin-conf', 'erro-pin-conf') +
         '</div>' +
-        '<p class="tela-aviso">Guarde seu PIN em local seguro. Se esquecer, mandamos um link pro seu e-mail pra você criar um novo.</p>' +
-        '<button type="button" class="botao botao-marca botao-cheio" id="btn-criar-perfil">Criar conta</button>' +
+        '<p class="tela-aviso">Guarde seu PIN em local seguro. Se esquecer, você poderá recuperá-lo usando o e-mail cadastrado.</p>' +
+        '<button type="button" class="botao botao-marca botao-cheio" id="btn-criar-perfil">Criar perfil</button>' +
         '<div class="erro-campo" id="erro-criar" hidden></div>';
 }
 
 function telaEsqueciHTML() {
     return '<h2 class="tela-titulo">Recuperar PIN</h2>' +
-        '<p class="tela-texto">Digite o e-mail cadastrado. Se estiver correto, mandamos um link pra você criar um PIN novo.</p>' +
+        '<p class="tela-texto">Digite o e-mail cadastrado. Se estiver correto, seu PIN de ' + PIN_DIGITOS + ' dígitos será exibido.</p>' +
         '<div class="campo-grupo">' +
         '<label class="campo-label" for="rec-email">E-mail</label>' +
         '<input type="email" class="entrada" id="rec-email" placeholder="email@exemplo.com" autocomplete="email">' +
         '</div>' +
-        '<button type="button" class="botao botao-marca botao-cheio" id="btn-recuperar">Enviar link</button>' +
-        '<div class="tela-pin-resultado" id="rec-resultado" hidden></div>' +
+        '<button type="button" class="botao botao-marca botao-cheio" id="btn-recuperar">Mostrar meu PIN</button>' +
+        '<div class="tela-pin-resultado" id="rec-resultado" hidden><span>Seu PIN</span></div>' +
         '<div class="erro-campo" id="rec-erro" hidden></div>';
 }
 
-function mostrarTelaDeEntrada() {
+function mostrarTelaDeEntrada(usuarios) {
+    _usuarioSelecionadoId = null;
     var app = document.getElementById('app');
+    var telaNome = usuarios.length === 0 ? 'criar' : 'lista';
     app.innerHTML = '<div class="tela-entrada">' +
         _painelMarca() +
         '<div class="tela-form"><div class="tela-caixa" id="tela-caixa">' +
-        telaEntrarHTML() +
+        (telaNome === 'criar' ? telaCriarHTML() : telaListaHTML(usuarios)) +
         '</div>' +
-        '<button type="button" class="tela-link tela-voltar" id="tela-voltar" hidden data-tela-voltar>← Voltar</button>' +
+        (usuarios.length > 0 ? '<button type="button" class="tela-link tela-voltar" id="tela-voltar" hidden data-tela-voltar>← Voltar</button>' : '') +
         '</div></div>';
-    ligarOTP('otp-login', 'pin-val');
+    if (telaNome === 'criar') { ligarOTP('otp-pin', 'novo-pin'); ligarOTP('otp-pin-conf', 'novo-pin-conf'); }
 }
 
-function trocarSubtela(nome) {
+function trocarSubtela(nome, usuarios) {
     var caixa = document.getElementById('tela-caixa');
     var voltar = document.getElementById('tela-voltar');
     if (!caixa) return;
-    if (nome === 'entrar') {
-        caixa.innerHTML = telaEntrarHTML();
-        ligarOTP('otp-login', 'pin-val');
+    if (nome === 'lista') {
+        caixa.innerHTML = telaListaHTML(usuarios || lerUsuarios());
         if (voltar) voltar.hidden = true;
     } else if (nome === 'criar') {
         caixa.innerHTML = telaCriarHTML();
@@ -5788,6 +5812,7 @@ function trocarSubtela(nome) {
         caixa.innerHTML = telaEsqueciHTML();
         if (voltar) voltar.hidden = false;
     }
+    _usuarioSelecionadoId = null;
 }
 
 // ─── OTP: caixas de dígito ────────────────────────────────────────
@@ -5818,6 +5843,7 @@ function ligarOTP(grupoId, hiddenId) {
                 inputs[i - 1].focus();
                 sync();
             }
+            // Ctrl/Cmd+V handled via paste
         });
         inp.addEventListener('paste', function (e) {
             e.preventDefault();
@@ -5836,14 +5862,6 @@ function ligarOTP(grupoId, hiddenId) {
     });
 }
 
-function limparOTP(grupoId, hiddenId) {
-    var grupo = document.getElementById(grupoId);
-    if (grupo) grupo.querySelectorAll('.otp-digito').forEach(function (d) { d.value = ''; d.classList.remove('preenchido'); });
-    var hidden = document.getElementById(hiddenId);
-    if (hidden) hidden.value = '';
-    if (grupo) { var primeiro = grupo.querySelector('.otp-digito'); if (primeiro) primeiro.focus(); }
-}
-
 // ─── Lógica das telas ─────────────────────────────────────────────
 function _mostrarErro(id, msg) {
     var el = document.getElementById(id);
@@ -5858,37 +5876,31 @@ function _setarOcupado(btnId, ocupado, textoOriginal) {
     btn.textContent = ocupado ? 'Aguarde…' : textoOriginal;
 }
 
-// [ETAPA 9] traduz as mensagens de erro da Supabase (vêm em inglês) pro
-// vocabulário que a pessoa já conhece aqui (PIN, não "password")
-function traduzirErroSupabase(msg) {
-    msg = String(msg || '');
-    if (/Invalid login credentials/i.test(msg)) return 'E-mail ou PIN incorretos.';
-    if (/Email not confirmed/i.test(msg)) return 'Esse e-mail ainda não foi confirmado.';
-    if (/already registered|already exists/i.test(msg)) return 'Já existe uma conta com esse e-mail.';
-    if (/Password should be at least|Password.*characters/i.test(msg)) return 'O PIN precisa ter pelo menos ' + PIN_DIGITOS + ' dígitos.';
-    if (/rate limit/i.test(msg)) return 'Muitas tentativas seguidas. Espere um instante e tente de novo.';
-    return 'Não consegui completar agora. Confira a conexão e tente de novo.';
-}
-
-function fazerLogin() {
-    var email = ((document.getElementById('login-email') || {}).value || '').trim();
+function tentarLogin() {
+    if (!_usuarioSelecionadoId) return;
     var pin = (document.getElementById('pin-val') || {}).value || '';
-    _mostrarErro('login-erro-email', '');
     _mostrarErro('pin-erro', '');
-    var ok = true;
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { _mostrarErro('login-erro-email', 'Digite um e-mail válido.'); ok = false; }
-    if (pin.length < PIN_DIGITOS) { _mostrarErro('pin-erro', 'Digite os ' + PIN_DIGITOS + ' dígitos do PIN.'); ok = false; }
-    if (!ok) return;
+    if (pin.length < PIN_DIGITOS) { _mostrarErro('pin-erro', 'Digite os ' + PIN_DIGITOS + ' dígitos do PIN.'); return; }
     var btn = document.querySelector('[data-login-submit]');
     if (btn) { btn.disabled = true; btn.textContent = 'Aguarde…'; }
-    supabaseClient.auth.signInWithPassword({ email: email, password: pin }).then(function (r) {
-        if (r.error) {
-            _mostrarErro('pin-erro', traduzirErroSupabase(r.error.message));
-            limparOTP('otp-login', 'pin-val');
+    var usuario = buscarUsuarioPorId(_usuarioSelecionadoId);
+    if (!usuario) { _mostrarErro('pin-erro', 'Perfil não encontrado.'); if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; } return; }
+    decriptarPIN(usuario.pinDados, usuario.email).then(function (pinSalvo) {
+        if (pinSalvo === pin) {
+            iniciarSessao(usuario.id);
+            iniciarApp();
+        } else {
+            _mostrarErro('pin-erro', 'PIN incorreto. Verifique e tente novamente.');
+            // limpar caixas
+            var grupo = document.getElementById('otp-login');
+            if (grupo) grupo.querySelectorAll('.otp-digito').forEach(function (d) { d.value = ''; d.classList.remove('preenchido'); });
+            if (document.getElementById('pin-val')) document.getElementById('pin-val').value = '';
+            if (grupo) grupo.querySelector('.otp-digito').focus();
             if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
-            return;
         }
-        iniciarApp();
+    }).catch(function () {
+        _mostrarErro('pin-erro', 'PIN incorreto. Verifique e tente novamente.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
     });
 }
 
@@ -5903,32 +5915,34 @@ function criarPerfil() {
     _mostrarErro('erro-pin-conf', '');
     _mostrarErro('erro-criar', '');
     var ok = true;
-    if (!nome || nome.length < 2) { _mostrarErro('erro-nome', 'Digite seu nome.'); ok = false; }
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { _mostrarErro('erro-email', 'Digite um e-mail válido.'); ok = false; }
+    if (!nome || !/^[A-Za-z0-9]{2,30}$/.test(nome)) {
+        _mostrarErro('erro-nome', 'Use apenas letras e números, sem espaços (2 a 30 caracteres).'); ok = false;
+    }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        _mostrarErro('erro-email', 'Digite um e-mail válido.'); ok = false;
+    }
+    var usuarios = lerUsuarios();
+    if (ok && usuarios.some(function (u) { return u.nomeUsuario.toLowerCase() === nome.toLowerCase(); })) {
+        _mostrarErro('erro-nome', 'Já existe um perfil com esse nome.'); ok = false;
+    }
     if (ok && pin.length < PIN_DIGITOS) { _mostrarErro('erro-pin', 'Preencha todos os ' + PIN_DIGITOS + ' dígitos.'); ok = false; }
     if (ok && !/^\d+$/.test(pin)) { _mostrarErro('erro-pin', 'Use apenas dígitos numéricos.'); ok = false; }
     if (ok && conf.length < PIN_DIGITOS) { _mostrarErro('erro-pin-conf', 'Confirme todos os ' + PIN_DIGITOS + ' dígitos.'); ok = false; }
     if (ok && pin !== conf) { _mostrarErro('erro-pin-conf', 'Os PINs não coincidem.'); ok = false; }
     if (!ok) return;
-    _setarOcupado('btn-criar-perfil', true, 'Criar conta');
-    supabaseClient.auth.signUp({
-        email: email,
-        password: pin,
-        options: { data: { full_name: nome } }   // é essa chave que também aparece como "Display name" no painel
-    }).then(function (r) {
-        if (r.error) {
-            _mostrarErro('erro-criar', traduzirErroSupabase(r.error.message));
-            _setarOcupado('btn-criar-perfil', false, 'Criar conta');
-            return;
-        }
-        if (!r.data.session) {
-            // confirmação de e-mail ligada no projeto: a conta existe, mas
-            // ainda não dá pra entrar sem clicar no link que chegou por e-mail
-            _mostrarErro('erro-criar', 'Conta criada. Confira seu e-mail pra confirmar antes de entrar.');
-            _setarOcupado('btn-criar-perfil', false, 'Criar conta');
-            return;
-        }
+    _setarOcupado('btn-criar-perfil', true, 'Criar perfil');
+    // chave derivada só do email; o PIN vai como texto cifrado
+    // recuperação = decifrar com email e exibir o PIN
+    encriptarPIN(pin, email).then(function (pinDados) {
+        var id = 'u' + Date.now();
+        var novo = { id: id, nomeUsuario: nome, email: email, pinDados: pinDados, criadoEm: hojeISO() };
+        usuarios.push(novo);
+        gravarUsuarios(usuarios);
+        iniciarSessao(id);
         iniciarApp();
+    }).catch(function (e) {
+        _mostrarErro('erro-criar', 'Erro ao cifrar o PIN. Tente novamente.');
+        _setarOcupado('btn-criar-perfil', false, 'Criar perfil');
     });
 }
 
@@ -5937,50 +5951,77 @@ function recuperarPIN() {
     _mostrarErro('rec-erro', '');
     var res = document.getElementById('rec-resultado');
     if (res) res.hidden = true;
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { _mostrarErro('rec-erro', 'Digite um e-mail válido.'); return; }
-    _setarOcupado('btn-recuperar', true, 'Enviar link');
-    supabaseClient.auth.resetPasswordForEmail(email).then(function (r) {
-        _setarOcupado('btn-recuperar', false, 'Enviar link');
-        if (r.error) { _mostrarErro('rec-erro', traduzirErroSupabase(r.error.message)); return; }
-        if (res) { res.hidden = false; res.innerHTML = '<span>Se esse e-mail tiver conta, chega um link pra redefinir o PIN. Confira a caixa de entrada.</span>'; }
-    });
+    if (!email) { _mostrarErro('rec-erro', 'Digite seu e-mail.'); return; }
+    var usuario = buscarUsuarioPorEmail(email);
+    if (!usuario) { _mostrarErro('rec-erro', 'Nenhum perfil encontrado com este e-mail.'); return; }
+    _setarOcupado('btn-recuperar', true, 'Mostrar meu PIN');
+    var btn = document.getElementById('btn-recuperar');
+    decriptarPIN(usuario.pinDados, email)
+        .then(function (pin) {
+            if (res) { res.hidden = false; res.innerHTML = '<span>Seu PIN</span><strong>' + escapar(pin) + '</strong>'; }
+            if (btn) { btn.disabled = false; btn.textContent = 'Mostrar meu PIN'; }
+        })
+        .catch(function () {
+            _mostrarErro('rec-erro', 'Não foi possível recuperar o PIN com este e-mail.');
+            if (btn) { btn.disabled = false; btn.textContent = 'Mostrar meu PIN'; }
+        });
 }
 
 // ─── Logout ───────────────────────────────────────────────────────
 function sair() {
+    encerrarSessao();
     try { desconectarAoVivo(); } catch (e) {}
     try { sairDaMoeda(); } catch (e) {}
     try { sairDoPortfolio(); } catch (e) {}
-    encerrarSessao().then(function () {
-        var app = document.getElementById('app');
-        app.innerHTML = '';
-        mostrarTelaDeEntrada();
-    });
+    // limpar o app e voltar à tela de entrada
+    var app = document.getElementById('app');
+    app.innerHTML = '';
+    mostrarTelaDeEntrada(lerUsuarios());
 }
 
 // ─── Eventos das telas de identificação ──────────────────────────
 document.addEventListener('click', function (ev) {
-    // entrar
-    if (ev.target.closest('[data-login-submit]')) { fazerLogin(); return; }
-    // criar conta
+    // selecionar um perfil na lista
+    var card = ev.target.closest('[data-perfil]');
+    if (card) {
+        _usuarioSelecionadoId = card.getAttribute('data-perfil');
+        var u = buscarUsuarioPorId(_usuarioSelecionadoId);
+        var area = document.getElementById('pin-area');
+        var nomeEl = document.getElementById('pin-area-nome');
+        if (area && u) {
+            area.hidden = false;
+            if (nomeEl) nomeEl.textContent = u.nomeUsuario;
+            // limpar OTP e religar
+            var grupo = document.getElementById('otp-login');
+            if (grupo) grupo.querySelectorAll('.otp-digito').forEach(function (d) { d.value = ''; d.classList.remove('preenchido'); });
+            if (document.getElementById('pin-val')) document.getElementById('pin-val').value = '';
+            ligarOTP('otp-login', 'pin-val');
+            setTimeout(function () { var g = document.getElementById('otp-login'); if (g) g.querySelector('.otp-digito').focus(); }, 50);
+        }
+        document.querySelectorAll('.perfil-card').forEach(function (c) { c.classList.toggle('ativo', c === card); });
+        return;
+    }
+    // submeter PIN
+    if (ev.target.closest('[data-login-submit]')) { tentarLogin(); return; }
+    // criar perfil
     if (ev.target.id === 'btn-criar-perfil') { criarPerfil(); return; }
     // recuperar PIN
     if (ev.target.id === 'btn-recuperar') { recuperarPIN(); return; }
-    // trocar subtela (criar, esqueci, entrar)
+    // trocar subtela (criar, esqueci, lista)
     var telaBotao = ev.target.closest('[data-tela]');
     if (telaBotao) { trocarSubtela(telaBotao.getAttribute('data-tela')); return; }
     // voltar
-    if (ev.target.closest('[data-tela-voltar]')) { trocarSubtela('entrar'); return; }
+    if (ev.target.closest('[data-tela-voltar]')) { trocarSubtela('lista'); return; }
     // sair da conta
     if (ev.target.closest('[data-sair]')) { sair(); return; }
 });
 
 document.addEventListener('keydown', function (ev) {
-    if (ev.key !== 'Enter') return;
-    if (ev.target.id === 'login-email') { fazerLogin(); }
-    if (ev.target.id === 'novo-email') { criarPerfil(); }
-    if (ev.target.id === 'rec-email') { recuperarPIN(); }
+    if (ev.key === 'Enter' && ev.target.id === 'novo-email') { criarPerfil(); }
+    if (ev.key === 'Enter' && ev.target.id === 'rec-email') { recuperarPIN(); }
 });
+
+
 // lançamentos não depender do pacote diário da CoinGecko (moeda que saiu do
 // top 100 continua aparecendo com nome e logo).
 // Lançamento: { id, criadoEm, tipo, moedaId, quantidade, precoUnitario,
@@ -7865,12 +7906,13 @@ function chaveSnapshot() {
 }
 
 function exportarBackup() {
+    var u = buscarUsuarioPorId(sessaoAtual());
     var banco = lerBanco();
     var dados = {
         versao: 1,
         app: 'koin',
         exportadoEm: new Date().toISOString(),
-        usuario: { nomeUsuario: _usuarioLogado ? nomeDoUsuario(_usuarioLogado) : '' },  // [ETAPA 9]
+        usuario: { nomeUsuario: u ? u.nomeUsuario : '' },
         banco: banco,
         prefs: {
             moeda: prefs.moeda,
@@ -8013,14 +8055,14 @@ function iniciarApp() {
     setInterval(buscarTaxas, TAXAS_TTL);
 }
 
-// [ETAPA 9] espera o armazenamento local E a primeira resposta da
-// Supabase sobre a sessão (quem já chega logado, com sessão válida,
-// não vê a tela de entrada piscar antes de entrar direto no app)
-Promise.all([carregarArmazenamento(), _bootAuthPronto]).then(function () {
-    if (_usuarioLogado) {
+carregarArmazenamento().then(function () {
+    var usuarios = lerUsuarios();
+    var id = sessaoAtual();
+    var valido = id && usuarios.some(function (u) { return u.id === id; });
+    if (valido) {
         iniciarApp();
     } else {
-        mostrarTelaDeEntrada();
+        mostrarTelaDeEntrada(usuarios);
     }
 });
 
