@@ -5697,7 +5697,7 @@ function _painelMarca() {
 function _otpHTML(grupoId, hiddenId, erroId) {
     var boxes = '';
     for (var i = 0; i < PIN_DIGITOS; i++) {
-        boxes += '<input type="password" inputmode="numeric" maxlength="1" class="otp-digito" autocomplete="off" aria-label="Dígito ' + (i + 1) + '">';
+        boxes += '<input type="password" inputmode="numeric" maxlength="1" class="otp-digito" autocomplete="one-time-code" aria-label="Dígito ' + (i + 1) + '">';
     }
     return '<div class="otp-grupo" id="' + grupoId + '">' + boxes + '</div>' +
         '<input type="hidden" id="' + hiddenId + '">' +
@@ -5711,7 +5711,7 @@ function telaEntrarHTML() {
         '<p class="tela-subtitulo">Entre com seu e-mail e seu PIN.</p>' +
         '<div class="campo-grupo">' +
         '<label class="campo-label" for="login-email">E-mail</label>' +
-        '<input type="email" class="entrada" id="login-email" placeholder="email@exemplo.com" autocomplete="email">' +
+        '<input type="email" class="entrada" id="login-email" name="email" placeholder="email@exemplo.com" autocomplete="email">' +
         '<div class="erro-campo" id="login-erro-email" hidden></div></div>' +
         '<div class="campo-grupo"><label class="campo-label">PIN</label>' +
         _otpHTML('otp-login', 'pin-val', 'pin-erro') +
@@ -5731,7 +5731,7 @@ function telaCriarHTML() {
         '<div class="erro-campo" id="erro-nome" hidden></div></div>' +
         '<div class="campo-grupo">' +
         '<label class="campo-label" for="novo-email">E-mail</label>' +
-        '<input type="email" class="entrada" id="novo-email" placeholder="email@exemplo.com" autocomplete="email">' +
+        '<input type="email" class="entrada" id="novo-email" name="email" placeholder="email@exemplo.com" autocomplete="email">' +
         '<div class="erro-campo" id="erro-email" hidden></div></div>' +
         '<div class="campo-grupo">' +
         '<label class="campo-label">Criar PIN (6 dígitos)</label>' +
@@ -5751,7 +5751,7 @@ function telaEsqueciHTML() {
         '<p class="tela-texto">Digite o e-mail cadastrado. Se estiver correto, mandamos um link pra você criar um PIN novo.</p>' +
         '<div class="campo-grupo">' +
         '<label class="campo-label" for="rec-email">E-mail</label>' +
-        '<input type="email" class="entrada" id="rec-email" placeholder="email@exemplo.com" autocomplete="email">' +
+        '<input type="email" class="entrada" id="rec-email" name="email" placeholder="email@exemplo.com" autocomplete="email">' +
         '</div>' +
         '<button type="button" class="botao botao-marca botao-cheio" id="btn-recuperar">Enviar link</button>' +
         '<div class="tela-pin-resultado" id="rec-resultado" hidden></div>' +
