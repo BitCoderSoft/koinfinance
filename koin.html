@@ -5950,6 +5950,7 @@ function sair() {
     try { desconectarAoVivo(); } catch (e) {}
     try { sairDaMoeda(); } catch (e) {}
     try { sairDoPortfolio(); } catch (e) {}
+    _banco = null;  // [ETAPA 9.2] descarta o cache ao sair
     encerrarSessao().then(function () {
         var app = document.getElementById('app');
         app.innerHTML = '';
@@ -5989,7 +5990,12 @@ function chaveDosBanco() {
     return id ? 'BANCO_' + id : 'BANCO';
 }
 
+// [ETAPA 9.2] cache em memória — carregado do Supabase em carregarBanco()
+var _banco = null;
+
+// [ETAPA 9.2] lê do cache; fallback para localStorage durante migração ou offline
 function lerBanco() {
+    if (_banco) return _banco;
     var b = armazem.json(chaveDosBanco(), null);
     if (!b || !Array.isArray(b.transacoes)) b = { moedas: {}, transacoes: [], proximoId: 1 };
     b.moedas = b.moedas || {};
@@ -5997,8 +6003,107 @@ function lerBanco() {
     return b;
 }
 
+// [ETAPA 9.2] atualiza o cache em memória; Supabase é a fonte primária
 function gravarBanco(b) {
-    armazem.set(chaveDosBanco(), JSON.stringify(b));
+    _banco = b;
+}
+
+// [ETAPA 9.2] converte linha do Supabase → formato interno do app
+function rowParaTransacao(row) {
+    var t = {
+        id: row.id,
+        criadoEm: row.criado_em ? new Date(row.criado_em).getTime() : 0,
+        tipo: row.tipo,
+        moedaId: row.moeda_id,
+        quantidade: Number(row.quantidade),
+        precoUnitario: Number(row.preco_unitario),
+        taxas: Number(row.taxas),
+        data: row.data,
+    };
+    if (row.descricao) t.descricao = row.descricao;
+    if (row.moeda_destino_id) t.moedaDestinoId = row.moeda_destino_id;
+    if (row.quantidade_destino != null) t.quantidadeDestino = Number(row.quantidade_destino);
+    return t;
+}
+
+// [ETAPA 9.2] monta payload para INSERT/UPDATE no Supabase (sem id/user_id/criado_em)
+function transacaoParaRow(reg) {
+    var row = {
+        tipo: reg.tipo,
+        moeda_id: reg.moedaId,
+        quantidade: reg.quantidade,
+        preco_unitario: reg.precoUnitario,
+        taxas: reg.taxas,
+        data: reg.data,
+    };
+    if (reg.descricao) row.descricao = reg.descricao;
+    if (reg.moedaDestinoId) row.moeda_destino_id = reg.moedaDestinoId;
+    if (reg.quantidadeDestino != null) row.quantidade_destino = reg.quantidadeDestino;
+    return row;
+}
+
+// [ETAPA 9.2] busca transações e moedas do Supabase e popula _banco
+function carregarBanco() {
+    return supabaseClient.auth.getUser().then(function (sessao) {
+        var user = sessao.data.user;
+        if (!user) return;
+        return Promise.all([
+            supabaseClient.from('transacoes').select('*').eq('user_id', user.id).order('id'),
+            supabaseClient.from('moedas_conhecidas').select('*').eq('user_id', user.id)
+        ]).then(function (res) {
+            var tRes = res[0], mRes = res[1];
+            if (tRes.error) throw new Error('Erro ao carregar lançamentos: ' + tRes.error.message);
+            if (mRes.error) throw new Error('Erro ao carregar moedas: ' + mRes.error.message);
+            var moedas = {};
+            (mRes.data || []).forEach(function (r) {
+                moedas[r.id] = { id: r.id, simbolo: r.simbolo, nome: r.nome, logo: r.logo || null };
+            });
+            _banco = { moedas: moedas, transacoes: (tRes.data || []).map(rowParaTransacao), proximoId: 1 };
+        });
+    });
+}
+
+// [ETAPA 9.2] verifica dados locais que ainda não foram migrados para o Supabase
+function verificarMigracao() {
+    if (!_banco || _banco.transacoes.length > 0) return;
+    var local = armazem.json(chaveDosBanco(), null);
+    if (!local || !Array.isArray(local.transacoes) || !local.transacoes.length) return;
+    var n = local.transacoes.length;
+    var msg = 'Encontramos ' + n + ' lançamento(s) salvos neste aparelho que ainda não estão na nuvem.\nDeseja migrá-los agora?';
+    if (!window.confirm(msg)) return;
+    migrarDadosLocais(local);
+}
+
+// [ETAPA 9.2] migra lançamentos do localStorage para o Supabase
+function migrarDadosLocais(local) {
+    supabaseClient.auth.getUser().then(function (sessao) {
+        var user = sessao.data.user;
+        if (!user) return;
+        avisar('Migrando seus lançamentos para a nuvem…');
+        var moedasArr = Object.values(local.moedas || {}).map(function (m) {
+            return { id: m.id, user_id: user.id, simbolo: m.simbolo, nome: m.nome, logo: m.logo || null };
+        });
+        var transacoesArr = (local.transacoes || []).map(function (t) {
+            var row = transacaoParaRow(t);
+            row.user_id = user.id;
+            if (t.criadoEm) row.criado_em = new Date(t.criadoEm).toISOString();
+            return row;
+        });
+        var pMoedas = moedasArr.length
+            ? supabaseClient.from('moedas_conhecidas').upsert(moedasArr, { onConflict: 'id,user_id' })
+            : Promise.resolve({ error: null });
+        pMoedas.then(function (r) {
+            if (r.error) { avisar('Erro ao migrar moedas: ' + r.error.message, 'erro'); return; }
+            if (!transacoesArr.length) { avisar('Migração concluída.', 'sucesso'); return; }
+            supabaseClient.from('transacoes').insert(transacoesArr).then(function (r2) {
+                if (r2.error) { avisar('Erro ao migrar lançamentos: ' + r2.error.message, 'erro'); return; }
+                carregarBanco().then(function () {
+                    avisar('Migração concluída. Seus lançamentos estão na nuvem.', 'sucesso');
+                    desenhar();
+                });
+            });
+        });
+    });
 }
 
 function hojeISO() {
@@ -6286,50 +6391,85 @@ function validarLancamento(d, editId) {
     return { erros: erros, dados: dados };
 }
 
+// [ETAPA 9.2] async: escreve no Supabase e atualiza o cache
 function salvarLancamento(dados, editId) {
-    var banco = lerBanco();
-    function cadastrar(m) {
-        if (!banco.moedas[m.id]) banco.moedas[m.id] = { id: m.id, simbolo: m.simbolo, nome: m.nome, logo: m.logo || null };
-    }
-    cadastrar(dados.moeda);
+    return supabaseClient.auth.getUser().then(function (sessao) {
+        var user = sessao.data.user;
+        if (!user) throw new Error('Sem sessão ativa.');
+        var banco = lerBanco();
 
-    var registro = {
-        tipo: dados.tipo,
-        moedaId: dados.moeda.id,
-        quantidade: dados.quantidade,
-        precoUnitario: TIPOS_COM_PRECO[dados.tipo] ? dados.precoUnitario : 0,
-        taxas: TIPOS_COM_PRECO[dados.tipo] ? dados.taxas : 0,
-        data: dados.data,
-    };
-    if (dados.descricao) registro.descricao = dados.descricao;  // [ETAPA 7]
-    if (dados.tipo === 'CONVERSAO') {
-        cadastrar(dados.destino);
-        registro.moedaDestinoId = dados.destino.id;
-        registro.quantidadeDestino = dados.quantidadeDestino;
-    }
+        var registro = {
+            tipo: dados.tipo,
+            moedaId: dados.moeda.id,
+            quantidade: dados.quantidade,
+            precoUnitario: TIPOS_COM_PRECO[dados.tipo] ? dados.precoUnitario : 0,
+            taxas: TIPOS_COM_PRECO[dados.tipo] ? dados.taxas : 0,
+            data: dados.data,
+        };
+        if (dados.descricao) registro.descricao = dados.descricao;
+        if (dados.tipo === 'CONVERSAO') {
+            registro.moedaDestinoId = dados.destino.id;
+            registro.quantidadeDestino = dados.quantidadeDestino;
+        }
 
-    if (editId) {
-        var t = banco.transacoes.filter(function (x) { return x.id === editId; })[0];
-        delete t.moedaDestinoId;
-        delete t.quantidadeDestino;
-        delete t.descricao;  // [ETAPA 7] limpa antes de Object.assign para remover quando apagada
-        Object.assign(t, registro);   // edição preserva id e criadoEm (mesma posição na ordem)
-    } else {
-        banco.transacoes.push(Object.assign({ id: banco.proximoId++, criadoEm: Date.now() }, registro));
-    }
-    gravarBanco(banco);
+        // upsert das moedas envolvidas em moedas_conhecidas
+        var moedasUpsert = [dados.moeda];
+        if (dados.tipo === 'CONVERSAO') moedasUpsert.push(dados.destino);
+        var moedasRows = moedasUpsert.map(function (m) {
+            banco.moedas[m.id] = banco.moedas[m.id] || { id: m.id, simbolo: m.simbolo, nome: m.nome, logo: m.logo || null };
+            return { id: m.id, user_id: user.id, simbolo: m.simbolo, nome: m.nome, logo: m.logo || null };
+        });
+        var pMoedas = supabaseClient.from('moedas_conhecidas').upsert(moedasRows, { onConflict: 'id,user_id' });
+
+        var row = transacaoParaRow(registro);
+        row.user_id = user.id;
+
+        if (editId) {
+            return pMoedas.then(function () {
+                return supabaseClient.from('transacoes').update(row).eq('id', editId).eq('user_id', user.id);
+            }).then(function (r) {
+                if (r.error) throw new Error(r.error.message);
+                var t = banco.transacoes.filter(function (x) { return x.id === editId; })[0];
+                if (t) {
+                    delete t.moedaDestinoId;
+                    delete t.quantidadeDestino;
+                    delete t.descricao;
+                    Object.assign(t, registro);
+                }
+                gravarBanco(banco);
+            });
+        } else {
+            return pMoedas.then(function () {
+                return supabaseClient.from('transacoes').insert(row).select().single();
+            }).then(function (r) {
+                if (r.error) throw new Error(r.error.message);
+                banco.transacoes.push(Object.assign({}, registro, {
+                    id: r.data.id,
+                    criadoEm: new Date(r.data.criado_em).getTime()
+                }));
+                gravarBanco(banco);
+            });
+        }
+    });
 }
 
-// devolve null se excluiu, ou o texto do motivo se recusou
+// [ETAPA 9.2] async — devolve Promise<null> (ok) ou Promise<string> (motivo da recusa)
 function excluirLancamento(id) {
     var banco = lerBanco();
     var furo = verificarCronologia(banco.transacoes, { excluirId: id });
     if (furo) {
-        return 'Não dá pra excluir: ' + descreverFuro(furo) + ' ficaria sem saldo. Exclua ou ajuste esse lançamento primeiro.';
+        return Promise.resolve('Não dá pra excluir: ' + descreverFuro(furo) + ' ficaria sem saldo. Exclua ou ajuste esse lançamento primeiro.');
     }
-    banco.transacoes = banco.transacoes.filter(function (t) { return t.id !== id; });
-    gravarBanco(banco);
-    return null;
+    return supabaseClient.auth.getUser().then(function (sessao) {
+        var user = sessao.data.user;
+        if (!user) return 'Sem sessão ativa.';
+        return supabaseClient.from('transacoes').delete().eq('id', id).eq('user_id', user.id).then(function (r) {
+            if (r.error) return 'Erro ao excluir: ' + r.error.message;
+            banco.transacoes = banco.transacoes.filter(function (t) { return t.id !== id; });
+            gravarBanco(banco);
+            return null;
+        });
+    });
 }
 
 // ---------- gaveta de lançamento ----------
@@ -6609,7 +6749,7 @@ function agendarBuscaExtraGaveta(campoId) {
     }, 350);
 }
 
-function salvarPelaGaveta() {
+function salvarPelaGaveta() {  // [ETAPA 9.2] async via Promise
     if (!lanc) return;
     var campos = lerCamposLancamento();
     var r = validarLancamento(campos, lanc.editId);
@@ -6619,11 +6759,17 @@ function salvarPelaGaveta() {
         if (primeiro) primeiro.scrollIntoView({ block: 'center', behavior: 'smooth' });
         return;
     }
-    salvarLancamento(r.dados, lanc.editId);
+    var btn = document.querySelector('[data-lanc-salvar]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Salvando…'; }
     var edicao = !!lanc.editId;
-    fecharLancamento();
-    avisar(edicao ? 'Lançamento salvo.' : 'Lançamento registrado.', 'sucesso');
-    desenhar();
+    salvarLancamento(r.dados, lanc.editId).then(function () {
+        fecharLancamento();
+        avisar(edicao ? 'Lançamento salvo.' : 'Lançamento registrado.', 'sucesso');
+        desenhar();
+    }).catch(function () {
+        if (btn) { btn.disabled = false; btn.textContent = 'Salvar lançamento'; }
+        avisar('Não foi possível salvar. Tente de novo.', 'erro');
+    });
 }
 
 document.addEventListener('click', function (ev) {
@@ -6640,10 +6786,11 @@ document.addEventListener('click', function (ev) {
     var ex = ev.target.closest('[data-lanc-excluir]');
     if (ex) {
         if (!window.confirm('Excluir este lançamento?')) return;
-        var motivo = excluirLancamento(Number(ex.getAttribute('data-lanc-excluir')));
-        if (motivo) { avisar(motivo, 'erro'); return; }
-        avisar('Lançamento excluído.', 'sucesso');
-        desenhar();
+        excluirLancamento(Number(ex.getAttribute('data-lanc-excluir'))).then(function (motivo) {
+            if (motivo) { avisar(motivo, 'erro'); return; }
+            avisar('Lançamento excluído.', 'sucesso');
+            desenhar();
+        }).catch(function () { avisar('Não foi possível excluir. Tente de novo.', 'erro'); });
         return;
     }
 
@@ -6665,11 +6812,13 @@ document.addEventListener('click', function (ev) {
     var verExcluir = ev.target.closest('[data-ver-excluir]');
     if (verExcluir) {
         if (!window.confirm('Excluir este lançamento?')) return;
-        var motivoVer = excluirLancamento(Number(verExcluir.getAttribute('data-ver-excluir')));
+        var verExcluirId = Number(verExcluir.getAttribute('data-ver-excluir'));
         fecharLancamento();
-        if (motivoVer) { avisar(motivoVer, 'erro'); return; }
-        avisar('Lançamento excluído.', 'sucesso');
-        desenhar();
+        excluirLancamento(verExcluirId).then(function (motivoVer) {
+            if (motivoVer) { avisar(motivoVer, 'erro'); return; }
+            avisar('Lançamento excluído.', 'sucesso');
+            desenhar();
+        }).catch(function () { avisar('Não foi possível excluir. Tente de novo.', 'erro'); });
         return;
     }
 
@@ -7911,30 +8060,68 @@ function previaBackup(dados) {
     };
 }
 
-function confirmarImportacao(dados) {
-    armazem.set(chaveSnapshot(), JSON.stringify(lerBanco()));
-    gravarBanco(dados.banco);
-    if (dados.prefs) {
-        if (dados.prefs.moeda && MOEDAS[dados.prefs.moeda]) {
-            prefs.moeda = dados.prefs.moeda;
-        }
-        if (Array.isArray(dados.prefs.favoritos)) {
-            prefs.favoritos = dados.prefs.favoritos;
-        }
-        salvarPrefs();
-        estado.definir('moeda', prefs.moeda);
-    }
-    avisar('Backup importado com sucesso.', 'sucesso');
-    desenhar();
+// [ETAPA 9.2] limpa transações do Supabase e insere uma nova lista
+function _substituirTransacoesSupabase(user, novosBanco) {
+    return supabaseClient.from('transacoes').delete().eq('user_id', user.id).then(function (r) {
+        if (r.error) throw new Error('Erro ao limpar lançamentos: ' + r.error.message);
+        var moedasRows = Object.values(novosBanco.moedas || {}).map(function (m) {
+            return { id: m.id, user_id: user.id, simbolo: m.simbolo, nome: m.nome, logo: m.logo || null };
+        });
+        var pMoedas = moedasRows.length
+            ? supabaseClient.from('moedas_conhecidas').upsert(moedasRows, { onConflict: 'id,user_id' })
+            : Promise.resolve({ error: null });
+        return pMoedas.then(function (rm) {
+            if (rm.error) throw new Error('Erro ao salvar moedas: ' + rm.error.message);
+            var rows = (novosBanco.transacoes || []).map(function (t) {
+                var row = transacaoParaRow(t);
+                row.user_id = user.id;
+                if (t.criadoEm) row.criado_em = new Date(t.criadoEm).toISOString();
+                return row;
+            });
+            if (!rows.length) return Promise.resolve({ error: null });
+            return supabaseClient.from('transacoes').insert(rows);
+        });
+    });
 }
 
-function desfazerImportacao() {
+function confirmarImportacao(dados) {  // [ETAPA 9.2]
+    supabaseClient.auth.getUser().then(function (sessao) {
+        var user = sessao.data.user;
+        if (!user) { avisar('Sessão encerrada. Faça login de novo.', 'erro'); return; }
+        armazem.set(chaveSnapshot(), JSON.stringify({ transacoes: lerBanco().transacoes, moedas: lerBanco().moedas }));
+        avisar('Importando backup…');
+        _substituirTransacoesSupabase(user, dados.banco).then(function (r) {
+            if (r && r.error) throw new Error(r.error.message);
+            return carregarBanco();
+        }).then(function () {
+            if (dados.prefs) {
+                if (dados.prefs.moeda && MOEDAS[dados.prefs.moeda]) prefs.moeda = dados.prefs.moeda;
+                if (Array.isArray(dados.prefs.favoritos)) prefs.favoritos = dados.prefs.favoritos;
+                salvarPrefs();
+                estado.definir('moeda', prefs.moeda);
+            }
+            avisar('Backup importado com sucesso.', 'sucesso');
+            desenhar();
+        }).catch(function (e) { avisar('Erro ao importar: ' + (e.message || e), 'erro'); });
+    });
+}
+
+function desfazerImportacao() {  // [ETAPA 9.2]
     var snap = armazem.json(chaveSnapshot(), null);
     if (!snap) { avisar('Nenhuma importação para desfazer.', 'erro'); return; }
-    gravarBanco(snap);
-    armazem.remove(chaveSnapshot());
-    avisar('Importação desfeita. Dados anteriores restaurados.', 'sucesso');
-    desenhar();
+    supabaseClient.auth.getUser().then(function (sessao) {
+        var user = sessao.data.user;
+        if (!user) { avisar('Sessão encerrada. Faça login de novo.', 'erro'); return; }
+        avisar('Restaurando lançamentos anteriores…');
+        _substituirTransacoesSupabase(user, snap).then(function (r) {
+            if (r && r.error) throw new Error(r.error.message);
+            return carregarBanco();
+        }).then(function () {
+            armazem.remove(chaveSnapshot());
+            avisar('Importação desfeita. Dados anteriores restaurados.', 'sucesso');
+            desenhar();
+        }).catch(function (e) { avisar('Erro ao desfazer: ' + (e.message || e), 'erro'); });
+    });
 }
 
 // wires o input de arquivo na página Ajustes
@@ -8004,12 +8191,20 @@ function iniciarApp() {
     estado.definir('moeda', MOEDAS[prefs.moeda] ? prefs.moeda : 'BRL');
     estado.definir('conexao', 'conectando');
     rotaAtual = lerRotaDoEndereco() || ROTA_INICIAL;
-    desenhar();
+    desenhar();               // casca rápida; páginas verão banco vazio até carregar
     atualizarInfoUsuario();
     buscarTaxas();
     atualizarPulso();
     setInterval(atualizarPulso, 30000);
     setInterval(buscarTaxas, TAXAS_TTL);
+    // [ETAPA 9.2] carrega lançamentos do Supabase e redesenha com dados reais
+    carregarBanco().then(function () {
+        verificarMigracao();
+        desenhar();
+    }).catch(function (e) {
+        console.error('carregarBanco:', e);
+        avisar('Erro ao carregar seus lançamentos. Recarregue a página.', 'erro');
+    });
 }
 
 // [ETAPA 9] espera o armazenamento local E a primeira resposta da
