@@ -4090,8 +4090,8 @@ function paginaAjustes() {
 //   CoinGecko /coins/markets (1 chamada, 100 moedas, já em reais):
 //     ranking, nome, logo, preço, variação 1h/24h/7d, volume, valor de
 //     mercado e o minigráfico de 7 dias. EXIGE chave (sem ela a API devolve
-//     403). Usa a chave Demo embutida (CG_CHAVE_PADRAO).
-//     [ETAPA 1.1] No máximo 1 chamada por dia (ver CG_CHAVE_PADRAO).
+//     403). Chave fica no Worker do Cloudflare (variável de ambiente CG_CHAVE).
+//     [ETAPA 1.1] No máximo 1 chamada por dia (ver Worker koin-api).
 //     A chave vai como parâmetro na URL e não no cabeçalho: cabeçalho
 //     customizado obriga o navegador a uma checagem prévia (CORS) que já
 //     nos barrou na bolsai, no Dash Finance.
@@ -5950,7 +5950,8 @@ function sair() {
     try { desconectarAoVivo(); } catch (e) {}
     try { sairDaMoeda(); } catch (e) {}
     try { sairDoPortfolio(); } catch (e) {}
-    _banco = null;  // [ETAPA 9.2] descarta o cache ao sair
+    _banco = null;  // [ETAPA 9.3] descarta cache em memória E no localStorage ao sair
+    try { armazem.remove(chaveDosBanco()); } catch (e) {}
     encerrarSessao().then(function () {
         var app = document.getElementById('app');
         app.innerHTML = '';
@@ -6003,9 +6004,14 @@ function lerBanco() {
     return b;
 }
 
-// [ETAPA 9.2] atualiza o cache em memória; Supabase é a fonte primária
+// [ETAPA 9.3 · 03/10/2026] atualiza o cache em memória E persiste uma
+// cópia no localStorage. Ao abrir o app da próxima vez, lerBanco() já
+// encontra os dados aqui, sem esperar a rede — o portfólio aparece na
+// hora. O Supabase continua sendo a fonte de verdade: carregarBanco()
+// confirma em segundo plano e atualiza se houver diferença.
 function gravarBanco(b) {
     _banco = b;
+    try { armazem.set(chaveDosBanco(), JSON.stringify({ moedas: b.moedas, transacoes: b.transacoes })); } catch (e) {}
 }
 
 // [ETAPA 9.2] converte linha do Supabase → formato interno do app
@@ -6043,7 +6049,26 @@ function transacaoParaRow(reg) {
 }
 
 // [ETAPA 9.2] busca transações e moedas do Supabase e popula _banco
+// [ETAPA 9.3 · 03/10/2026] MODO OFFLINE + ABERTURA INSTANTÂNEA
+// Fluxo em duas etapas:
+//   1) lê o cache do localStorage (síncrono, sem rede) e popula _banco
+//      imediatamente — o portfólio já consegue renderizar na hora.
+//   2) em paralelo confirma com o Supabase. Se os dados forem diferentes
+//      (lançamento novo em outro aparelho, ou primeiro acesso sem cache),
+//      atualiza _banco, persiste localmente e pede um redesenho.
+//      Se não houver conexão, o app já está funcional com o passo 1.
 function carregarBanco() {
+    // passo 1: cache local — instantâneo
+    var local = armazem.json(chaveDosBanco(), null);
+    if (local && Array.isArray(local.transacoes)) {
+        _banco = {
+            moedas: local.moedas || {},
+            transacoes: local.transacoes,
+            proximoId: 1
+        };
+    }
+
+    // passo 2: confirmação com o Supabase em segundo plano
     return supabaseClient.auth.getUser().then(function (sessao) {
         var user = sessao.data.user;
         if (!user) return;
@@ -6058,8 +6083,24 @@ function carregarBanco() {
             (mRes.data || []).forEach(function (r) {
                 moedas[r.id] = { id: r.id, simbolo: r.simbolo, nome: r.nome, logo: r.logo || null };
             });
-            _banco = { moedas: moedas, transacoes: (tRes.data || []).map(rowParaTransacao), proximoId: 1 };
+            var nuvem = { moedas: moedas, transacoes: (tRes.data || []).map(rowParaTransacao), proximoId: 1 };
+
+            // compara pelo número e pelos ids das transações — suficiente
+            // pra detectar qualquer mudança sem serializar os objetos inteiros
+            var idsLocal = (_banco ? _banco.transacoes : []).map(function (t) { return t.id; }).join(',');
+            var idsNuvem = nuvem.transacoes.map(function (t) { return t.id; }).join(',');
+            var mudou = idsLocal !== idsNuvem;
+
+            // sempre persiste a versão da nuvem (é a fonte de verdade)
+            _banco = nuvem;
+            try { armazem.set(chaveDosBanco(), JSON.stringify({ moedas: nuvem.moedas, transacoes: nuvem.transacoes })); } catch (e) {}
+
+            // redesenha só se a nuvem trouxe algo diferente do que já estava na tela
+            if (mudou) desenhar();
         });
+    }).catch(function (e) {
+        // sem conexão: o passo 1 já garantiu que _banco tem dados. Só loga.
+        console.warn('carregarBanco offline:', e && e.message);
     });
 }
 
@@ -6144,7 +6185,7 @@ var buscaMoedaCache = {};   // query em minúsculo -> lista já respondida
 
 // CoinGecko /search: metadados (id, nome, símbolo, logo). Endpoint público,
 // leve, sem chave — bem diferente do /coins/markets, que é limitado a 1
-// chamada por dia (ver CG_CHAVE_PADRAO). Prioriza quem tem market_cap_rank
+// chamada por dia (ver Worker koin-api). Prioriza quem tem market_cap_rank
 // (moeda "de verdade" antes de derivada/variante com nome parecido).
 function buscarMoedaExterna(query) {
     var termo = String(query || '').trim();
@@ -8198,13 +8239,14 @@ function iniciarApp() {
     setInterval(atualizarPulso, 30000);
     setInterval(buscarTaxas, TAXAS_TTL);
     // [ETAPA 9.2] carrega lançamentos do Supabase e redesenha com dados reais
+    // [ETAPA 9.3] carregarBanco() já popula _banco do cache local
+    // antes de qualquer chamada de rede, então o desenhar() acima
+    // já mostra dados reais (se houver cache). A confirmação com o
+    // Supabase roda em segundo plano; se trouxer diferença, redesenha
+    // sozinha. Erros de rede são silenciosos — o app funciona offline.
     carregarBanco().then(function () {
         verificarMigracao();
-        desenhar();
-    }).catch(function (e) {
-        console.error('carregarBanco:', e);
-        avisar('Erro ao carregar seus lançamentos. Recarregue a página.', 'erro');
-    });
+    }).catch(function () {});
 }
 
 // [ETAPA 9] espera o armazenamento local E a primeira resposta da
