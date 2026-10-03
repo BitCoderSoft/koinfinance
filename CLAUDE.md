@@ -4,9 +4,8 @@ Projeto da BitCoderSoft. Nome provisório: **Koin** (pode mudar; trocar em `APP.
 
 App web de gestão de portfólio só de criptomoedas, pensado para virar PWA instalável. Inspiração visual e de produto: CoinMarketCap, CoinGecko e as telas de mercado da Binance. Destino: publicação no portfólio da BitCoderSoft.
 
-Este documento resume o que foi construído até aqui (etapas 0–7.2, iniciadas no claude.ai e continuadas no VS Code) e o plano das próximas etapas.
+Este documento resume o que foi construído até aqui (etapas 0–9.1, iniciadas no claude.ai e continuadas no VS Code) e o plano das próximas etapas.
 
----
 
 ## Situação atual
 
@@ -14,8 +13,8 @@ Este documento resume o que foi construído até aqui (etapas 0–7.2, iniciadas
 |---|---|
 | Arquivo principal | `koin.html` (single-file: HTML + CSS + JS, sem build) |
 | Versão | `0.1.0` (vira `1.0.0` ao fechar a Etapa 8) |
-| Etapas concluídas | 0 (fundação), 0.1 (navegação no topo), 1 (mercado), 1.1 (CoinGecko com chave), 1.2 (tabela larga), 2 (página da moeda), 2.1 (sem chave do usuário), 3 (motor e lançamentos), 4 (portfólio), 4.1 e 5.1 (ajustes do relatório de testes), 5 (responsivo no celular), 6 (identificação), 6.1 (painel de login OTP), 6.2 (portfólio e menu mobile), 6.3 (header e lançamentos mobile), 7 (backup), 7.1 (lançamentos mobile), 7.2 (rendimento e detalhe de lançamentos) |
-| Próxima etapa | Seletor de portfólio no cabeçalho da página Portfólio (confirmado pelo autor, sem número definido ainda), depois demais extras (balanceamento, objetivos, alertas) e Etapa 8 (PWA) |
+| Etapas concluídas | 0 (fundação), 0.1 (navegação no topo), 1 (mercado), 1.1 (CoinGecko com chave), 1.2 (tabela larga), 2 (página da moeda), 2.1 (sem chave do usuário), 3 (motor e lançamentos), 4 (portfólio), 4.1 e 5.1 (ajustes do relatório de testes), 5 (responsivo no celular), 6 (identificação local), 6.1 (painel de login OTP), 6.2 (portfólio e menu mobile), 6.3 (header e lançamentos mobile), 7 (backup), 7.1 (lançamentos mobile), 7.2 (rendimento e detalhe de lançamentos), 7.3 (ajustes do plano MD), 7.4 (filtro de lançamentos), 9 (Supabase Camada 1 — auth), 9.1 (Supabase Camada 2a — tabelas SQL) |
+| Próxima etapa | 9.2 (Supabase Camada 2 — migrar lançamentos para Postgres, async), depois seletor de portfólio, demais extras (balanceamento, objetivos, alertas) e Etapa 8 (PWA) |
 | Pendência aberta | — |
 
 ---
@@ -31,7 +30,7 @@ O `dash-finance.html` foi anexado no chat na Etapa 3 e o motor cripto já foi po
 ## Decisões de produto
 
 - **Só cripto.** Nada de bolsa.
-- **Identificação por perfil + PIN local** (Etapa 6, entregue). Troca de aparelho resolvida por backup em arquivo (Etapa 7).
+- **Identificação:** perfil + PIN local na Etapa 6; migrada para **Supabase Auth** na Etapa 9 (e-mail e senha, sessão persistente entre aberturas). Sincronização de dados entre dispositivos chega com a Etapa 9.2.
 - **Moeda de exibição:** Real (padrão), Dólar ou Bitcoin. Tudo é guardado e calculado em **reais**; a conversão acontece só na hora de mostrar.
 - **Tema escuro primeiro.** Os tokens do tema claro já estão escritos (comentados em `:root[data-tema="claro"]`), para ligar numa etapa futura.
 - **Primeiro a web larga**, depois o responsivo (Etapa 5), identificação (Etapa 6), os extras (Etapa 7) e o PWA (Etapa 8).
@@ -274,6 +273,31 @@ Origem: relatório de testes de 29/09/2026.
 - **Gaveta de detalhe (somente leitura):** clicar numa linha da tabela de lançamentos abre a gaveta com todos os campos, botões "Editar" (reabre em modo edição) e "Excluir" (`gavetaDetalheHTML`, `abrirDetalhe`).
 - **Tabela de lançamentos simplificada:** colunas Taxas e Lucro realizado removidas da linha (ficam na gaveta de detalhe). Passa de 8 para 6 colunas.
 
+### Etapa 7.3 · Ajustes no plano MD (entregue)
+Atualização do CLAUDE.md com o histórico completo das etapas 6.1 a 7.2. Remoção do bloco de comentário HTML `<!-- GUIA DE MANUTENÇÃO ... -->` do `koin.html` (o conteúdo vive agora só no CLAUDE.md, que é o documento canônico do projeto).
+
+### Etapa 7.4 · Filtro por tipo na página de lançamentos (entregue)
+- Barra de filtro acima da tabela de lançamentos: botões segmentados no desktop, seletor `<select>` no celular.
+- Filtros disponíveis: Todas (padrão), Compra, Venda, Entrada, Saída, Conversão, Rendimento.
+- Atualização parcial do DOM ao trocar o filtro: só o `<tbody id="lanc-corpo">` e o contador se redesenham (`atualizarFiltroLanc`), sem rerenderizar a página inteira.
+- Estado em memória (`filtroLanc`), persiste enquanto a sessão estiver aberta (o mesmo padrão da aba do Mercado).
+- No celular, `ROTAS['/lancamentos'].montar` liga o listener no `<select>` depois do render.
+
+### Etapa 9 · Supabase Camada 1 — autenticação (entregue)
+Primeira integração com o Supabase. Lançamentos ainda 100% no localStorage; só a autenticação vai para a nuvem nesta etapa.
+- **Login e cadastro** via Supabase Auth (e-mail + senha). O PIN local da Etapa 6 foi substituído por senha gerenciada pelo provedor.
+- **Sessão persistente** entre aberturas do navegador: o JWT é guardado pelo supabase-js, sem `sessionStorage` manual.
+- **Nome do perfil** em `user_metadata` (campo `nome`). O script de tabela `profiles` + trigger SQL foi descartado — `user_metadata` cobre o caso sem complexidade extra.
+- **supabase-js** carregado via CDN (UMD), inicializado com `SUPABASE_URL` e `SUPABASE_ANON_KEY` embutidos no HTML. O anon key é público por design: o que ele acessa é controlado por RLS, não pelo sigilo da chave.
+- Tela de entrada com painel da marca à esquerda e formulário à direita (layout herdado do plano para a Etapa 8). No celular o painel colapsa.
+
+### Etapa 9.1 · Supabase Camada 2a — tabelas SQL (entregue)
+Infraestrutura de banco de dados criada no Supabase SQL Editor. Nenhum código do app foi alterado ainda; esta etapa é só a estrutura.
+- **`transacoes`:** `id` (bigint identity, PK), `user_id` (FK → `auth.users`, cascade delete), `tipo`, `moeda_id`, `quantidade`, `preco_unitario`, `taxas`, `data`, `descricao`, `moeda_destino_id`, `quantidade_destino`. Índice em `(user_id)`.
+- **`moedas_conhecidas`:** chave primária composta `(id, user_id)`. Armazena `simbolo`, `nome` e `logo` de toda moeda já lançada — cache permanente, independe do top 100 da CoinGecko.
+- **RLS ativada em ambas:** policy `for all using (auth.uid() = user_id) with check (auth.uid() = user_id)`. Cada usuário só lê e escreve os próprios registros.
+- Próximo passo: Etapa 9.2 — tornar `lerBanco()` e `gravarBanco()` assíncronas e ajustar todos os callers.
+
 ### Etapa 4 · Portfólio (entregue)
 - **Menu:** "Lançamentos" virou submenu de "Portfólio" (grupo `Portfólio` em `NAV`, com os itens Portfólio e Lançamentos). O botão do grupo acende nas duas rotas. Na tela do Portfólio há o botão "Lançamentos" (e "Novo lançamento") no cabeçalho.
 - **Resumo:** saldo grande (Unbounded) na moeda de exibição, variação das últimas 24h (R$ e %), custo total, lucro não realizado (e % sobre o custo), lucro realizado, resultado total (não realizado mais realizado). Saldo desliza até o valor novo a cada atualização.
@@ -310,12 +334,20 @@ Portado do `dash-finance.html` (só a parte cripto: `[CRIPTO v2]`, `[CRIPTO v2.1
 
 ## Próximas etapas
 
-### Seletor de portfólio (confirmado pelo autor, número a definir)
-- Seletor de portfólio no cabeçalho da página de Portfólio (não na nav).
+### Etapa 9.2 · Supabase Camada 2 — código assíncrono
+A mudança mais delicada: `lerBanco()` e `gravarBanco()` viram assíncronas e todos os pontos que as chamam precisam ser ajustados.
+1. `lerBanco()` → `async lerBanco()`: busca `transacoes` e `moedas_conhecidas` do Supabase.
+2. `gravarBanco()` → operações individuais de insert/update/delete na tabela `transacoes`; `moedas_conhecidas` atualizada via upsert.
+3. Callers a ajustar: `paginaLancamentos`, `paginaPortfolio`, `lancamentosMoedaHTML`, `salvarLancamento`, `editarLancamento`, `excluirLancamento`, backup.
+4. Motor de cálculo não muda: já opera sobre lista de transações recebida como dado puro.
+5. Primeira abertura pós-migração: detectar dados no localStorage e oferecer importação para o Supabase.
+
+### Seletor de portfólio (número a definir)
+- Seletor no cabeçalho da página Portfólio (não na nav).
 - Permite trocar de portfólio/perfil sem sair da tela.
 - Portfólios pertencem a um único perfil.
 
-### Demais extras da Etapa 7 (a numerar)
+### Demais extras (a numerar)
 Backup entregue na Etapa 7. Ainda falta:
 - **Balanceamento:** alocação ideal por moeda ou grupo, nota 0 a 10 por moeda, peso ideal, desvio em pontos percentuais, simulador de aporte (só compra, guloso pela maior falta). Vocabulário: "alocação ideal", "nota", "peso ideal", "desvio". A palavra "meta" fica reservada para Objetivos.
 - **Objetivos:** patrimônio total, patrimônio numa moeda, com progresso, aporte mensal (informado ou média real) e conclusão estimada. Concluídos guardados com data.
@@ -325,7 +357,7 @@ Backup entregue na Etapa 7. Ainda falta:
 - Separar em `index.html` + `manifest.webmanifest` + `sw.js` + ícones (192, 512, maskable).
 - Service worker: cache da casca e das bibliotecas de CDN; dados de mercado com rede primeiro e cache de reserva.
 - Tela de instalação, splash, `theme-color`, modo standalone.
-- Hospedagem: GitHub Pages do repositório da BitCoderSoft.
+- Hospedagem: GitHub Pages (se a chave da CoinGecko for resolvida via Cloudflare Worker) ou Netlify (se preferir Functions serverless para o proxy). Decisão ainda em aberto.
 - Versão `1.0.0`.
 
 ---
@@ -337,19 +369,20 @@ Nada disso foi feito ainda. Fazer junto com a Etapa 8 (PWA) ou antes de qualquer
 2. **Biblioteca de gráficos por CDN** (`LW_URL`, unpkg, já com SRI): para o PWA, incluir o arquivo no cache do service worker (ou servir junto do app), senão o gráfico some offline.
 3. **Testar pelo endereço publicado**, não pelo arquivo: abrindo por `content://downloads` cada download novo pode virar outra origem e os lançamentos "somem". Publicar no GitHub Pages (mesmo em rascunho) e testar pela URL. É também pré-requisito do PWA.
 4. ~~**Página "Sistema visual":** tirar do menu antes de publicar~~ — **feito na Etapa 7.2** (página removida).
+5. **Rodapé "dados só no aparelho":** precisa ser atualizado antes de qualquer publicação pública. Com a Etapa 9.2 os lançamentos passam a ser armazenados no Supabase (nuvem). O texto atual promete privacidade local que não vale mais.
 
 ---
 
-## Para a Etapa 8 (PWA): identificação e sincronização (ideia registrada em 29/09/2026)
+## Identificação e sincronização — decisão tomada (registrada em 29/09/2026, implementada na Etapa 9)
 
-O autor pretende, no PWA, mostrar uma **tela inicial de identificação antes do app**, para saber **quem está usando**. Por enquanto é só referência, sem decisão. Pontos levantados ao olhar o login do Dash Finance:
+A opção escolhida foi a **(b): identificação real com servidor via Supabase Auth.** O rodapé "dados só no aparelho" precisará mudar (ver "Antes de publicar", item 5).
 
-- **O que o login do Dash Finance é:** usuários e senha guardados no navegador (`db.users`), sessão em `SESSION_KEY`, hash caseiro da senha (`hashSenha`, o próprio código avisa que não é segurança), tela dividida (painel da marca à esquerda, formulário à direita), "Olá, fulano" no topo e guarda de rota (sem sessão vai para `/login`). Serve para separar contas no mesmo aparelho, **não** para saber quem usa o app: nada sai do aparelho.
-- **Conflito com uma decisão de produto:** o Koin é "sem login, dados só no aparelho" (e o rodapé diz isso). Para **ter visão de quem usa**, a identificação precisa ir para um servidor (backend próprio, Firebase/Supabase, login com Google etc.). Isso muda a promessa de privacidade, pede aviso de consentimento e política de privacidade (LGPD) e coletar o mínimo (nome e e-mail, por exemplo).
-- **Versões possíveis:** (a) só um nome local para a saudação "Olá, fulano", sem visibilidade; (b) identificação real com servidor, com visibilidade de uso; (c) identificação opcional, com o app funcionando sem ela.
-- **Não reaproveitar** o hash do Dash Finance. Identificação de verdade usa um provedor de autenticação.
-- Aproveitar do Dash Finance: o layout de tela dividida com o painel da marca, a saudação e o padrão de guarda de rota (`renderCurrentRoute`).
-- Decidir também o que acontece com os dados locais (carteira) de quem se identifica: continuam só no aparelho ou passam a sincronizar. Sincronizar resolveria a troca de aparelho, hoje coberta só por backup em arquivo (Etapa 7).
+Contexto histórico que levou à decisão:
+- **O que o login do Dash Finance era:** usuários e senha no navegador, hash caseiro da senha (não era segurança real), tela dividida (painel da marca à esquerda, formulário à direita). Servia para separar contas no mesmo aparelho; nada saía do aparelho.
+- **Decisão de produto original do Koin:** "sem login, dados só no aparelho". Para saber quem usa o app, a identificação precisaria ir para um servidor — o que muda a promessa de privacidade e pede política de privacidade (LGPD).
+- **O que foi escolhido:** Supabase Auth (e-mail + senha). Não reaproveitar o hash do Dash Finance. O layout de tela dividida com painel da marca foi aproveitado.
+- **O que os dados locais fazem:** continuam no localStorage enquanto a Etapa 9.2 não está pronta; depois migram para o Postgres do Supabase. O backup em arquivo continua como camada extra.
+- **Hospedagem:** GitHub Pages ou Netlify, decisão ainda em aberto (ver item 1 de "Antes de publicar").
 
 ---
 
