@@ -4112,7 +4112,9 @@ function paginaAjustes() {
 // aba, busca ou ordem). O WebSocket mexe só nas células de preço e 24h
 // da linha certa, com pisca e número deslizando.
 
-var COINGECKO = 'https://api.coingecko.com/api/v3';
+// [ETAPA 9.4 · 03/10/2026] Worker do Cloudflare intermediando a CoinGecko.
+// A chave fica como variável de ambiente lá, nunca neste arquivo.
+var COINGECKO = 'https://teste-koin.correiaerisvaldo.workers.dev';
 var BINANCE_WS = 'wss://data-stream.binance.vision/stream?streams=';
 
 // [ETAPA 1.1] REGRA DA COINGECKO: no máximo 1 chamada por dia.
@@ -4122,7 +4124,7 @@ var BINANCE_WS = 'wss://data-stream.binance.vision/stream?streams=';
 // dia. Nas demais, usa o pacote guardado. Se a chamada falhar, espera
 // CG_ESPERA_FALHA antes de tentar de novo, pra não martelar a API.
 // Chave Demo do autor embutida. O usuário não informa chave própria.
-var CG_CHAVE_PADRAO = 'CG-1HzJE9XM9LdMbZAEzFZbohoH';
+// [ETAPA 9.4] chave removida do cliente — vive no Worker do Cloudflare
 var CG_ESPERA_FALHA = 30 * 60 * 1000;
 var CG_PACOTE_VERSAO = 2;      // sobe quando o pacote ganha campos novos
 
@@ -4253,9 +4255,8 @@ function buscarMercadoCoinGecko() {
         return Promise.reject(new Error('em espera'));
     }
 
-    var url = COINGECKO + '/coins/markets?vs_currency=brl&order=market_cap_desc&per_page=100&page=1' +
-        '&sparkline=true&price_change_percentage=1h,24h,7d';
-    url += '&x_cg_demo_api_key=' + encodeURIComponent(CG_CHAVE_PADRAO);
+    var url = COINGECKO + '/mercado';
+    // [ETAPA 9.4] chave adicionada pelo Worker, não pelo cliente
 
     return fetch(url)
         .then(function (r) {
@@ -6193,7 +6194,7 @@ function buscarMoedaExterna(query) {
     var chave = termo.toLowerCase();
     if (buscaMoedaCache[chave]) return Promise.resolve(buscaMoedaCache[chave]);
 
-    return fetch(COINGECKO + '/search?query=' + encodeURIComponent(termo))
+    return fetch(COINGECKO + '/busca?q=' + encodeURIComponent(termo))
         .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
         .then(function (d) {
             var lista = (d.coins || [])
@@ -6249,8 +6250,7 @@ function construirMoedaExtra(info, precos) {
 // pergunta pra CoinGecko por esse id específico antes de desistir.
 function resolverMoedaExtraPagina(id) {
     var info = infoMoedaExtra(id);
-    var pronto = info ? Promise.resolve(info) : fetch(COINGECKO + '/coins/' + encodeURIComponent(id) +
-        '?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false&sparkline=false')
+    var pronto = info ? Promise.resolve(info) : fetch(COINGECKO + '/moeda/' + encodeURIComponent(id))
         .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
         .then(function (c) {
             var m = { id: c.id, simbolo: String(c.symbol || '').toUpperCase(), nome: c.name, logo: (c.image && (c.image.large || c.image.thumb)) || null };
