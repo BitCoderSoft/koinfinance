@@ -511,6 +511,7 @@ a[data-rota] {
 .bal-linha {
     display: grid;
     grid-template-columns: 200px 1fr auto;
+    grid-template-areas: "info barras input";
     align-items: center;
     gap: 16px;
     padding: 12px 0;
@@ -520,6 +521,11 @@ a[data-rota] {
 .bal-linha:last-child {
     border-bottom: none;
 }
+
+.bal-linha .bal-moeda-info  { grid-area: info; }
+.bal-linha .bal-barras-bloco { grid-area: barras; }
+.bal-linha .bal-input-wrap,
+.bal-linha .bal-nota-wrap   { grid-area: input; }
 
 .bal-moeda-info {
     display: flex;
@@ -691,10 +697,32 @@ a[data-rota] {
 @media (max-width: 600px) {
     .bal-linha {
         grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto;
+        grid-template-areas:
+            "info  input"
+            "barras barras";
         row-gap: 8px;
+        column-gap: 12px;
     }
-    .bal-barras {
-        grid-column: 1 / -1;
+
+    .bal-linha .bal-input-wrap,
+    .bal-linha .bal-nota-wrap {
+        justify-content: flex-end;
+        min-width: unset;
+    }
+
+    .bal-nota-wrap {
+        max-width: 150px;
+        gap: 6px;
+    }
+
+    .bal-slider {
+        width: 90px;
+    }
+
+    .bal-input {
+        width: 52px;
+        font-size: 14px;
     }
 }
 
@@ -4178,9 +4206,8 @@ var ICONE_MENU = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 var DESCRICAO_ROTA = { '/mercado': 'As 100 maiores moedas, ao vivo' };
 
 function menuMobileHTML() {
-    function item(rota, desc) {
+    function item(rota, desc, emBreve) {
         var r = ROTAS[rota];
-        var emBreve = ROTAS[rota] && (ROTAS[rota].etapa === 6);
         if (emBreve) {
             return '<span class="menu-item menu-item-em-breve" aria-disabled="true">' +
                 '<span class="menu-item-icone">' + icone(r.icone) + '</span>' +
@@ -4193,7 +4220,7 @@ function menuMobileHTML() {
     function secoes(lista, tituloPadrao) {
         return lista.map(function (sec) {
             return '<div class="menu-secao">' + ((sec.titulo || tituloPadrao) ? '<p class="menu-secao-titulo">' + (tituloPadrao || sec.titulo) + '</p>' : '') +
-                sec.itens.map(function (it) { return item(it.rota, it.desc); }).join('') + '</div>';
+                sec.itens.map(function (it) { return item(it.rota, it.desc, it.emBreve); }).join('') + '</div>';
         }).join('');
     }
     var corpo = NAV.map(function (n) {
@@ -4521,7 +4548,7 @@ function balanceamentoHTML() {
                     '<div class="bal-moeda-atual">' + formatarBR(l.pctAtual, 1) + '% atual</div>' +
                 '</div>' +
             '</div>' +
-            '<div>' +
+            '<div class="bal-barras-bloco">' +
                 '<div class="bal-barras">' +
                     '<div class="bal-barra-wrap"><div class="bal-barra-fill atual" style="width:' + wAtual + '%;"></div></div>' +
                     '<div class="bal-barra-wrap"><div class="bal-barra-fill ideal" style="width:' + wIdeal + '%;"></div></div>' +
