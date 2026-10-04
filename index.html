@@ -2337,6 +2337,16 @@ body:has(#gaveta.aberta) .avisos {
     text-align: left;
 }
 
+.pct-alvo {
+    display: block;
+    font-size: 11px;
+    color: var(--texto-3);
+    margin-top: 2px;
+    font-weight: 400;
+}
+.pct-alvo.acima { color: var(--queda); }
+.pct-alvo.abaixo { color: var(--alta); }
+
 .tabela-portfolio .td-forte {
     font-weight: 700;
 }
@@ -2955,7 +2965,7 @@ body:has(#gaveta.aberta) .avisos {
         display: none;
     }
 
-    .tabela-portfolio .lucro-pct {
+.tabela-portfolio .lucro-pct {
         display: inline;
         margin-left: 6px;
     }
@@ -8235,7 +8245,30 @@ function linhaPortfolioHTML(x) {
         '<td><span data-brl="' + p.custoTotal + '"></span></td>' +
         '<td class="td-forte" data-cel="saldo">' + (x.saldo !== null ? '<span data-brl="' + x.saldo + '"></span>' : '<span class="sem-dado">—</span>') + '</td>' +
         '<td data-cel="lucro">' + lucroCelulaHTML(x) + '</td>' +
-        '<td data-cel="pct">' + formatarBR(x.pct, 1) + '%</td></tr>';
+        '<td data-cel="pct">' + pctCelulaPortfolio(x.pct, x.l.id) + '</td></tr>';
+}
+
+function pctCelulaPortfolio(pct, moedaId) {
+    var target = _targets[moedaId];
+    if (target === undefined) {
+        return '<span>' + formatarBR(pct, 1) + '%</span>';
+    }
+    var modo = estado.ler('balModo') || 'pct';
+    // se modo for nota, converte pra % antes de exibir
+    var pctAlvo = target;
+    if (modo === 'nota') {
+        var somaNotas = 0;
+        Object.keys(_targets).forEach(function (k) { somaNotas += _targets[k]; });
+        pctAlvo = somaNotas > 0 ? target / somaNotas * 100 : 0;
+    }
+    var desvio = pct - pctAlvo;
+    var cls = Math.abs(desvio) < 1 ? '' : desvio > 0 ? 'acima' : 'abaixo';
+    var seta = desvio > 0 ? '↑' : '↓';
+    return '<span>' + formatarBR(pct, 1) + '%</span>' +
+        '<span class="pct-alvo' + (cls ? ' ' + cls : '') + '">' +
+        'alvo ' + formatarBR(pctAlvo, 1) + '%' +
+        (Math.abs(desvio) >= 1 ? ' ' + seta : '') +
+        '</span>';
 }
 
 function lucroCelulaHTML(x) {
@@ -8431,7 +8464,7 @@ function atualizarPortfolioTela() {
         tr.querySelector('[data-cel="var24h"]').innerHTML = pctCelula(x.l.var24h);
         if (x.saldo !== null) tr.querySelector('[data-cel="saldo"]').innerHTML = '<span data-brl="' + x.saldo + '">' + formatarMoeda(x.saldo) + '</span>';
         tr.querySelector('[data-cel="lucro"]').innerHTML = lucroCelulaHTML(x);
-        tr.querySelector('[data-cel="pct"]').textContent = formatarBR(x.pct, 1) + '%';
+        tr.querySelector('[data-cel="pct"]').innerHTML = pctCelulaPortfolio(x.pct, x.l.id);
         preencherValores(tr);
     });
 
