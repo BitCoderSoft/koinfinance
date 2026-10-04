@@ -344,10 +344,358 @@ a[data-rota] {
     line-height: 1.4;
 }
 
+/* ── Orientação do Balanceamento ─────────────────────────────────── */
+.bal-orient-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--t-xs);
+    color: var(--texto-3);
+    background: none;
+    border: 1px solid var(--borda);
+    border-radius: 99px;
+    padding: 4px 12px;
+    cursor: pointer;
+    transition: color 120ms, border-color 120ms;
+}
+.bal-orient-btn:hover { color: var(--texto-2); border-color: var(--borda-forte); }
+
+/* tema claro: botão com fonte mais escura pra facilitar leitura */
+[data-tema="claro"] .bal-orient-btn { color: var(--texto-2); border-color: var(--borda-forte); }
+[data-tema="claro"] .bal-orient-btn:hover { color: var(--texto); }
+
+.bal-orient-painel {
+    background: var(--superficie);
+    border: 1px solid var(--borda);
+    border-radius: var(--r-cartao);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.bal-orient-titulo {
+    font-size: var(--t-md);
+    font-weight: 700;
+    padding: 18px 20px 12px;
+    border-bottom: 1px solid var(--borda);
+}
+
+/* item do acordeão */
+.acord-item {
+    border-bottom: 1px solid var(--borda);
+}
+.acord-item:last-child { border-bottom: none; }
+
+.acord-gatilho {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 20px;
+    background: none;
+    border: none;
+    color: var(--texto);
+    font-family: inherit;
+    font-size: var(--t-sm);
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background 120ms;
+}
+
+/* tema claro: peso maior no título do acordeão */
+[data-tema="claro"] .acord-gatilho { font-weight: 700; }
+.acord-gatilho:hover { background: var(--superficie-2); }
+
+.acord-seta {
+    font-size: 10px;
+    color: var(--texto-3);
+    flex-shrink: 0;
+    transition: transform 250ms ease;
+}
+.acord-item.aberto .acord-seta { transform: rotate(180deg); }
+
+.acord-corpo {
+    display: none;
+    padding: 0 20px 16px;
+    font-size: var(--t-sm);
+    color: var(--texto-2);
+    line-height: 1.65;
+}
+.acord-item.aberto .acord-corpo { display: block; }
+
+.acord-corpo p { margin: 0 0 10px; }
+.acord-corpo p:last-child { margin-bottom: 0; }
+
+.acord-corpo strong { color: var(--texto); }
+
+.acord-corpo .acord-exemplo {
+    display: inline-block;
+    background: var(--superficie-2);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin: 8px 0;
+    font-size: var(--t-xs);
+    font-family: monospace;
+    color: var(--texto-2);
+}
+
 .menu-item-em-breve {
     opacity: 0.45;
     cursor: default;
     pointer-events: none;
+}
+
+/* ── Balanceamento [ETAPA 10 · design inicial] ───────────────────────── */
+
+/* cabeçalho da tela: modo seletor (% ou notas) à direita do título */
+.bal-cabecalho {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.bal-subtitulo {
+    color: var(--texto-2);
+    font-size: var(--t-sm);
+    margin-top: 4px;
+}
+
+/* container principal: rosca atual + lista editável lado a lado */
+.bal-grade {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+/* painel esquerdo: rosca + legenda da alocação atual */
+.bal-atual {
+    background: var(--superficie);
+    border: 1px solid var(--borda);
+    border-radius: var(--r-cartao);
+    padding: 20px;
+}
+
+.bal-atual-titulo {
+    font-size: var(--t-sm);
+    font-weight: 700;
+    color: var(--texto-2);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 14px;
+}
+
+/* painel direito: lista de moedas com inputs */
+.bal-editor {
+    background: var(--superficie);
+    border: 1px solid var(--borda);
+    border-radius: var(--r-cartao);
+    padding: 20px;
+}
+
+.bal-editor-titulo {
+    font-size: var(--t-sm);
+    font-weight: 700;
+    color: var(--texto-2);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 14px;
+}
+
+/* linha de cada moeda no editor */
+.bal-linha {
+    display: grid;
+    grid-template-columns: 200px 1fr auto;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--borda);
+}
+
+.bal-linha:last-child {
+    border-bottom: none;
+}
+
+.bal-moeda-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.bal-moeda-nome {
+    font-weight: 600;
+    font-size: var(--t-sm);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bal-moeda-atual {
+    font-size: var(--t-xs);
+    color: var(--texto-3);
+    margin-top: 2px;
+}
+
+/* barra de progresso dupla: atual (cinza) vs ideal (latão) */
+.bal-barras {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.bal-barra-wrap {
+    height: 6px;
+    background: var(--superficie-3);
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.bal-barra-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 300ms ease;
+}
+
+.bal-barra-fill.atual {
+    background: var(--texto-3);
+}
+
+.bal-barra-fill.ideal {
+    background: var(--marca);
+}
+
+.bal-barra-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--texto-3);
+    margin-top: 2px;
+}
+
+/* input de % ou nota */
+.bal-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 90px;
+    justify-content: flex-end;
+}
+
+.bal-input {
+    width: 60px;
+    background: var(--superficie-2);
+    border: 1px solid var(--borda-forte);
+    border-radius: 8px;
+    color: var(--texto);
+    font-family: inherit;
+    font-size: var(--t-sm);
+    font-weight: 600;
+    padding: 6px 8px;
+    text-align: right;
+    outline: none;
+    transition: border-color 120ms;
+}
+
+.bal-input:focus {
+    border-color: var(--marca);
+}
+
+.bal-input-sufixo {
+    font-size: var(--t-xs);
+    color: var(--texto-3);
+    width: 14px;
+}
+
+/* bolinha de aviso: moeda sem target */
+.bal-alerta {
+    display: inline-flex;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #E9B949;
+    flex-shrink: 0;
+    margin-left: 4px;
+    vertical-align: middle;
+    title: 'Target não definido';
+}
+
+/* rodapé do editor: totalização e ações */
+.bal-rodape {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--borda);
+    flex-wrap: wrap;
+}
+
+.bal-total {
+    font-size: var(--t-sm);
+    font-weight: 700;
+}
+
+.bal-total.ok   { color: var(--alta); }
+.bal-total.fora { color: var(--queda); }
+
+.bal-acoes {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* desvio na linha */
+.bal-desvio {
+    font-size: var(--t-xs);
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+.bal-desvio.acima { color: var(--queda); background: var(--queda-suave); }
+.bal-desvio.abaixo { color: var(--alta); background: var(--alta-suave); }
+.bal-desvio.neutro { color: var(--texto-3); }
+
+/* modo notas: slider ao invés de % */
+.bal-nota-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 160px;
+}
+
+.bal-slider {
+    flex: 1;
+    accent-color: var(--marca);
+    cursor: pointer;
+}
+
+/* responsivo */
+@media (max-width: 900px) {
+    .bal-grade {
+        grid-template-columns: 1fr;
+    }
+    .bal-atual {
+        position: static;
+    }
+}
+
+@media (max-width: 600px) {
+    .bal-linha {
+        grid-template-columns: 1fr auto;
+        row-gap: 8px;
+    }
+    .bal-barras {
+        grid-column: 1 / -1;
+    }
 }
 
 .badge-em-breve {
@@ -3691,7 +4039,8 @@ var ROTAS = {
     '/mercado':       { titulo: 'Mercado',        icone: 'mercado',       etapa: 1, render: paginaMercado },
     '/portfolio':     { titulo: 'Portfólio',      icone: 'portfolio',     etapa: 4, render: paginaPortfolio },
     '/lancamentos':   { titulo: 'Lançamentos',    icone: 'lancamentos',   etapa: 3, render: paginaLancamentos },
-    '/balanceamento': { titulo: 'Balanceamento',  icone: 'balanceamento', etapa: 6, render: paginaEmBreve },
+    '/balanceamento': { titulo: 'Balanceamento',  icone: 'balanceamento', etapa: 6, render: paginaBalanceamento },
+    '/balanceamento/ajuda': { titulo: 'Como funciona o Balanceamento', icone: 'balanceamento', etapa: 6, render: paginaAjudaBalanceamento },
     '/objetivos':     { titulo: 'Objetivos',      icone: 'objetivos',     etapa: 6, render: paginaEmBreve },
     '/ajustes':       { titulo: 'Ajustes',        icone: 'ajustes',       render: paginaAjustes },
     // [ETAPA 1] rota com parâmetro: /moeda/bitcoin, /moeda/ethereum...
@@ -3730,7 +4079,7 @@ var NAV = [
             {
                 titulo: 'Sua carteira',
                 itens: [
-                    { rota: '/balanceamento', desc: 'Alocação ideal e simulador de aporte', emBreve: true },
+                    { rota: '/balanceamento', desc: 'Alocação ideal e simulador de aporte' },
                     { rota: '/objetivos', desc: 'Metas de patrimônio e previsão', emBreve: true },
                 ],
             },
@@ -4064,6 +4413,255 @@ function emBreveHTML(etapa, oque) {
 }
 
 // (página da moeda: bloco MOEDA, mais abaixo)
+// ── BALANCEAMENTO [ETAPA 10 · design inicial] ────────────────────────
+// Por enquanto os targets são dados mockados pra validação visual.
+// A lógica real de salvar/carregar via Supabase vem na Etapa 10.1.
+
+// Targets mockados (0 = sem definição = mostra bolinha de alerta)
+var _targetsMock = {};   // preenchido com valores de exemplo abaixo
+
+function paginaBalanceamento(r) {
+    return '<div class="pagina">' + balanceamentoHTML() + '</div>';
+}
+
+function balanceamentoHTML() {
+    var carteira = carteiraAtual();
+    var posicoes = carteira.posicoes;
+    var ids = Object.keys(posicoes).filter(function (id) {
+        return posicoes[id].quantidade > QTD_EPSILON;
+    });
+
+    if (!ids.length) {
+        return '<h1 class="pagina-titulo">Balanceamento</h1>' +
+            '<div class="painel"><p class="painel-sub">Registre seus primeiros lançamentos para definir uma alocação ideal.</p></div>';
+    }
+
+    // calcula saldo total (usa preço ao vivo se disponível, senão custo)
+    var saldoTotal = 0;
+    var linhas = ids.map(function (id) {
+        var pos = posicoes[id];
+        var m = mercado.porId[id];
+        var preco = m ? m.preco : null;
+        var saldo = preco !== null ? pos.quantidade * preco : pos.custoTotal;
+        saldoTotal += saldo;
+        return { id: id, info: infoMoeda(id), pos: pos, saldo: saldo };
+    });
+    linhas.forEach(function (l) {
+        l.pctAtual = saldoTotal > 0 ? l.saldo / saldoTotal * 100 : 0;
+    });
+    linhas.sort(function (a, b) { return b.saldo - a.saldo; });
+
+    // modo atual lido do estado
+    var modo = estado.ler('balModo') || 'pct';
+
+    // rosca atual (reutiliza fatias do portfólio)
+    var fatias = linhas.map(function (l, i) {
+        return { ids: [l.id], nome: l.info.simbolo, cor: ALOCACAO_CORES[i % ALOCACAO_CORES.length] };
+    });
+    var roscaObj = {
+        saldo: saldoTotal,
+        linhas: linhas.map(function (l, i) { return { l: { id: l.id }, base: l.saldo }; })
+    };
+
+    var roscaSVG = roscaHTML(roscaObj, fatias);
+
+    // legenda da alocação atual
+    var legendaItems = linhas.map(function (l, i) {
+        var cor = ALOCACAO_CORES[i % ALOCACAO_CORES.length];
+        return '<li style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:var(--t-sm);">' +
+            '<span style="width:10px;height:10px;border-radius:50%;background:' + cor + ';flex-shrink:0;"></span>' +
+            '<span style="flex:1;font-weight:600;">' + escapar(l.info.simbolo) + '</span>' +
+            '<span style="color:var(--texto-2);">' + formatarBR(l.pctAtual, 1) + '%</span>' +
+            '<span style="color:var(--texto-3);font-size:var(--t-xs);" data-brl="' + l.saldo + '"></span>' +
+            '</li>';
+    }).join('');
+
+    // editor de targets
+    var totalIdeal = 0;
+    linhas.forEach(function (l) {
+        var t = _targetsMock[l.id];
+        if (t !== undefined) totalIdeal += t;
+    });
+
+    var linhasEditor = linhas.map(function (l, i) {
+        var cor = ALOCACAO_CORES[i % ALOCACAO_CORES.length];
+        var target = _targetsMock[l.id];
+        var semTarget = target === undefined || target === 0;
+        var pctIdeal = semTarget ? 0 : (modo === 'pct' ? target : target); // notas normalizado
+        var desvio = pctIdeal - l.pctAtual;
+        var desvioClass = Math.abs(desvio) < 1 ? 'neutro' : desvio > 0 ? 'abaixo' : 'acima';
+        var desvioTxt = (desvio > 0 ? '+' : '') + formatarBR(desvio, 1) + ' pp';
+
+        // barra dupla: cinza = atual, latão = ideal
+        var wAtual = Math.min(l.pctAtual, 100).toFixed(1);
+        var wIdeal = Math.min(pctIdeal, 100).toFixed(1);
+
+        var inputHTML = modo === 'pct'
+            ? '<div class="bal-input-wrap">' +
+                '<input type="number" class="bal-input" data-bal-id="' + escapar(l.id) + '" ' +
+                'min="0" max="100" step="0.1" value="' + (semTarget ? '' : formatarBR(target, 1)) + '" ' +
+                'placeholder="—" aria-label="Target de ' + escapar(l.info.simbolo) + '">' +
+                '<span class="bal-input-sufixo">%</span>' +
+              '</div>'
+            : '<div class="bal-nota-wrap">' +
+                '<input type="range" class="bal-slider" data-bal-id="' + escapar(l.id) + '" ' +
+                'min="0" max="10" step="1" value="' + (semTarget ? 0 : target) + '">' +
+                '<span class="bal-input" style="width:36px;display:inline-block;text-align:center;cursor:default;">' +
+                (semTarget ? '—' : target) + '</span>' +
+              '</div>';
+
+        return '<div class="bal-linha">' +
+            '<div class="bal-moeda-info">' +
+                '<span style="width:10px;height:10px;border-radius:50%;background:' + cor + ';flex-shrink:0;display:inline-block;"></span>' +
+                logoHTML(l.info) +
+                '<div>' +
+                    '<div class="bal-moeda-nome">' + escapar(l.info.simbolo) +
+                        (semTarget ? '<span class="bal-alerta" title="Target não definido"></span>' : '') +
+                    '</div>' +
+                    '<div class="bal-moeda-atual">' + formatarBR(l.pctAtual, 1) + '% atual</div>' +
+                '</div>' +
+            '</div>' +
+            '<div>' +
+                '<div class="bal-barras">' +
+                    '<div class="bal-barra-wrap"><div class="bal-barra-fill atual" style="width:' + wAtual + '%;"></div></div>' +
+                    '<div class="bal-barra-wrap"><div class="bal-barra-fill ideal" style="width:' + wIdeal + '%;"></div></div>' +
+                '</div>' +
+                '<div class="bal-barra-labels"><span>atual</span><span>ideal</span></div>' +
+                (!semTarget && Math.abs(desvio) > 0.05
+                    ? '<div style="margin-top:4px;"><span class="bal-desvio ' + desvioClass + '">' + desvioTxt + '</span></div>'
+                    : '') +
+            '</div>' +
+            inputHTML +
+        '</div>';
+    }).join('');
+
+    // totalização
+    var somaIdeal = 0;
+    linhas.forEach(function (l) {
+        var t = _targetsMock[l.id];
+        if (t !== undefined) somaIdeal += (modo === 'pct' ? t : t);
+    });
+    var totalClass = Math.abs(somaIdeal - 100) < 0.1 ? 'ok' : 'fora';
+    var totalMsg = Math.abs(somaIdeal - 100) < 0.1
+        ? '✓ 100% distribuídos'
+        : somaIdeal < 100
+            ? formatarBR(somaIdeal, 1) + '% — faltam ' + formatarBR(100 - somaIdeal, 1) + '%'
+            : formatarBR(somaIdeal, 1) + '% — ' + formatarBR(somaIdeal - 100, 1) + '% além';
+
+    return '<div class="pagina-cabecalho" style="margin-bottom:0;">' +
+        '<div>' +
+            '<h1 class="pagina-titulo" style="margin-bottom:4px;">Balanceamento</h1>' +
+            '<p class="bal-subtitulo">Compare sua alocação atual com a ideal e ajuste os targets.</p>' +
+        '</div>' +
+        '<a role="link" tabindex="0" class="bal-orient-btn" data-rota="/balanceamento/ajuda">Como funciona ?</a>' +
+        '<div class="segmentado" role="group" aria-label="Modo de definição de target" style="align-self:center;">' +
+            '<button type="button" data-bal-modo="pct" aria-pressed="' + (modo === 'pct' ? 'true' : 'false') + '">% direto</button>' +
+            '<button type="button" data-bal-modo="nota" aria-pressed="' + (modo === 'nota' ? 'true' : 'false') + '">Notas</button>' +
+        '</div>' +
+    '</div>' +
+    '<div class="bal-grade" style="margin-top:20px;">' +
+        '<div class="bal-atual">' +
+            '<div class="bal-atual-titulo">Alocação atual</div>' +
+            roscaSVG +
+            '<ul style="list-style:none;margin:12px 0 0;padding:0;">' + legendaItems + '</ul>' +
+        '</div>' +
+        '<div class="bal-editor">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px;">' +
+                '<div class="bal-editor-titulo">Alocação ideal</div>' +
+                '<div style="display:flex;gap:8px;">' +
+                    '<button type="button" class="botao botao-neutro botao-sm" data-bal-copiar title="Copiar alocação atual como ponto de partida">Copiar atual</button>' +
+                    '<button type="button" class="botao botao-neutro botao-sm" data-bal-equalizar title="Distribuir igualmente entre as moedas">Equalizar</button>' +
+                '</div>' +
+            '</div>' +
+            '<p style="font-size:var(--t-xs);color:var(--texto-3);margin-bottom:12px;">' +
+                (modo === 'pct'
+                    ? 'Digite o percentual ideal para cada moeda. A soma deve ser 100%.'
+                    : 'Dê uma nota de 0 a 10 para cada moeda. O sistema converte em percentuais.') +
+            '</p>' +
+            linhasEditor +
+            '<div class="bal-rodape">' +
+                '<span class="bal-total ' + totalClass + '">' + totalMsg + '</span>' +
+                '<div class="bal-acoes">' +
+                    '<button type="button" class="botao botao-neutro" data-bal-zerar>Zerar</button>' +
+                    '<button type="button" class="botao botao-marca" data-bal-salvar ' + (totalClass === 'ok' ? '' : 'disabled') + '>Salvar targets</button>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+    '</div>';
+}
+
+function paginaAjudaBalanceamento() {
+    return '<div class="pagina">' +
+        '<div class="pagina-cabecalho" style="margin-bottom:20px;">' +
+            '<div>' +
+                '<a role="link" tabindex="0" class="tela-link" data-rota="/balanceamento" style="font-size:var(--t-sm);color:var(--texto-3);display:inline-flex;align-items:center;gap:4px;margin-bottom:8px;">← Voltar ao Balanceamento</a>' +
+                '<h1 class="pagina-titulo">Como funciona o Balanceamento</h1>' +
+                '<p class="bal-subtitulo">Entenda cada parte da tela antes de configurar seus targets.</p>' +
+            '</div>' +
+        '</div>' +
+        orientacaoBalanceamentoHTML() +
+    '</div>';
+}
+
+function orientacaoBalanceamentoHTML() {
+    var itens = [
+        {
+            q: 'O que é o Balanceamento?',
+            r: '<p>É a tela onde você define como quer que sua carteira esteja distribuída — e compara com como ela está de fato hoje.</p>' +
+               '<p>Você escolhe quanto (em percentual ou em nota) cada moeda deveria representar do total. O app mostra o desvio entre essa intenção e a realidade.</p>'
+        },
+        {
+            q: 'O que é um target?',
+            r: '<p>Target é a alocação ideal que você define para uma moeda. Se você quer que o Bitcoin represente 30% da sua carteira, o target do BTC é 30%.</p>' +
+               '<p>Moedas sem target aparecem com uma <strong>bolinha âmbar</strong> — isso não impede nada, só avisa que você ainda não definiu uma intenção para aquele ativo.</p>'
+        },
+        {
+            q: 'Modo % direto vs. Notas: qual usar?',
+            r: '<p><strong>% direto</strong> é o mais simples: você digita exatamente o percentual que quer. A soma precisa bater em 100%.</p>' +
+               '<p><strong>Notas</strong> funcionam de forma relativa. Você dá uma nota de 0 a 10 para cada moeda, e o app distribui os 100% proporcionalmente. ' +
+               'Uma nota 8 recebe o dobro de peso de uma nota 4.</p>' +
+               '<p>Use % direto se você já sabe exatamente os números. Use notas se preferir pensar em termos de "quero o dobro de BTC em relação à ENA".</p>'
+        },
+        {
+            q: 'O que o botão Equalizar faz?',
+            r: '<p>Divide 100% igualmente entre todas as moedas da carteira. Com 5 moedas, cada uma recebe 20%. Com 7, cada uma recebe 14,3%.</p>' +
+               '<p>É um ponto de partida neutro — você parte daí e ajusta conforme sua estratégia real.</p>'
+        },
+        {
+            q: 'O que o botão Copiar atual faz?',
+            r: '<p>Preenche os targets com a distribuição que sua carteira tem hoje. Se o ETH representa 30% do seu portfólio neste momento, o target do ETH fica em 30%.</p>' +
+               '<p>Útil para quem quer partir da realidade atual e só fazer pequenos ajustes, sem começar do zero.</p>'
+        },
+        {
+            q: 'O que significa o desvio em pp?',
+            r: '<p>"pp" significa pontos percentuais. Um desvio de <strong>+8 pp</strong> quer dizer que aquela moeda está 8 pontos percentuais acima do target que você definiu.</p>' +
+               '<div class="acord-exemplo">BTC: target 20% / atual 28% → desvio +8 pp (acima)</div>' +
+               '<div class="acord-exemplo">ETH: target 25% / atual 18% → desvio −7 pp (abaixo)</div>' +
+               '<p>Desvios em <strong style="color:var(--queda)">vermelho</strong> indicam que a moeda está acima do ideal. Em <strong style="color:var(--alta)">verde</strong>, abaixo — ou seja, você pode considerar aportar mais nela.</p>'
+        },
+        {
+            q: 'Os targets são salvos na nuvem?',
+            r: '<p>Sim. Assim que a funcionalidade de salvar estiver completa, os targets ficam armazenados na sua conta e aparecem em qualquer dispositivo onde você fizer login.</p>' +
+               '<p>Por enquanto, os valores que você configura ficam em memória durante a sessão e são perdidos ao fechar a página.</p>'
+        }
+    ];
+
+    var itensHTML = itens.map(function (it, i) {
+        return '<div class="acord-item" data-acord-item="' + i + '">' +
+            '<button type="button" class="acord-gatilho" data-acord-toggle="' + i + '" aria-expanded="false">' +
+                escapar(it.q) +
+                '<span class="acord-seta" aria-hidden="true">▼</span>' +
+            '</button>' +
+            '<div class="acord-corpo" role="region">' + it.r + '</div>' +
+        '</div>';
+    }).join('');
+
+    return '<div class="bal-orient-painel">' +
+        '<div class="bal-orient-titulo">Como funciona o Balanceamento</div>' +
+        itensHTML +
+    '</div>';
+}
+
 function paginaEmBreve(r) {
     var textos = {
         '/lancamentos': 'Compra, venda, entrada, saída e conversão, com validação na linha do tempo (o motor vem do Dash Finance).',
@@ -6950,6 +7548,34 @@ document.addEventListener('change', function (ev) {
 });
 
 document.addEventListener('input', function (ev) {
+    // [ETAPA 10] atualiza targets em tempo real enquanto o usuário digita
+    var balInput = ev.target.closest('[data-bal-id]');
+    if (balInput && rotaAtual === '/balanceamento') {
+        var id = balInput.getAttribute('data-bal-id');
+        var val = parseFloat(balInput.value.replace(',', '.'));
+        if (!isNaN(val) && val >= 0) {
+            _targetsMock[id] = val;
+        } else if (balInput.value === '' || balInput.value === '—') {
+            delete _targetsMock[id];
+        }
+        // atualiza só o rodapé de totalização sem redesenhar tudo
+        var somaAgora = 0;
+        Object.keys(_targetsMock).forEach(function (k) { somaAgora += _targetsMock[k]; });
+        var totalEl = document.querySelector('.bal-total');
+        if (totalEl) {
+            var diff = Math.abs(somaAgora - 100);
+            totalEl.className = 'bal-total ' + (diff < 0.1 ? 'ok' : 'fora');
+            totalEl.textContent = diff < 0.1
+                ? '✓ 100% distribuídos'
+                : somaAgora < 100
+                    ? formatarBR(somaAgora, 1) + '% — faltam ' + formatarBR(100 - somaAgora, 1) + '%'
+                    : formatarBR(somaAgora, 1) + '% — ' + formatarBR(somaAgora - 100, 1) + '% além';
+            var btnSalvar = document.querySelector('[data-bal-salvar]');
+            if (btnSalvar) btnSalvar.disabled = diff >= 0.1;
+        }
+        return;
+    }
+
     if (!lanc) return;
     if (ev.target.id === 'l-moeda' && ev.target.tagName === 'INPUT') { moedaMudou(); agendarBuscaExtraGaveta('l-moeda'); return; }
     if (ev.target.id === 'l-destino') { agendarBuscaExtraGaveta('l-destino'); return; }  // [ETAPA 8]
@@ -8020,6 +8646,90 @@ document.addEventListener('click', function (ev) {
         menuAv.classList.add('aberto');
         menuAv.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
+        return;
+    }
+
+    // acordeão de orientação
+    var acordToggle = ev.target.closest('[data-acord-toggle]');
+    if (acordToggle) {
+        var idx = acordToggle.getAttribute('data-acord-toggle');
+        var item = document.querySelector('[data-acord-item="' + idx + '"]');
+        if (!item) return;
+        var aberto = item.classList.contains('aberto');
+        // fecha todos
+        document.querySelectorAll('.acord-item.aberto').forEach(function (el) {
+            el.classList.remove('aberto');
+            var btn = el.querySelector('.acord-gatilho');
+            if (btn) btn.setAttribute('aria-expanded', 'false');
+        });
+        // abre o clicado (se estava fechado)
+        if (!aberto) {
+            item.classList.add('aberto');
+            acordToggle.setAttribute('aria-expanded', 'true');
+        }
+        return;
+    }
+
+    // [ETAPA 10] troca de modo % / notas no balanceamento
+    var balModo = ev.target.closest('[data-bal-modo]');
+    if (balModo && rotaAtual === '/balanceamento') {
+        estado.definir('balModo', balModo.getAttribute('data-bal-modo'));
+        desenhar();
+        return;
+    }
+
+    // copiar alocação atual como ponto de partida
+    if (ev.target.closest('[data-bal-copiar]') && rotaAtual === '/balanceamento') {
+        var cartTmp = carteiraAtual().posicoes;
+        var idsTmp = Object.keys(cartTmp).filter(function (id) { return cartTmp[id].quantidade > QTD_EPSILON; });
+        var modo2 = estado.ler('balModo') || 'pct';
+        // calcula saldo total pra % atual
+        var stmp = 0;
+        idsTmp.forEach(function (id) {
+            var m2 = mercado.porId[id];
+            stmp += m2 ? cartTmp[id].quantidade * m2.preco : cartTmp[id].custoTotal;
+        });
+        _targetsMock = {};
+        if (modo2 === 'pct') {
+            idsTmp.forEach(function (id) {
+                var m2 = mercado.porId[id];
+                var s2 = m2 ? cartTmp[id].quantidade * m2.preco : cartTmp[id].custoTotal;
+                _targetsMock[id] = stmp > 0 ? Math.round(s2 / stmp * 1000) / 10 : 0;
+            });
+        } else {
+            // notas: distribui nota 5 pra todas (ponto de partida neutro)
+            idsTmp.forEach(function (id) { _targetsMock[id] = 5; });
+        }
+        desenhar();
+        return;
+    }
+
+    // equalizar
+    if (ev.target.closest('[data-bal-equalizar]') && rotaAtual === '/balanceamento') {
+        var cartTmp2 = carteiraAtual().posicoes;
+        var idsTmp2 = Object.keys(cartTmp2).filter(function (id) { return cartTmp2[id].quantidade > QTD_EPSILON; });
+        var modo3 = estado.ler('balModo') || 'pct';
+        _targetsMock = {};
+        if (modo3 === 'pct') {
+            var igual = idsTmp2.length > 0 ? Math.round(10000 / idsTmp2.length) / 100 : 0;
+            idsTmp2.forEach(function (id) { _targetsMock[id] = igual; });
+        } else {
+            idsTmp2.forEach(function (id) { _targetsMock[id] = 5; });
+        }
+        desenhar();
+        return;
+    }
+
+    // zerar
+    if (ev.target.closest('[data-bal-zerar]') && rotaAtual === '/balanceamento') {
+        _targetsMock = {};
+        desenhar();
+        return;
+    }
+
+    // salvar (só visual por enquanto — etapa 10.1 liga ao Supabase)
+    if (ev.target.closest('[data-bal-salvar]') && rotaAtual === '/balanceamento') {
+        avisar('Targets salvos! (funcionalidade completa em breve)', 'sucesso');
         return;
     }
 
