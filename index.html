@@ -4445,7 +4445,82 @@ function emBreveHTML(etapa, oque) {
 // A lógica real de salvar/carregar via Supabase vem na Etapa 10.1.
 
 // Targets mockados (0 = sem definição = mostra bolinha de alerta)
-var _targetsMock = {};   // preenchido com valores de exemplo abaixo
+// [ETAPA 10.1] targets reais — carregados do Supabase e cacheados localmente.
+// Estrutura: { moeda_id: peso_alvo (número) }
+// O modo (% ou nota) é armazenado por usuário em prefs.balModo.
+var _targets = {};
+
+function chaveTargets() {
+    var id = sessaoAtual();
+    return id ? 'TARGETS_' + id : 'TARGETS';
+}
+
+// carrega do cache local primeiro, depois confirma com o Supabase em segundo plano
+function carregarTargets() {
+    var local = armazem.json(chaveTargets(), null);
+    if (local && typeof local === 'object') {
+        _targets = local;
+    }
+    return supabaseClient.auth.getUser().then(function (sessao) {
+        var user = sessao.data.user;
+        if (!user) return;
+        return supabaseClient
+            .from('portfolio_targets')
+            .select('moeda_id, peso_alvo, modo')
+            .eq('user_id', user.id)
+            .then(function (res) {
+                if (res.error) { console.warn('carregarTargets:', res.error.message); return; }
+                var mapa = {};
+                var modoSalvo = null;
+                (res.data || []).forEach(function (row) {
+                    mapa[row.moeda_id] = parseFloat(row.peso_alvo);
+                    if (!modoSalvo) modoSalvo = row.modo;
+                });
+                _targets = mapa;
+                try { armazem.set(chaveTargets(), JSON.stringify(mapa)); } catch (e) {}
+                // restaura o modo que foi usado na última gravação
+                if (modoSalvo && modoSalvo !== estado.ler('balModo')) {
+                    estado.definir('balModo', modoSalvo);
+                }
+            });
+    }).catch(function (e) {
+        console.warn('carregarTargets offline:', e && e.message);
+    });
+}
+
+// grava no Supabase e atualiza o cache local
+function salvarTargets() {
+    var modo = estado.ler('balModo') || 'pct';
+    return supabaseClient.auth.getUser().then(function (sessao) {
+        var user = sessao.data.user;
+        if (!user) throw new Error('Sem sessão ativa.');
+        var rows = Object.keys(_targets).map(function (moedaId) {
+            return {
+                user_id: user.id,
+                moeda_id: moedaId,
+                peso_alvo: _targets[moedaId],
+                modo: modo,
+                updated_at: new Date().toISOString()
+            };
+        });
+        // upsert: insere ou atualiza cada linha
+        return supabaseClient
+            .from('portfolio_targets')
+            .upsert(rows, { onConflict: 'user_id,moeda_id' })
+            .then(function (res) {
+                if (res.error) throw new Error(res.error.message);
+                // remove linhas de moedas que foram zeradas (não estão mais em _targets)
+                return supabaseClient
+                    .from('portfolio_targets')
+                    .delete()
+                    .eq('user_id', user.id)
+                    .not('moeda_id', 'in', '(' + Object.keys(_targets).map(function (id) { return '"' + id + '"'; }).join(',') + ')')
+                    .then(function () {
+                        try { armazem.set(chaveTargets(), JSON.stringify(_targets)); } catch (e) {}
+                    });
+            });
+    });
+}
 
 function paginaBalanceamento(r) {
     return '<div class="pagina">' + balanceamentoHTML() + '</div>';
@@ -4506,13 +4581,13 @@ function balanceamentoHTML() {
     // editor de targets
     var totalIdeal = 0;
     linhas.forEach(function (l) {
-        var t = _targetsMock[l.id];
+        var t = _targets[l.id];
         if (t !== undefined) totalIdeal += t;
     });
 
     var linhasEditor = linhas.map(function (l, i) {
         var cor = ALOCACAO_CORES[i % ALOCACAO_CORES.length];
-        var target = _targetsMock[l.id];
+        var target = _targets[l.id];
         var semTarget = target === undefined || target === 0;
         var pctIdeal = semTarget ? 0 : (modo === 'pct' ? target : target); // notas normalizado
         var desvio = pctIdeal - l.pctAtual;
@@ -4565,7 +4640,7 @@ function balanceamentoHTML() {
     // totalização
     var somaIdeal = 0;
     linhas.forEach(function (l) {
-        var t = _targetsMock[l.id];
+        var t = _targets[l.id];
         if (t !== undefined) somaIdeal += (modo === 'pct' ? t : t);
     });
     var totalClass = Math.abs(somaIdeal - 100) < 0.1 ? 'ok' : 'fora';
@@ -6616,7 +6691,9 @@ function sair() {
     try { sairDaMoeda(); } catch (e) {}
     try { sairDoPortfolio(); } catch (e) {}
     _banco = null;  // [ETAPA 9.3] descarta cache em memória E no localStorage ao sair
+    _targets = {};  // [ETAPA 10.1] limpa targets ao sair
     try { armazem.remove(chaveDosBanco()); } catch (e) {}
+    try { armazem.remove(chaveTargets()); } catch (e) {}
     encerrarSessao().then(function () {
         var app = document.getElementById('app');
         app.innerHTML = '';
@@ -7469,7 +7546,27 @@ function salvarPelaGaveta() {  // [ETAPA 9.2] async via Promise
     var edicao = !!lanc.editId;
     salvarLancamento(r.dados, lanc.editId).then(function () {
         fecharLancamento();
-        avisar(edicao ? 'Lançamento salvo.' : 'Lançamento registrado.', 'sucesso');
+        // [ETAPA 10.1] avisa sobre target não definido só em lançamentos novos
+        if (!edicao) {
+            var moedaDoLanc = r.dados.moedaId;
+            if (moedaDoLanc && _targets[moedaDoLanc] === undefined) {
+                // toast com link para o balanceamento
+                var caixa = document.getElementById('avisos');
+                var elToast = document.createElement('div');
+                elToast.className = 'aviso';
+                elToast.innerHTML = 'Novo ativo adicionado. <a role="link" tabindex="0" data-rota="/balanceamento" style="color:var(--marca);font-weight:700;cursor:pointer;">Ajuste seu balanceamento.</a>';
+                caixa.appendChild(elToast);
+                setTimeout(function () {
+                    elToast.style.transition = 'opacity 200ms ease';
+                    elToast.style.opacity = '0';
+                    setTimeout(function () { elToast.remove(); }, 220);
+                }, 5000);
+            } else {
+                avisar('Lançamento registrado.', 'sucesso');
+            }
+        } else {
+            avisar('Lançamento salvo.', 'sucesso');
+        }
         desenhar();
     }).catch(function () {
         if (btn) { btn.disabled = false; btn.textContent = 'Salvar lançamento'; }
@@ -7581,13 +7678,13 @@ document.addEventListener('input', function (ev) {
         var id = balInput.getAttribute('data-bal-id');
         var val = parseFloat(balInput.value.replace(',', '.'));
         if (!isNaN(val) && val >= 0) {
-            _targetsMock[id] = val;
+            _targets[id] = val;
         } else if (balInput.value === '' || balInput.value === '—') {
-            delete _targetsMock[id];
+            delete _targets[id];
         }
         // atualiza só o rodapé de totalização sem redesenhar tudo
         var somaAgora = 0;
-        Object.keys(_targetsMock).forEach(function (k) { somaAgora += _targetsMock[k]; });
+        Object.keys(_targets).forEach(function (k) { somaAgora += _targets[k]; });
         var totalEl = document.querySelector('.bal-total');
         if (totalEl) {
             var diff = Math.abs(somaAgora - 100);
@@ -8716,16 +8813,16 @@ document.addEventListener('click', function (ev) {
             var m2 = mercado.porId[id];
             stmp += m2 ? cartTmp[id].quantidade * m2.preco : cartTmp[id].custoTotal;
         });
-        _targetsMock = {};
+        _targets = {};
         if (modo2 === 'pct') {
             idsTmp.forEach(function (id) {
                 var m2 = mercado.porId[id];
                 var s2 = m2 ? cartTmp[id].quantidade * m2.preco : cartTmp[id].custoTotal;
-                _targetsMock[id] = stmp > 0 ? Math.round(s2 / stmp * 1000) / 10 : 0;
+                _targets[id] = stmp > 0 ? Math.round(s2 / stmp * 1000) / 10 : 0;
             });
         } else {
             // notas: distribui nota 5 pra todas (ponto de partida neutro)
-            idsTmp.forEach(function (id) { _targetsMock[id] = 5; });
+            idsTmp.forEach(function (id) { _targets[id] = 5; });
         }
         desenhar();
         return;
@@ -8736,12 +8833,12 @@ document.addEventListener('click', function (ev) {
         var cartTmp2 = carteiraAtual().posicoes;
         var idsTmp2 = Object.keys(cartTmp2).filter(function (id) { return cartTmp2[id].quantidade > QTD_EPSILON; });
         var modo3 = estado.ler('balModo') || 'pct';
-        _targetsMock = {};
+        _targets = {};
         if (modo3 === 'pct') {
             var igual = idsTmp2.length > 0 ? Math.round(10000 / idsTmp2.length) / 100 : 0;
-            idsTmp2.forEach(function (id) { _targetsMock[id] = igual; });
+            idsTmp2.forEach(function (id) { _targets[id] = igual; });
         } else {
-            idsTmp2.forEach(function (id) { _targetsMock[id] = 5; });
+            idsTmp2.forEach(function (id) { _targets[id] = 5; });
         }
         desenhar();
         return;
@@ -8749,14 +8846,23 @@ document.addEventListener('click', function (ev) {
 
     // zerar
     if (ev.target.closest('[data-bal-zerar]') && rotaAtual === '/balanceamento') {
-        _targetsMock = {};
+        _targets = {};
         desenhar();
         return;
     }
 
     // salvar (só visual por enquanto — etapa 10.1 liga ao Supabase)
     if (ev.target.closest('[data-bal-salvar]') && rotaAtual === '/balanceamento') {
-        avisar('Targets salvos! (funcionalidade completa em breve)', 'sucesso');
+        var btnSalvarBal = ev.target.closest('[data-bal-salvar]');
+        if (btnSalvarBal) { btnSalvarBal.disabled = true; btnSalvarBal.textContent = 'Salvando…'; }
+        salvarTargets().then(function () {
+            if (btnSalvarBal) { btnSalvarBal.disabled = false; btnSalvarBal.textContent = 'Salvar targets'; }
+            avisar('Targets salvos.', 'sucesso');
+        }).catch(function (e) {
+            if (btnSalvarBal) { btnSalvarBal.disabled = false; btnSalvarBal.textContent = 'Salvar targets'; }
+            avisar('Não foi possível salvar os targets. Tente de novo.', 'erro');
+            console.error('salvarTargets:', e && e.message);
+        });
         return;
     }
 
@@ -8844,11 +8950,13 @@ function chaveSnapshot() {
 function exportarBackup() {
     var banco = lerBanco();
     var dados = {
-        versao: 1,
+        versao: 2,
         app: 'koin',
         exportadoEm: new Date().toISOString(),
-        usuario: { nomeUsuario: _usuarioLogado ? nomeDoUsuario(_usuarioLogado) : '' },  // [ETAPA 9]
+        usuario: { nomeUsuario: _usuarioLogado ? nomeDoUsuario(_usuarioLogado) : '' },
         banco: banco,
+        targets: _targets,              // [ETAPA 10.1] mapa moeda_id → peso_alvo
+        balModo: estado.ler('balModo') || 'pct',
         prefs: {
             moeda: prefs.moeda,
             favoritos: prefs.favoritos || []
@@ -8870,7 +8978,7 @@ function exportarBackup() {
 function validarBackup(dados) {
     if (!dados || dados.app !== 'koin') return 'Arquivo não é um backup do Koin.';
     if (typeof dados.versao !== 'number') return 'Backup sem versão. Arquivo pode estar corrompido.';
-    if (dados.versao !== 1) return 'Versão ' + dados.versao + ' não suportada nesta versão do Koin.';
+    if (dados.versao !== 1 && dados.versao !== 2) return 'Versão ' + dados.versao + ' não suportada nesta versão do Koin.';
     if (!dados.banco || !Array.isArray(dados.banco.transacoes)) return 'Arquivo corrompido: dados de transações ausentes.';
     return null;
 }
@@ -8887,6 +8995,32 @@ function previaBackup(dados) {
         resumo: total + ' lançamento(s) · ' + nMoedas + ' moeda(s) · ' + periodo,
         usuario: dados.usuario && dados.usuario.nomeUsuario ? dados.usuario.nomeUsuario : '—'
     };
+}
+
+// [ETAPA 10.1] restaura targets do backup se presentes
+function _restaurarTargetsBackup(user, dados) {
+    if (!dados.targets || !Object.keys(dados.targets).length) return Promise.resolve();
+    var modo = dados.balModo || 'pct';
+    var rows = Object.keys(dados.targets).map(function (moedaId) {
+        return {
+            user_id: user.id,
+            moeda_id: moedaId,
+            peso_alvo: dados.targets[moedaId],
+            modo: modo,
+            updated_at: new Date().toISOString()
+        };
+    });
+    return supabaseClient.from('portfolio_targets').delete().eq('user_id', user.id)
+        .then(function () {
+            return rows.length
+                ? supabaseClient.from('portfolio_targets').upsert(rows, { onConflict: 'user_id,moeda_id' })
+                : Promise.resolve();
+        })
+        .then(function () {
+            _targets = dados.targets;
+            if (dados.balModo) estado.definir('balModo', dados.balModo);
+            try { armazem.set(chaveTargets(), JSON.stringify(_targets)); } catch (e) {}
+        });
 }
 
 // [ETAPA 9.2] limpa transações do Supabase e insere uma nova lista
@@ -9033,7 +9167,7 @@ function iniciarApp() {
     // já mostra dados reais (se houver cache). A confirmação com o
     // Supabase roda em segundo plano; se trouxer diferença, redesenha
     // sozinha. Erros de rede são silenciosos — o app funciona offline.
-    carregarBanco().then(function () {
+    Promise.all([carregarBanco(), carregarTargets()]).then(function () {
         verificarMigracao();
     }).catch(function () {});
 }
