@@ -3661,7 +3661,7 @@ body:has(#gaveta.aberta) .avisos {
    ================================================================= */
 var APP = {
     nome: 'KoinFin',
-    versao: 'v0.1.0-beta',
+    versao: 'v0.2.0-beta',
     ano: 2026,
     autor: 'BitCoderSoft',
 };
@@ -4827,6 +4827,11 @@ function paginaAjustes() {
                 '<div id="backup-previa" class="backup-previa" hidden></div>' +
                 '</div>';
         })() +
+        '<div class="painel">' +
+        '<p class="painel-titulo">Instalar app</p>' +
+        '<p class="painel-sub">Adicione o KoinFin à tela inicial para acesso rápido, sem abrir o navegador.</p>' +
+        '<button type="button" class="botao botao-neutro" data-pwa-instalar>' + icone('sistema') + 'Instalar KoinFin</button>' +
+        '</div>' +
         '</div>';
 }
 
