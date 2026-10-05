@@ -3,7 +3,7 @@
 // Chamadas de API (Supabase, Binance, Cloudflare) vão direto à rede —
 // o app já tem cache próprio via localStorage.
 
-const CACHE = 'koinfin-v0.2.3-beta';
+const CACHE = 'koinfin-v0.3.0-beta';
 
 const ASSETS_ESTATICOS = [
     './',
