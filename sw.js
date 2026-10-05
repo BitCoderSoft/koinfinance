@@ -9,8 +9,8 @@ const ASSETS_ESTATICOS = [
     './',
     './index.html',
     './manifest.json',
-    './assets/icons/icon-192.png',
-    './assets/icons/icon-512.png',
+    './assets/icon-192.png',
+    './assets/icon-512.png',
 ];
 
 // dominios que nunca passam pelo cache do SW
