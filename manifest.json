@@ -2,7 +2,7 @@
   "name": "KoinFin",
   "short_name": "KoinFin",
   "description": "Seu portfólio cripto, sempre com você.",
-  "start_url": "/koinfinance/",
+  "start_url": ".",
   "scope": "/koinfinance/",
   "display": "standalone",
   "orientation": "portrait-primary",
