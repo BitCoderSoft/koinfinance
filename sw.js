@@ -6,11 +6,11 @@
 const CACHE = 'koinfin-v0.2.0-beta';
 
 const ASSETS_ESTATICOS = [
-    '/koinfinance/',
-    '/koinfinance/index.html',
-    '/koinfinance/manifest.json',
-    '/koinfinance/assets/icons/icon-192.png',
-    '/koinfinance/assets/icons/icon-512.png',
+    './',
+    './index.html',
+    './manifest.json',
+    './assets/icons/icon-192.png',
+    './assets/icons/icon-512.png',
 ];
 
 // dominios que nunca passam pelo cache do SW
@@ -62,7 +62,6 @@ self.addEventListener('fetch', function (ev) {
         caches.match(ev.request).then(function (cached) {
             if (cached) return cached;
             return fetch(ev.request).then(function (response) {
-                // só cacheia respostas válidas de assets do próprio domínio
                 if (
                     response.ok &&
                     url.origin === self.location.origin &&
