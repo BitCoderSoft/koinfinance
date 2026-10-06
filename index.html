@@ -1292,7 +1292,41 @@ main#miolo {
 }
 
 .aviso.sucesso { border-left: 3px solid var(--alta); }
-.aviso.erro { border-left: 3px solid var(--queda); }
+.aviso.erro    { border-left: 3px solid var(--queda); }
+
+/* banner de atualização disponível — aparece na base da tela [ETAPA 8] */
+#banner-atualizacao {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    background: var(--superficie-2);
+    border-top: 2px solid var(--marca);
+    padding: 14px 24px;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 -6px 28px rgba(3, 6, 14, 0.5);
+    animation: avisoEntra 300ms var(--ease);
+}
+
+#banner-atualizacao[hidden] { display: none; }
+
+#banner-atualizacao p {
+    flex: 1;
+    margin: 0;
+    font-size: var(--t-sm);
+    color: var(--texto-2);
+}
+
+#banner-atualizacao strong {
+    display: block;
+    color: var(--texto);
+    font-size: var(--t-md);
+    margin-bottom: 2px;
+}
 
 @keyframes avisoEntra {
     from { opacity: 0; transform: translateY(10px); }
@@ -3664,6 +3698,15 @@ body:has(#gaveta.aberta) .avisos {
 <div id="app"></div>
 <div class="avisos" id="avisos" aria-live="polite"></div>
 <div id="gaveta"></div>
+
+<div id="banner-atualizacao" hidden role="status" aria-live="polite">
+    <p>
+        <strong>Nova versão disponível</strong>
+        Atualize para ter as últimas melhorias.
+    </p>
+    <button type="button" class="botao botao-marca" id="btn-sw-atualizar">Atualizar</button>
+    <button type="button" class="botao botao-fantasma" id="btn-sw-fechar" aria-label="Fechar aviso">✕</button>
+</div>
 
 <script>
 (function () {
@@ -9318,8 +9361,27 @@ Promise.all([carregarArmazenamento(), _bootAuthPronto]).then(function () {
 
 // [ETAPA 8] registro do service worker — fora do IIFE, roda uma vez após o app
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(function (e) {
+    navigator.serviceWorker.register('./sw.js').then(function (reg) {
+        // detecta nova versão; não mostra na 1ª instalação (reg.active === null)
+        reg.addEventListener('updatefound', function () {
+            if (!reg.active) return;
+            var novoSW = reg.installing;
+            novoSW.addEventListener('statechange', function () {
+                if (novoSW.state === 'activated') {
+                    var banner = document.getElementById('banner-atualizacao');
+                    if (banner) banner.hidden = false;
+                }
+            });
+        });
+    }).catch(function (e) {
         console.warn('SW não registrado:', e);
+    });
+
+    document.getElementById('btn-sw-atualizar').addEventListener('click', function () {
+        location.reload();
+    });
+    document.getElementById('btn-sw-fechar').addEventListener('click', function () {
+        document.getElementById('banner-atualizacao').hidden = true;
     });
 }
 </script>
