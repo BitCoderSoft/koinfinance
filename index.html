@@ -1560,6 +1560,10 @@ main#miolo {
     min-width: 8px;
 }
 
+.seta-ordem.inativa {
+    color: var(--texto-3);
+}
+
 /* minigráfico de 7 dias: se desenha da esquerda pra direita na 1ª carga */
 .col-grafico {
     width: 140px;
@@ -8273,7 +8277,7 @@ function linhaPortfolioHTML(x) {
     var l = x.l;
     var p = l.pos;
     var semCusto = p.quantidade - p.qtdComCusto;
-    return '<tr data-moeda-id="' + escapar(l.id) + '">' +
+    return '<tr data-moeda-id="' + escapar(l.id) + '" data-lucro-sort="' + lucroSortVal(x) + '" data-saldo-sort="' + (x.saldo !== null ? x.saldo : -1) + '">' +
         '<td>' + moedaCelulaHTML(l.id) + '</td>' +
         '<td>' + (l.preco !== null ? '<span class="preco-vivo" data-cel="preco" data-brl="' + l.preco + '" data-tipo="preco"></span>' : '<span class="sem-dado" title="Sem cotação ao vivo">—</span>') + '</td>' +
         '<td data-cel="var24h">' + pctCelula(l.var24h) + '</td>' +
@@ -8316,6 +8320,50 @@ function lucroCelulaHTML(x) {
         '<span class="lucro-pct ' + (x.lucro >= 0 ? 'alta' : 'queda') + '">' + formatarPct(x.rent) + '</span>';
 }
 
+// valor numérico do lucro para ordenação da tabela do portfólio
+// custo zero = saldo inteiro é lucro; sem cotação = empurra para o fim
+function lucroSortVal(x) {
+    if (x.saldo === null) return -999999999;
+    if (x.l.pos.custoTotal <= 0) return x.saldo || 0;
+    return x.lucro;
+}
+
+// cabeçalho da coluna Lucro com seta de ordenação
+function thLucroHTML(ordemLucro) {
+    var seta = ordemLucro === 'desc' ? '▼' : ordemLucro === 'asc' ? '▲' : '⇅';
+    var cls = ordemLucro ? 'seta-ordem' : 'seta-ordem inativa';
+    return '<th id="pf-th-lucro" class="ordenavel' + (ordemLucro ? ' ativa' : '') + '" ' +
+        'aria-sort="' + (ordemLucro === 'desc' ? 'descending' : ordemLucro === 'asc' ? 'ascending' : 'none') + '">' +
+        '<button type="button" data-pf-ord-lucro>Lucro<span class="' + cls + '">' + seta + '</span></button></th>';
+}
+
+// reordena as linhas da tabela do portfólio no DOM sem re-renderizar
+function atualizarOrdemPortfolio() {
+    var pg = portfolioPg;
+    var tabela = document.getElementById('tabela-portfolio');
+    if (!pg || !tabela) return;
+    var thAtual = document.getElementById('pf-th-lucro');
+    if (thAtual) {
+        var seta = pg.ordemLucro === 'desc' ? '▼' : pg.ordemLucro === 'asc' ? '▲' : '⇅';
+        var cls = pg.ordemLucro ? 'seta-ordem' : 'seta-ordem inativa';
+        thAtual.className = 'ordenavel' + (pg.ordemLucro ? ' ativa' : '');
+        thAtual.setAttribute('aria-sort', pg.ordemLucro === 'desc' ? 'descending' : pg.ordemLucro === 'asc' ? 'ascending' : 'none');
+        thAtual.innerHTML = '<button type="button" data-pf-ord-lucro>Lucro<span class="' + cls + '">' + seta + '</span></button>';
+    }
+    var tbody = tabela.querySelector('tbody');
+    var linhas = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+    if (!pg.ordemLucro) {
+        linhas.sort(function (a, b) { return Number(b.dataset.saldoSort) - Number(a.dataset.saldoSort); });
+    } else {
+        linhas.sort(function (a, b) {
+            var vA = Number(a.dataset.lucroSort);
+            var vB = Number(b.dataset.lucroSort);
+            return pg.ordemLucro === 'desc' ? vB - vA : vA - vB;
+        });
+    }
+    linhas.forEach(function (tr) { tbody.appendChild(tr); });
+}
+
 function cartaoResumoHTML(rotulo, id, nota) {
     return '<div class="cartao"><p class="indicador-rotulo">' + rotulo + '</p><p class="indicador-valor" id="' + id + '"></p>' +
         (nota ? '<p class="indicador-nota" id="' + id + '-nota"></p>' : '') + '</div>';
@@ -8351,7 +8399,7 @@ function portfolioHTML(pg, r, fatias) {
 
     var tabela = r.linhas.length
         ? '<div class="painel painel-tabela"><table class="tabela tabela-portfolio" id="tabela-portfolio"><thead><tr>' +
-          '<th>Moeda</th><th>Preço</th><th>24h</th><th>Quantidade</th><th>Preço médio</th><th>Custo</th><th>Saldo</th><th>Lucro</th><th>% da carteira</th>' +
+          '<th>Moeda</th><th>Preço</th><th>24h</th><th>Quantidade</th><th>Preço médio</th><th>Custo</th><th>Saldo</th>' + thLucroHTML(pg.ordemLucro) + '<th>% da carteira</th>' +
           '</tr></thead><tbody>' + r.linhas.map(linhaPortfolioHTML).join('') + '</tbody></table></div>' +
           (r.semCotacao ? '<p class="painel-sub pf-nota">' + r.semCotacao + ' moeda(s) sem cotação ao vivo entram no saldo pelo custo.</p>' : '')
         : '<div class="painel"><p class="painel-sub">Nenhuma moeda em carteira agora. O lucro realizado das suas vendas continua no resumo acima.</p></div>';
@@ -8502,6 +8550,8 @@ function atualizarPortfolioTela() {
         tr.querySelector('[data-cel="var24h"]').innerHTML = pctCelula(x.l.var24h);
         if (x.saldo !== null) tr.querySelector('[data-cel="saldo"]').innerHTML = '<span data-brl="' + x.saldo + '">' + formatarMoeda(x.saldo) + '</span>';
         tr.querySelector('[data-cel="lucro"]').innerHTML = lucroCelulaHTML(x);
+        tr.dataset.lucroSort = String(lucroSortVal(x));
+        if (x.saldo !== null) tr.dataset.saldoSort = String(x.saldo);
         tr.querySelector('[data-cel="pct"]').innerHTML = pctCelulaPortfolio(x.pct, x.l.id);
         preencherValores(tr);
     });
@@ -8719,7 +8769,7 @@ ROTAS['/portfolio'].montar = function () {
     var pronto = mercado.lista.length ? Promise.resolve() : carregarMercado().catch(function () {});
     pronto.then(function () {
         if (rotaAtual !== '/portfolio' || !document.getElementById('pf-conteudo')) return;
-        var pg = portfolioPg = { linhas: [], realizado: realizado, periodo: 'Tudo', primeiraLeitura: true, usdtbrl: null };
+        var pg = portfolioPg = { linhas: [], realizado: realizado, periodo: 'Tudo', primeiraLeitura: true, usdtbrl: null, ordemLucro: null };
 
         return obterPrecosBinance().catch(function () { return {}; }).then(function (binance) {
             Object.keys(carteira.posicoes).forEach(function (id) {
@@ -8779,12 +8829,21 @@ ROTAS['/portfolio'].montar = function () {
 
 document.addEventListener('click', function (ev) {
     var per = ev.target.closest('[data-pf-periodo]');
-    if (!per || !portfolioPg) return;
-    portfolioPg.periodo = per.getAttribute('data-pf-periodo');
-    document.querySelectorAll('[data-pf-periodo]').forEach(function (b) {
-        b.setAttribute('aria-pressed', b === per ? 'true' : 'false');
-    });
-    desenharEvolucao(true);
+    if (per && portfolioPg) {
+        portfolioPg.periodo = per.getAttribute('data-pf-periodo');
+        document.querySelectorAll('[data-pf-periodo]').forEach(function (b) {
+            b.setAttribute('aria-pressed', b === per ? 'true' : 'false');
+        });
+        desenharEvolucao(true);
+        return;
+    }
+    if (ev.target.closest('[data-pf-ord-lucro]') && portfolioPg) {
+        if (!portfolioPg.ordemLucro) portfolioPg.ordemLucro = 'desc';
+        else if (portfolioPg.ordemLucro === 'desc') portfolioPg.ordemLucro = 'asc';
+        else portfolioPg.ordemLucro = null;
+        atualizarOrdemPortfolio();
+        return;
+    }
 });
 
 
