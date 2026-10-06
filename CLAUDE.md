@@ -2,9 +2,9 @@
 
 Projeto da BitCoderSoft. Nome do app: **KoinFin** (definido em `APP.nome` e no `<title>`).
 
-App web de gestão de portfólio só de criptomoedas, pensado para virar PWA instalável. Inspiração visual e de produto: CoinMarketCap, CoinGecko e as telas de mercado da Binance. Destino: publicação no portfólio da BitCoderSoft.
+App web de gestão de portfólio só de criptomoedas, publicado como PWA instalável. Inspiração visual e de produto: CoinMarketCap, CoinGecko e as telas de mercado da Binance.
 
-Este documento resume o que foi construído até aqui (etapas 0–10.1, iniciadas no claude.ai e continuadas no VS Code) e o plano das próximas etapas.
+Este documento resume o que foi construído até aqui e o que falta para v1.0.
 
 
 ## Situação atual
@@ -12,10 +12,12 @@ Este documento resume o que foi construído até aqui (etapas 0–10.1, iniciada
 | Item | Estado |
 |---|---|
 | Arquivo principal | `index.html` (single-file: HTML + CSS + JS, sem build) |
-| Versão | `v0.3.0-beta` (vira `1.0.0` ao fechar publicação e PWA completo) |
-| Etapas concluídas | 0 (fundação), 0.1 (navegação no topo), 1 (mercado), 1.1 (CoinGecko com chave), 1.2 (tabela larga), 2 (página da moeda), 2.1 (sem chave do usuário), 3 (motor e lançamentos), 4 (portfólio), 4.1 e 5.1 (ajustes do relatório de testes), 5 (responsivo no celular), 6 (identificação local), 6.1 (painel de login OTP), 6.2 (portfólio e menu mobile), 6.3 (header e lançamentos mobile), 7 (backup), 7.1 (lançamentos mobile), 7.2 (rendimento e detalhe de lançamentos), 7.3 (ajustes do plano MD), 7.4 (filtro de lançamentos), 8 (PWA — manifest, sw.js, ícones, registro do SW, botão de instalação), 9 (Supabase Camada 1 — auth), 9.1 (Supabase Camada 2a — tabelas SQL), 9.2 (banco async — lançamentos no Postgres), 9.3 (modo offline + abertura instantânea do cache), 9.4 (Cloudflare Worker como proxy da CoinGecko), 9.5 (refinamento de storage), 10 (Balanceamento — UI, targets, modo % / notas, persistência no Supabase), 10.1 (targets reais via Supabase + cache local) |
-| Próxima etapa | Seletor de portfólio, Objetivos (atualmente placeholder "em breve"), demais extras (alertas de preço) |
-| Pendência aberta | — |
+| Versão | `v0.3.0-beta` |
+| Etapas concluídas | 0, 0.1, 1, 1.1, 1.2, 2, 2.1, 3, 4, 4.1, 5, 5.1, 6, 6.1, 6.2, 6.3, 7, 7.1, 7.2, 7.3, 7.4, 8 (busca fora do top 100), 9 (Supabase auth), 9.1–9.5 (banco assíncrono, offline, Cloudflare Worker, refinamentos), 10 (Balanceamento), 10.1 (targets no Supabase) |
+| PWA | Entregue no v0.2.0-beta: `manifest.json`, `sw.js`, ícones, registro do SW, botão de instalação, banner de atualização (sem número de etapa próprio) |
+| Tema claro | Entregue no v0.2.0-beta: toggle em Ajustes, `aplicarTema()`, tokens completos em `:root[data-tema="claro"]` |
+| Hospedagem | App publicado e no ar. Cloudflare Worker (`teste-koin.correiaerisvaldo.workers.dev`) como proxy da CoinGecko |
+| O que falta para v1.0 | Ver seção "Antes de publicar / Pendências para v1.0" |
 
 ---
 
@@ -23,17 +25,17 @@ Este documento resume o que foi construído até aqui (etapas 0–10.1, iniciada
 
 O KoinFin nasceu da parte cripto do **Dash Finance**, painel pessoal de investimentos (ações, FIIs, BDRs e cripto) do mesmo autor, também single-file. Boa parte da lógica foi testada lá com dados reais. O Dash Finance é de uso pessoal e fica congelado em ~70%; o KoinFin é o produto publicável.
 
-O `dash-finance.html` foi anexado no chat na Etapa 3 e o motor cripto já foi portado. **O arquivo original contém tokens reais (brapi e bolsai) no código: nunca colocar ele no repositório.** Se precisar dele de novo (Balanceamento e Objetivos, Etapa 7, e Backup, `[BACKUP v1]`), colocar uma cópia limpa (sem tokens) em `referencia/`.
+O `dash-finance.html` foi anexado no chat na Etapa 3 e o motor cripto já foi portado. **O arquivo original contém tokens reais (brapi e bolsai) no código: nunca colocar ele no repositório.** Se precisar dele de novo, colocar uma cópia limpa (sem tokens) em `referencia/`.
 
 ---
 
 ## Decisões de produto
 
 - **Só cripto.** Nada de bolsa.
-- **Identificação:** perfil + PIN local na Etapa 6; migrada para **Supabase Auth** na Etapa 9 (e-mail e senha, sessão persistente entre aberturas). Sincronização de dados entre dispositivos chega com a Etapa 9.2.
+- **Identificação:** perfil + PIN local na Etapa 6; migrada para **Supabase Auth** na Etapa 9 (e-mail e senha, sessão persistente entre aberturas). Dados no Supabase desde a Etapa 9.2.
 - **Moeda de exibição:** Real (padrão), Dólar ou Bitcoin. Tudo é guardado e calculado em **reais**; a conversão acontece só na hora de mostrar.
-- **Tema escuro primeiro.** Os tokens do tema claro já estão escritos (comentados em `:root[data-tema="claro"]`), para ligar numa etapa futura.
-- **Primeiro a web larga**, depois o responsivo (Etapa 5), identificação (Etapa 6), os extras (Etapa 7) e o PWA (Etapa 8).
+- **Tema escuro por padrão; tema claro disponível** em Ajustes (entregue no v0.2.0-beta).
+- **Primeiro a web larga**, depois o responsivo (Etapa 5), identificação (Etapa 6), os extras (Etapa 7) e o PWA (v0.2.0-beta).
 
 ---
 
@@ -124,296 +126,268 @@ Qualquer elemento com `data-brl="1234.56"` é preenchido por `preencherValores()
 
 ## Convenções (valem para todo código novo)
 
-- **Numeração das etapas:** quando o autor pede pra adiantar uma etapa, ela **ocupa o lugar na ordem** e as demais descem (as etapas nunca pulam número). O número novo vale no commit, no CLAUDE.md e nas tags `[ETAPA N]` do código. A ordem pode mudar de novo: o que está adiante pode ficar pra depois ou ganhar outras prioridades. Ajuste `N.x` continua sendo ajuste de uma etapa.
-- **Tags nos comentários:** toda mudança leva `[ETAPA N]` (ou `[ETAPA N.x]` para ajuste). Herdado do Dash Finance leva `[HERANÇA]`. O guia no topo do HTML lista o histórico.
-- **Links internos sem `href`:** use `<a role="link" tabindex="0" data-rota="/rota">`. O preview do claude.ai trata qualquer `href` como link externo. Navegar por código: `navegar('/rota')`.
-- **Formulários sem submit nativo:** o preview bloqueia `<form>` antes do evento `submit`. Botões `type="button"` com `data-*` e tratamento no `click`; Enter tratado no `keydown`. (Na Etapa 3 a gaveta de lançamento seguiu isso: `data-lanc-salvar` no clique e Enter no `keydown`.)
+- **Numeração das etapas:** quando o autor pede pra adiantar uma etapa, ela **ocupa o lugar na ordem** e as demais descem (as etapas nunca pulam número). O número novo vale no commit, no CLAUDE.md e nas tags `[ETAPA N]` do código. Ajuste `N.x` continua sendo ajuste de uma etapa.
+- **Tags nos comentários:** toda mudança leva `[ETAPA N]` (ou `[ETAPA N.x]` para ajuste). Herdado do Dash Finance leva `[HERANÇA]`.
+- **Links internos sem `href`:** use `<a role="link" tabindex="0" data-rota="/rota">`. Navegar por código: `navegar('/rota')`.
+- **Formulários sem submit nativo:** botões `type="button"` com `data-*` e tratamento no `click`; Enter tratado no `keydown`.
 - **Armazenamento só por `armazem`**, nunca `localStorage` direto. Chaves com prefixo `KOIN_` (automático).
 - **Notação brasileira:** vírgula nos decimais, ponto nos milhares. Sempre pelos formatadores.
-- **Formatação humana do código:** uma propriedade CSS por linha, blocos separados, comentários explicando o porquê. Nada de CSS compactado em uma linha (o código é inspecionável num site publicado).
+- **Formatação humana do código:** uma propriedade CSS por linha, blocos separados, comentários explicando o porquê. Nada de CSS compactado em uma linha.
 - **Textos da interface:** português simples, frase em caixa normal, sem travessão separando ideias, sem frases de efeito. Botão diz o que faz ("Salvar chave", não "Enviar").
-- ~~**Página "Sistema visual"**~~ removida na Etapa 7.2 (andaime de desenvolvimento, não faz sentido exposta ao usuário).
+- ~~**Página "Sistema visual"**~~ removida na Etapa 7.2.
 
 ---
 
 ## Fontes de dados
 
 ### Binance (pública, sem chave)
-- REST base: `https://data-api.binance.vision` (recomendada pela própria Binance para quem só consome dados de mercado).
+- REST base: `https://data-api.binance.vision`.
 - `/api/v3/ticker/price?symbols=["USDTBRL","BTCBRL"]` → taxas de conversão (cache 5 min).
 - `/api/v3/ticker/24hr?symbol=BTCBRL` → pulso do topo (a cada 30s).
 - `/api/v3/ticker/price` (todos) → descobrir quais moedas têm par USDT (cache 1h).
 - `/api/v3/ticker/24hr?symbols=[...]` → modo simplificado do mercado.
-- **WebSocket:** `wss://data-stream.binance.vision/stream?streams=btcusdt@miniTicker/...` Um socket só, com as moedas da tabela + `usdtbrl@miniTicker`. Reconexão com espera crescente (2s, 4s, 8s... até 60s). Fechado ao sair do Mercado.
+- **WebSocket:** `wss://data-stream.binance.vision/stream?streams=btcusdt@miniTicker/...` Um socket só, com as moedas da tabela + `usdtbrl@miniTicker`. Reconexão com espera crescente (2s, 4s, 8s... até 60s).
 - Limites são por IP. Se vier 429/418, parar e esperar (insistir gera banimento de 2 min a 3 dias).
 
-### CoinGecko
-- Base: `https://api.coingecko.com/api/v3`
-- `/coins/markets?vs_currency=brl&order=market_cap_desc&per_page=100&page=1&sparkline=true&price_change_percentage=1h,24h,7d` → 1 chamada traz as 100 maiores com ranking, logo, preço em reais, variações, volume, valor de mercado e minigráfico de 7 dias.
-- **Exige chave** (confirmado em 29/09/2026: sem chave o `/coins/markets` responde 403 "Request blocked" do CloudFront). Chave Demo gratuita: 30/min, 10 mil/mês. A chave Demo do autor está embutida em `CG_CHAVE_PADRAO`. **O usuário não informa chave própria** (o campo foi removido de Ajustes em 29/09/2026). Rever antes de publicar (chave no código é pública).
-- **REGRA: no máximo 1 chamada por dia.** O Koin vive dos dados da Binance (preço, 24h e volume ao vivo). A CoinGecko só entra pro que a Binance não entrega (ranking, logo, valor de mercado, variação 1h/7d, minigráfico), e **só na primeira abertura do dia** (dia local, `diaDeHoje()`). Cache de hoje = não chama. Falhou = espera 30 min (`CG_ESPERA_FALHA`) e usa o cache antigo. Toda chamada nova à CoinGecko (Etapa 2 em diante) deve seguir a mesma regra, com cache longo por moeda.
-- O `sparkline_in_7d` vem em **dólar** mesmo com `vs_currency=brl`. Serve pro formato do minigráfico, não pra valores.
-- A chave vai como **parâmetro na URL** (`x_cg_demo_api_key`), não no cabeçalho: cabeçalho customizado dispara a checagem prévia de CORS, que já bloqueou outra API (bolsai) no Dash Finance.
-- Cache diário (ver regra acima). Se falhar e houver cache de outro dia, usa o cache (avisando). Sem cache, cai para o modo simplificado.
+### CoinGecko (via Cloudflare Worker)
+- **Ponto de acesso do app:** `https://teste-koin.correiaerisvaldo.workers.dev` (variável `COINGECKO` no código). A chave Demo vive como variável de ambiente no Worker, **nunca no `index.html`**.
+- O Worker entrega o `/coins/markets` já em cache para o restante do dia, cobrindo a regra de 1 chamada por dia.
+- **REGRA: no máximo 1 chamada por dia.** O KoinFin vive dos dados da Binance. A CoinGecko só entra pro que a Binance não entrega (ranking, logo, valor de mercado, variação 1h/7d, minigráfico), e **só na primeira abertura do dia** (dia local, `diaDeHoje()`). Falhou = espera 30 min (`CG_ESPERA_FALHA`) e usa o cache antigo. Sem cache, cai para o modo simplificado.
+- O `sparkline_in_7d` vem em dólar mesmo com `vs_currency=brl`. Serve pro formato do minigráfico, não pra valores.
+- Antes de publicar em produção com URL definitiva: gerar chave nova no painel da CoinGecko e atualizar no Worker (a atual apareceu em commits anteriores antes do Worker existir).
 
 ### Casamento CoinGecko × Binance
-Pelo símbolo (`btc` → `BTCUSDT`). Como símbolos se repetem entre moedas diferentes, o "ao vivo" só liga se o preço da Binance estiver **a até 10%** do preço da CoinGecko (`DIVERGENCIA_MAX`). Lição herdada do Dash Finance (caso do par ENABRL parado com preço antigo).
+Pelo símbolo (`btc` → `BTCUSDT`). O "ao vivo" só liga se o preço da Binance estiver **a até 10%** do preço da CoinGecko (`DIVERGENCIA_MAX`). Com o pacote de até 24h, a tolerância sobe para 40% quando o pacote tem mais de 1h.
 
 ---
 
 ## O que cada etapa entregou
 
 ### Etapa 0 · Fundação
-Design system, casca, roteador, estado central, armazenamento com fallback, moeda de exibição R$/US$/₿, pulso do BTC ao vivo no topo, avisos rápidos, página Ajustes (moeda, tema, modo de armazenamento), página Sistema visual (cores, tipos, controles, tabela com preço simulado piscando, indicadores, esqueleto).
+Design system, casca, roteador, estado central, armazenamento com fallback, moeda de exibição R$/US$/₿, pulso do BTC ao vivo no topo, avisos rápidos, página Ajustes (moeda, tema, modo de armazenamento), página Sistema visual (andaime, removida na Etapa 7.2).
 
 ### Etapa 0.1 · Navegação no topo
-Barra lateral removida. Topo com links, grupo "Análise" (Balanceamento, Objetivos) e menu da engrenagem (Ajustes, Sistema visual). Rodapé com versão, aviso de privacidade e autoria.
+Barra lateral removida. Topo com links, grupo "Análise" (Balanceamento, Objetivos) e menu da engrenagem. Rodapé com versão, aviso de privacidade e autoria.
 
 ### Etapa 1 · Mercado
 - Destaques: 3 maiores altas e 3 maiores quedas em 24h; cartão com valor de mercado e volume somados das 100 maiores e peso do bitcoin.
 - Tabela das 100 maiores: estrela de favorita, posição, logo, nome, preço, 1h, 24h, 7d, volume, valor de mercado, minigráfico de 7 dias.
 - Abas: Todas, Favoritas, Em alta, Em queda. Ordenação clicando no cabeçalho.
-- Favoritas salvas em `prefs.favoritos` (ids da CoinGecko).
 - Busca do topo: filtra enquanto digita; Enter em outra página leva ao Mercado filtrado; Esc limpa.
 - Preço e 24h ao vivo pelo WebSocket, com pisca e deslize. Indicador "Preços ao vivo" na página.
 - Modo simplificado automático (30 principais, só Binance) quando a CoinGecko não responde.
-- Ajustes: campo da chave Demo da CoinGecko (removido depois, ver Etapa 2.1).
-
-### Etapa 2.1 · Sem chave do usuário
-Removido de Ajustes o campo para o usuário colar a chave da CoinGecko. Só vale a chave embutida.
-
-### Etapa 1.2 · Tabela do Mercado mais larga
-Largura máxima 1240 para 1400px, colunas com largura fixa (minigráfico cabe sem rolagem, nome perto do preço).
 
 ### Etapa 1.1 · CoinGecko com chave e 1 chamada por dia
-Chave Demo embutida, cache por dia local, espera de 30 min após falha (`MERCADO_FALHA`). Testado com chamada real: 1ª chamada HTTP, repetições no mesmo dia sem HTTP, cache de ontem renova, falha usa cache velho sem martelar.
-- Rota `/moeda/<id>` criada (preenchida na Etapa 2).
+Chave Demo embutida (depois migrada para o Worker na Etapa 9.4), cache por dia local, espera de 30 min após falha.
 
-### Verificação pendente
-[29/09/2026] Via curl, com a chave Demo, o `/coins/markets` responde 200 com `access-control-allow-origin: *` (CORS liberado). Sem chave dá 403. **Confirmado no navegador real** (relatório de 29/09/2026, Android): a CoinGecko responde direto do arquivo, com logos e minigráficos, e o WebSocket da Binance atualiza o preço ao vivo. O risco que sobra é só o de **cota** (ver "Antes de publicar"), não o de acesso.
+### Etapa 1.2 · Tabela do Mercado mais larga
+Largura máxima 1240 para 1400px, colunas com largura fixa (minigráfico cabe sem rolagem).
 
-Histórico do teste original:
-Testado só com respostas simuladas no formato das documentações. Falta confirmar **no navegador real** se a CoinGecko aceita chamadas direto do arquivo (CORS). Como checar: abrir o Mercado; se a tabela vier com logos e minigráficos, está ok; se aparecer "Modo simplificado", a CoinGecko recusou (ver o motivo no console, F12). Se for bloqueio de origem, testar servindo por servidor local (`python -m http.server`) antes de decidir outro caminho.
-
----
-
-### Etapas 4.1 e 5.1 · Ajustes do relatório de testes (entregues)
-Origem: relatório de testes de 29/09/2026 (prints do Junior num Android, Chrome, e análise do arquivo). Nenhum erro de JavaScript nos testes. Ajustes de portfólio levam `[ETAPA 4.1]` e os de celular e visual `[ETAPA 5.1]`. O relatório usava a numeração antiga (6.1 e 4.1); vale a numeração deste documento.
-- **Topo fixo** em todas as telas e tamanhos: `position: fixed` com `--topo-total` (altura, borda e notch) como `padding-top` da casca. Sticky foi abandonado porque para de funcionar quando um ancestral tem `overflow`. Menu sanduíche e gaveta seguem por cima (z-index maior).
-- **Bolinhas nos cartões de destaque** (celular): uma por cartão, a do cartão à vista acende em latão (`IntersectionObserver`), toque leva ao cartão. Rolagem com encaixe (`scroll-snap`, `scroll-padding`). Somem no computador.
-- **Gráficos no celular:** fonte dos eixos 10px (12px no computador) e escala compacta (`formatarEixo`: sem centavos acima de 1.000, "447,5 mil" acima de 100 mil). O valor exato segue na leitura do cursor.
-- **Escala do gráfico do portfólio** (`autoscalePortfolio`): enquadra as duas linhas (patrimônio e custo) e impõe faixa mínima de 2% do valor. Corrige a linha de custo que sumia e a queda "dramática" de centavos em carteira pequena.
-- **Seletor de moeda em Ajustes** sempre sincronizado (`atualizarSeletoresMoeda()` no fim de `desenhar`).
-- **Destaques do Mercado:** símbolo com reticências e preço sem quebra (nada se sobrepõe), valores do cartão "As 100 maiores" em uma linha só (`nowrap`).
-- **Rosca com uma moeda:** anel inteiro, sem fenda (`respiroRosca`).
-- **Portfólio vazio:** sem indicador "Conectando…" (também some quando tudo foi vendido) e só o botão "Novo lançamento" do cartão vazio.
-- **Sinal negativo antes do símbolo:** "-R$ 0,09" (`formatarMoeda`, R$, US$ e ₿; valor que arredonda para zero não leva sinal).
-- **Textos:** "#1 no ranking" no lugar de "Posição #1"; seletor de ordem com rótulo "Ordenar por" e opção "Ranking"; botão do Portfólio vira "Lançar" no celular; "sem vendas ainda" como legenda pequena.
-- **Etiquetas de operação:** compra e entrada em cinza cheio, venda e saída só com contorno, conversão azul. O latão fica só para marca e ação principal. **Decisão:** o relatório sugeria verde e vermelho (como no Dash Finance), mas isso contraria a regra do Koin (verde e vermelho só para alta e queda).
-- **Página da moeda no celular:** períodos e tipo do gráfico na mesma linha (Linha e Velas viram ícones).
-- **Logo do TradingView** removido de cima dos gráficos (`layout.attributionLogo: false`, existe na 4.2.3) e a **atribuição** foi para o rodapé ("Gráficos: TradingView Lightweight Charts", com link), como a licença pede.
-- **Não feito, de propósito:** o relatório pediu trocar o azul do gráfico e da rosca (item 3.6). O azul é o slot 1 da paleta categórica **validada** com o validador da skill `dataviz` no fundo escuro (não é acidente). Reavaliar só se o autor quiser: patrimônio em latão ou texto exigiria revalidar a rosca.
-
-### Etapa 5 · Responsivo no celular (entregue, adiantada)
-Pedido do autor: testar o app no navegador do celular antes dos extras. Ainda **não é PWA**. Vale abaixo de **768px** (mesmo ponto do Dash Finance, `[MOBILE v1]`); o computador não mudou. Bloco `CELULAR` no fim do `<style>` (precisa vir depois das regras do computador).
-- **Como testar no celular:** servir a pasta pela rede (`python3 -m http.server 8000 --bind 0.0.0.0`) e abrir `http://<IP do Mac>:8000/koin.html` no celular, na mesma Wi-Fi. Os dados ficam por endereço (não misturam com o `file://`).
-- **Navegação por menu sanduíche** (sem barra inferior, por enquanto; decisão do autor): abre por cima da tela e fecha no X, no Esc ou ao escolher uma página. É montado das mesmas listas `NAV` e `NAV_CONTA` (`menuMobileHTML`), com a página atual acesa. Topo: marca, moeda de exibição (R$, US$, ₿), ícone de busca (abre uma 2ª linha) e sanduíche. Pulso do BTC e engrenagem somem (Ajustes e Sistema visual vão para o menu).
-- **Mercado enxuto** (referência: CoinMarketCap mobile): cada moeda é uma linha de ~58px com estrela, posição, logo, nome com o símbolo embaixo e, à direita, preço com a variação 24h logo abaixo. Colunas 1h, 7d, volume, valor de mercado e minigráfico ficam só na página da moeda. Toque na linha inteira abre a moeda (a estrela tem ação própria). Abas rolam na horizontal e a ordem vem de um seletor (`ORDENS_MOBILE`), porque o cabeçalho da tabela some. Destaques viram uma faixa que rola na horizontal.
-- **Portfólio:** cartões em 2 colunas, gráfico mais baixo, legenda da rosca embaixo, tabela vira lista (moeda à esquerda, saldo e lucro à direita; toque abre a moeda).
-- **Lançamentos:** cada um vira um cartão (operação e data, moedas, quantidade e valor, lucro realizado, editar e excluir). **Gaveta de lançamento em tela cheia** com rodapé fixo.
-- **Moeda:** cabeçalho empilhado, gráfico de 280px, estatísticas em 2 colunas, conversor em coluna.
-- Campos com 16px (evita o zoom do iPhone), respiro de `safe-area`, sem rolagem horizontal da página (verificado a 390px).
-- Fora do escopo por enquanto: botão flutuante "+", barra inferior, Ajustes e Sistema visual refinados, gestos, tela de instalação (Etapa 8).
-- Ideia registrada: o cabeçalho da tabela do Mercado voltaria a ser ordenável por toque se o seletor incomodar.
-
-### Etapa 6 · Identificação (entregue)
-Múltiplos perfis por dispositivo. Cada perfil tem nome de usuário (sem espaços), e-mail e PIN (4 ou 6 dígitos numéricos). Dados de carteira e preferências ficam em chaves separadas por perfil (`KOIN_BANCO_<id>`, `KOIN_PREFS_<id>`).
-- **PIN criptografado localmente:** AES-GCM via `SubtleCrypto`, chave derivada do e-mail com PBKDF2 (100 mil iterações, SHA-256). O PIN é o texto cifrado; recuperação = decifrar com o mesmo e-mail e mostrar o PIN para quem conhece o endereço.
-- **Sessão por aba:** `sessionStorage` (`KOIN_SESSAO`). Dura enquanto a aba estiver aberta; fechar o navegador pede PIN novamente. Reiniciar a página dentro da mesma aba mantém a sessão.
-- **Fluxo:** ao abrir, `carregarArmazenamento()` verifica se há sessão válida. Se sim, entra direto no app (`iniciarApp()`). Se não, exibe a tela de entrada sobre o `#app`.
-- **Tela de entrada:** lista de perfis em cartões com avatar colorido; ao clicar num perfil aparece o campo de PIN. Botão "Novo perfil" leva ao cadastro. "Esqueci meu PIN" pede o e-mail e mostra o PIN decifrado.
-- **Avatar:** círculo colorido com a inicial do nome; cor derivada do nome por hash simples (paleta de 5 cores de `AVATAR_CORES`).
-- **Info do usuário na casca:** avatar + botão "Sair" no topo (computador, `.usuario-topo`); nome do perfil no cabeçalho do menu sanduíche (celular).
-- **`sair()`:** encerra sessão, limpa sockets/timers, redesenha a tela de entrada.
-- **Mensagem de PIN esquecido:** aviso visível na tela de cadastro pedindo para guardar bem o PIN.
-
-### Etapa 6.1 · Ajustes no painel de login (entregue)
-Origem: relatório de testes de 29/09/2026.
-- **PIN fixo em 6 dígitos** para todos os perfis (removida a escolha de 4 ou 6 dígitos pelo usuário; `PIN_DIGITOS = 6`).
-- **Caixas OTP-style** para entrada do PIN: 6 campos individuais com navegação automática, paste e limpeza (`_otpHTML`, `ligarOTP`). Substituiu o campo de texto único.
-- **Layout em duas colunas:** painel da marca à esquerda (fundo, anel decorativo, logotipo) e formulário à direita. No celular o painel da marca colapsa e só o formulário aparece.
-
-### Etapa 6.2 · Ajustes no portfólio e menu mobile (entregue)
-- **Painel superior do portfólio em desktop:** saldo e cards à esquerda (2×2), gráfico de evolução à direita.
-- **Chip de moeda no celular:** botão único (~38px) no topo que cicla pela próxima moeda disponível (R$ → US$ → ₿ → R$). Substituiu o seletor de 3 botões, que era uma das causas do ícone de sanduíche ficar oculto em telas estreitas (`atualizarChipMoeda`, `proximaMoeda`).
-- **Avatar no topo mobile:** toque no avatar abre o menu sanduíche (segunda forma de abrir, pedido do relatório de testes).
-- **"Sair" no rodapé do menu mobile:** saiu do topo e foi para o rodapé do menu sanduíche junto com o nome do perfil.
-
-### Etapa 6.3 · Fix do header e lançamentos mobile (entregue)
-- Ajustes finos no cabeçalho do celular para acomodar marca, chip de moeda, ícone de busca e sanduíche sem sobreposição.
-- **"Seus lançamentos" na página da moeda (celular):** linhas de compra/venda com preço recebem classe `com-valor` e no celular o valor quebra para uma segunda linha, evitando que "R$" fique de um lado e o número do outro.
-
-### Etapa 7 · Backup — exportação e importação (entregue)
-- **Exportar portfólio como JSON** (botão em Ajustes): formato `v1` versionado (`{ versao, app, exportadoEm, usuario, banco, prefs }`).
-- **Importar JSON** com prévia antes de confirmar: mostra número de transações, moedas cadastradas e período coberto. A confirmação é uma segunda ação explícita.
-- **Snapshot antes de importar** (`KOIN_BACKUP_SNAPSHOT_<userId>`): guarda o estado anterior. Botão "Desfazer última importação" fica visível enquanto o snapshot existir.
-- Formato já preparado para v2 (multi-portfólio): ao importar um v1 num sistema futuro com portfólios, será tratado como portfólio único "Principal". Ver memória `project_backup-versioning-plan`.
-
-### Etapa 7.1 · Ajuste nos lançamentos mobile (entregue)
-- Continuação da Etapa 6.3 (commit separado): "Seus lançamentos" na página da moeda no celular — ajuste fino de CSS para o quebra de linha funcionar em todos os contextos sem interferência.
-- Pequenos ajustes de compatibilidade PWA (meta tags) na `<head>`.
-
-### Etapa 7.2 · Rendimento e detalhe de lançamentos (entregue)
-- **Novo tipo RENDIMENTO:** staking, DeFi, mining e cashback. Custo zero, idêntico à ENTRADA no motor (`pernasDaTransacao`, `processarCarteira`, `PRIORIDADE_NO_DIA`). Badge verde-água suave (`--alta` com opacidade baixa).
-- **Remoção da página "Sistema Visual"** (andaime de desenvolvimento, não faz sentido exposta ao usuário).
-- **Tooltip `?` ao lado de "Operação"** na gaveta de lançamento: painel com descrição dos 6 tipos, abre e fecha por botão.
-- **Campo "Nota (opcional)"** na gaveta: texto livre guardado em `registro.descricao`, exibido na gaveta de detalhe.
-- **Gaveta mais larga no desktop** (500 → 600px) para os 6 badges de operação caberem em uma linha.
-- **Seletor de operação no celular** (`<select>`): substituiu os botões segmentados que não cabiam em larguras pequenas.
-- **Gaveta de detalhe (somente leitura):** clicar numa linha da tabela de lançamentos abre a gaveta com todos os campos, botões "Editar" (reabre em modo edição) e "Excluir" (`gavetaDetalheHTML`, `abrirDetalhe`).
-- **Tabela de lançamentos simplificada:** colunas Taxas e Lucro realizado removidas da linha (ficam na gaveta de detalhe). Passa de 8 para 6 colunas.
-
-### Etapa 7.3 · Ajustes no plano MD (entregue)
-Atualização do CLAUDE.md com o histórico completo das etapas 6.1 a 7.2. Remoção do bloco de comentário HTML `<!-- GUIA DE MANUTENÇÃO ... -->` do `koin.html` (o conteúdo vive agora só no CLAUDE.md, que é o documento canônico do projeto).
-
-### Etapa 7.4 · Filtro por tipo na página de lançamentos (entregue)
-- Barra de filtro acima da tabela de lançamentos: botões segmentados no desktop, seletor `<select>` no celular.
-- Filtros disponíveis: Todas (padrão), Compra, Venda, Entrada, Saída, Conversão, Rendimento.
-- Atualização parcial do DOM ao trocar o filtro: só o `<tbody id="lanc-corpo">` e o contador se redesenham (`atualizarFiltroLanc`), sem rerenderizar a página inteira.
-- Estado em memória (`filtroLanc`), persiste enquanto a sessão estiver aberta (o mesmo padrão da aba do Mercado).
-- No celular, `ROTAS['/lancamentos'].montar` liga o listener no `<select>` depois do render.
-
-### Etapa 9 · Supabase Camada 1 — autenticação (entregue)
-Primeira integração com o Supabase. Lançamentos ainda 100% no localStorage; só a autenticação vai para a nuvem nesta etapa.
-- **Login e cadastro** via Supabase Auth (e-mail + senha). O PIN local da Etapa 6 foi substituído por senha gerenciada pelo provedor.
-- **Sessão persistente** entre aberturas do navegador: o JWT é guardado pelo supabase-js, sem `sessionStorage` manual.
-- **Nome do perfil** em `user_metadata` (campo `nome`). O script de tabela `profiles` + trigger SQL foi descartado — `user_metadata` cobre o caso sem complexidade extra.
-- **supabase-js** carregado via CDN (UMD), inicializado com `SUPABASE_URL` e `SUPABASE_ANON_KEY` embutidos no HTML. O anon key é público por design: o que ele acessa é controlado por RLS, não pelo sigilo da chave.
-- Tela de entrada com painel da marca à esquerda e formulário à direita (layout herdado do plano para a Etapa 8). No celular o painel colapsa.
-
-### Etapa 9.1 · Supabase Camada 2a — tabelas SQL (entregue)
-Infraestrutura de banco de dados criada no Supabase SQL Editor. Nenhum código do app foi alterado ainda; esta etapa é só a estrutura.
-- **`transacoes`:** `id` (bigint identity, PK), `user_id` (FK → `auth.users`, cascade delete), `tipo`, `moeda_id`, `quantidade`, `preco_unitario`, `taxas`, `data`, `descricao`, `moeda_destino_id`, `quantidade_destino`. Índice em `(user_id)`.
-- **`moedas_conhecidas`:** chave primária composta `(id, user_id)`. Armazena `simbolo`, `nome` e `logo` de toda moeda já lançada — cache permanente, independe do top 100 da CoinGecko.
-- **RLS ativada em ambas:** policy `for all using (auth.uid() = user_id) with check (auth.uid() = user_id)`. Cada usuário só lê e escreve os próprios registros.
-- Próximo passo: Etapa 9.2 — tornar `lerBanco()` e `gravarBanco()` assíncronas e ajustar todos os callers.
-
-### Etapa 4 · Portfólio (entregue)
-- **Menu:** "Lançamentos" virou submenu de "Portfólio" (grupo `Portfólio` em `NAV`, com os itens Portfólio e Lançamentos). O botão do grupo acende nas duas rotas. Na tela do Portfólio há o botão "Lançamentos" (e "Novo lançamento") no cabeçalho.
-- **Resumo:** saldo grande (Unbounded) na moeda de exibição, variação das últimas 24h (R$ e %), custo total, lucro não realizado (e % sobre o custo), lucro realizado, resultado total (não realizado mais realizado). Saldo desliza até o valor novo a cada atualização.
-- **Evolução real do patrimônio:** `reconstruirEvolucao` (função pura, 11 testes em Node) reconstrói dia a dia do 1º lançamento até hoje: quantidade que havia em cada dia x fechamento daquele dia. Segunda linha tracejada com o custo. Preços: klines diárias da Binance (par USDT x USDTBRL do mesmo dia), uma chamada por moeda que a carteira já teve. Dia sem preço repete o último. **Moeda sem histórico na Binance entra pelo custo** e a tela avisa quais. Períodos 1M, 3M, 6M, 1A, Tudo. O último ponto (hoje) acompanha o saldo ao vivo. Segue a moeda de exibição.
-- **Alocação (rosca):** SVG próprio, animado (as fatias deslizam quando os pesos mudam). As 5 maiores moedas têm cor própria e o resto vai para "Outras" (cinza). **A cor segue a moeda** (ordem de entrada na carteira), não o tamanho. Paleta categórica validada com o validador da skill `dataviz` no fundo escuro (`#131A29`), inclusive fechando o anel: azul, laranja, violeta, latão, magenta. **Ficam de fora verde e vermelho** (reservados para alta e queda). Fatias com 2px de respiro, legenda com % e valor.
-- **Tabela de ativos:** moeda, preço ao vivo (pisca), 24h, quantidade (com "X sem custo"), preço médio de compra, custo, saldo, lucro (R$ e %) e % da carteira. **Rentabilidade pelo valor** (saldo menos custo, sobre o custo). Posição de custo zero mostra "custo zero" no lugar da %.
-- **Ao vivo:** REST `ticker/24hr` na abertura e WebSocket (`abrirCanalAoVivo`, reconexão crescente) com o amortecedor de 5s. Verificado: uma mudança do saldo a cada 5s.
-- **Moeda sem cotação ao vivo** (sem par na Binance ou fora do pacote diário): usa o preço do pacote e, sem preço, entra no saldo pelo custo (aviso abaixo da tabela).
-- `sairDoPortfolio()` roda em todo `desenhar()` e limpa socket, timers e gráfico.
-
-### Etapa 3 · Motor e lançamentos (entregue)
-Portado do `dash-finance.html` (só a parte cripto: `[CRIPTO v2]`, `[CRIPTO v2.1]`, `[MOTOR v2]`), sem usuário e sem bolsa.
-- **Motor puro** (bloco `[MOTOR:início]`/`[MOTOR:fim]` no HTML): `pernasDaTransacao`, `ordenarTransacoes` (data, prioridade no dia, `criadoEm`, id), `processarCarteira` (custo, `qtdComCusto`, preço médio de compra, resíduo de ponto flutuante), `primeiroFuroDeSaldo`, `verificarCronologia` (salvar, editar e excluir). Recebe listas e devolve resultado, sem ler nem gravar nada.
-- **Lucro realizado (novo):** `processarCarteira` devolve `realizado[idLancamento]` = (qtd x preço, menos taxas) menos o custo baixado, só para vendas. **É calculado na hora, não guardado no lançamento** (diferente do que o plano original dizia): editar ou excluir um lançamento antigo muda o custo das vendas seguintes, e um valor gravado ficaria velho.
-- **Moeda identificada pelo id da CoinGecko** (`moedaId`), com cadastro em `BANCO.moedas` (nome, símbolo, logo) para a tela não depender do pacote diário.
-- **Banco local** (`armazem`, chave `KOIN_BANCO`): `{ moedas, transacoes, proximoId }`. Valores unitários e taxas em reais. Tipos: COMPRA, VENDA, ENTRADA, SAIDA, CONVERSAO.
-- **Gaveta de lançamento** (`#gaveta`, sem `<form>`): operação primeiro (botões), moeda em lista (só as com saldo nas baixas) ou campo com sugestões (compra, entrada, destino), quantidade, preço, taxas, data. Sugestões com `data-auto` (saldo inteiro nas baixas, preço atual da moeda) que a pessoa pode sobrescrever. Campos aceitam `1.234,56` e `1234.56`.
-- **Página Lançamentos** (`/lancamentos`): lista do mais recente para o mais antigo, com editar e excluir, e o lucro realizado total.
-- **Página da moeda:** "Sua posição" (quantidade, quantidade sem custo, preço médio de compra, custo, valor atual e lucro não realizado ao vivo, lucro realizado) e "Seus lançamentos" da moeda. Isso adianta parte da Etapa 4.
-- Só as 100 moedas do pacote diário podem ser escolhidas em lançamento novo. Moeda já lançada continua aparecendo mesmo se sair do top 100.
-- Testes do motor (23 casos, rodados em Node contra o trecho do HTML): entrada gratuita não derruba o preço médio, venda baixa custo proporcional e calcula lucro realizado, conversão leva o custo e a fração com custo, saída sem lucro realizado, ordem no mesmo dia, furo de saldo, excluir/editar barrados, cadeia conversão e venda, resíduo de ponto flutuante.
-- Etiquetas de operação: latão para o que entra, cinza para o que sai, azul para conversão. Verde e vermelho seguem só para alta e queda (inclusive o lucro realizado).
-- Backup (exportar e importar JSON) continua na Etapa 7. O `BANCO` já está em uma chave só, o que facilita.
-
-### Etapa 2 · Página da moeda (entregue)
-- Rota `/moeda/<id>`: cabeçalho (logo, nome, posição, favorita, preço ao vivo e 24h), gráfico, estatísticas, conversor e espaços de "Sua posição" e "Seus lançamentos" (Etapas 3/4).
-- Gráfico: **Lightweight Charts 4.2.3** (unpkg, com SRI), carregado só ao abrir uma moeda. Linha e velas; períodos 1D, 7D, 1M, 3M, 1A; cursor com data e valores; segue a moeda de exibição (R$/US$/₿). Klines da Binance em USDT convertidas pelas klines do USDTBRL no mesmo instante. A última vela acompanha o preço ao vivo.
-- Moeda **sem par na Binance**: sem gráfico (mensagem). Não buscamos o histórico na CoinGecko por causa da regra de 1 chamada por dia. Decidir depois se vale uma exceção com cache longo.
-- Estatísticas: máxima, mínima e volume de 24h vêm da Binance (`ticker/24hr`, a cada 60s). Valor de mercado, ofertas e máxima histórica vêm do **mesmo pacote diário** da CoinGecko (campos novos, `CG_PACOTE_VERSAO = 2`), sem chamada extra. Só as 100 do pacote têm página.
-- Conversor quantidade ↔ valor na moeda de exibição, pelo preço atual.
-- **REGRA DOS 5s:** o preço na tela (tabela do Mercado e página da moeda) muda no máximo a cada 5s (`PRECO_INTERVALO_MS`). O WebSocket segue mandando ~1 tick/s; `criarAmortecedor` guarda o último de cada moeda e aplica em lote (1º lote 800ms após o 1º tick). O pulso do BTC no topo continua a cada 30s. Verificado: 1 mudança a cada 5s. Toda tela nova com preço ao vivo deve usar `criarAmortecedor`.
-- Casamento Binance × CoinGecko (`parBinanceDe`): com o pacote de até 24h, a tolerância de divergência sobe de 10% para 40% quando o pacote tem mais de 1h. Símbolo repetido de verdade difere por ordens de grandeza.
+### Etapa 2 · Página da moeda
+- Rota `/moeda/<id>`: cabeçalho (logo, nome, posição, favorita, preço ao vivo e 24h), gráfico, estatísticas, conversor.
+- Gráfico: **Lightweight Charts 4.2.3** (unpkg, com SRI), carregado só ao abrir uma moeda. Linha e velas; períodos 1D, 7D, 1M, 3M, 1A; segue a moeda de exibição. Klines da Binance em USDT convertidas pelas klines do USDTBRL.
+- Moeda sem par na Binance: sem gráfico (mensagem).
+- **REGRA DOS 5s:** preço muda no máximo a cada 5s (`PRECO_INTERVALO_MS`). `criarAmortecedor` guarda o último de cada moeda e aplica em lote.
 - `sairDaMoeda()` roda em todo `desenhar()` e limpa socket, timers e gráfico.
 
-## Etapas entregues (continuação)
+### Etapa 2.1 · Sem chave do usuário
+Removido de Ajustes o campo para o usuário colar a chave da CoinGecko.
 
-### Etapa 8 · PWA (entregue)
-- `index.html` + `manifest.json` + `sw.js` + ícones (72 a 512, maskable em 192 e 512).
-- Service worker estratégia cache-first para assets estáticos; APIs externas (Supabase, Binance, Cloudflare, CoinGecko, CDNs) vão direto à rede.
-- `navigator.serviceWorker.register('./sw.js')` no fim do script (fora do IIFE).
-- Botão "Instalar KoinFin" em Ajustes captura `beforeinstallprompt` e aciona `_promptInstalacao.prompt()`; se o prompt não estiver disponível, mostra instrução manual.
-- `theme-color`, `apple-mobile-web-app-capable`, splash via `background_color`, modo standalone.
-- Cloudflare Worker (`https://teste-koin.correiaerisvaldo.workers.dev`) como proxy da CoinGecko — chave no ambiente do Worker, nunca no código.
+### Etapa 3 · Motor e lançamentos
+- **Motor puro:** `pernasDaTransacao`, `ordenarTransacoes`, `processarCarteira`, `primeiroFuroDeSaldo`, `verificarCronologia`. Recebe listas e devolve resultado, sem ler nem gravar nada.
+- **Lucro realizado:** calculado na hora, não guardado no lançamento (editar/excluir recalcula automaticamente).
+- **Banco local** (`armazem`, chave `KOIN_BANCO`): `{ moedas, transacoes, proximoId }`. Tipos: COMPRA, VENDA, ENTRADA, SAIDA, CONVERSAO.
+- **Gaveta de lançamento** (`#gaveta`): operação, moeda, quantidade, preço, taxas, data.
+- **Página Lançamentos** (`/lancamentos`): lista do mais recente para o mais antigo.
+- Testes do motor: 23 casos, rodados em Node.
 
-### Etapa 9.2 · Supabase Camada 2 — banco assíncrono (entregue)
-- `carregarBanco()` busca `transacoes` e `moedas_conhecidas` do Supabase e popula `_banco` em memória.
-- `salvarLancamento`, `editarLancamento`, `excluirLancamento` operam diretamente no Supabase (insert/update/delete).
-- `moedas_conhecidas` atualizada via upsert a cada operação.
-- Motor de cálculo não foi alterado — continua operando sobre lista recebida como dado puro.
-- `verificarMigracao` detecta dados no localStorage que ainda não estão na nuvem e oferece migração via `window.confirm` (limitação: pode não aparecer no modo standalone em alguns navegadores).
+### Etapa 4 · Portfólio
+- Resumo: saldo grande (Unbounded), variação 24h, custo, lucro não realizado, lucro realizado, resultado total.
+- **Evolução real do patrimônio:** `reconstruirEvolucao` — klines diárias da Binance, dia a dia do 1º lançamento até hoje. Períodos 1M, 3M, 6M, 1A, Tudo.
+- **Alocação (rosca):** SVG próprio, animado. Paleta categórica validada com `dataviz` skill: azul, laranja, violeta, latão, magenta. Verde e vermelho não entram.
+- **Tabela de ativos:** moeda, preço ao vivo, 24h, quantidade, preço médio, custo, saldo, lucro, % da carteira.
+- `sairDoPortfolio()` limpa socket, timers e gráfico.
 
-### Etapa 9.3 · Modo offline + abertura instantânea (entregue)
-- `carregarBanco()` lê o cache do localStorage primeiro (síncrono, sem rede) e exibe os dados imediatamente.
-- Em segundo plano confirma com o Supabase; se os dados diferirem, atualiza `_banco` e redesenha.
-- Erros de rede são silenciosos — o app funciona offline com os dados do último acesso.
+### Etapas 4.1 e 5.1 · Ajustes do relatório de testes
+Origem: relatório de testes de 29/09/2026 (Android, Chrome).
+- Topo fixo (`position: fixed`). Bolinhas nos cartões de destaque (celular). Escala do gráfico do portfólio. Sinal negativo antes do símbolo. Etiquetas de operação (cinza/contorno/azul, não verde/vermelho). Logo do TradingView no rodapé.
 
-### Etapa 9.4 · Cloudflare Worker para CoinGecko (entregue)
+### Etapa 5 · Responsivo no celular
+Vale abaixo de **768px**. Bloco `CELULAR` no fim do `<style>`.
+- **Menu sanduíche** (sem barra inferior). Topo: marca, chip de moeda, busca, sanduíche.
+- **Mercado enxuto**: linha de ~58px (referência CoinMarketCap mobile).
+- **Portfólio**: cartões em 2 colunas, gráfico menor, tabela vira lista.
+- **Lançamentos**: cada um vira cartão. Gaveta em tela cheia com rodapé fixo.
+- Campos com 16px (evita zoom do iPhone), `safe-area`.
+
+### Etapa 6 · Identificação local
+PIN + perfil local. Múltiplos perfis por dispositivo. AES-GCM via `SubtleCrypto`, sessão por aba em `sessionStorage`. (Substituído pelo Supabase Auth na Etapa 9.)
+
+### Etapa 6.1 · Painel de login OTP
+PIN fixo em 6 dígitos. Caixas OTP-style com navegação automática. Layout duas colunas (painel da marca + formulário).
+
+### Etapa 6.2 · Portfólio e menu mobile
+Painel superior do portfólio em desktop (saldo à esquerda, gráfico à direita). Chip de moeda no celular (cicla R$ → US$ → ₿). Avatar no topo mobile abre o menu sanduíche. "Sair" no rodapé do menu.
+
+### Etapa 6.3 · Fix do header e lançamentos mobile
+Cabeçalho do celular sem sobreposição. "Seus lançamentos" na página da moeda: valor quebra para segunda linha (`com-valor`).
+
+### Etapa 7 · Backup
+Exportar portfólio como JSON (`v1` versionado). Importar com prévia. Snapshot antes de importar (`KOIN_BACKUP_SNAPSHOT_<userId>`), botão "Desfazer". Formato preparado para v2 multi-portfólio.
+
+### Etapa 7.1 · Ajuste nos lançamentos mobile
+CSS fino no quebra de linha de "Seus lançamentos". Meta tags de compatibilidade PWA na `<head>`.
+
+### Etapa 7.2 · Rendimento e detalhe de lançamentos
+- **Novo tipo RENDIMENTO:** staking, DeFi, mining e cashback. Badge verde-água suave.
+- **Remoção da página "Sistema Visual".**
+- **Tooltip `?`** ao lado de "Operação" na gaveta.
+- **Campo "Nota (opcional)"** na gaveta.
+- **Gaveta mais larga** no desktop (600px).
+- **Seletor de operação no celular** (`<select>`).
+- **Gaveta de detalhe** (somente leitura): clicar na linha abre com botões Editar e Excluir.
+- Tabela de lançamentos: 6 colunas (taxas e lucro realizado vão para a gaveta de detalhe).
+
+### Etapa 7.3 · Ajustes no plano MD
+Atualização do CLAUDE.md. Remoção do bloco de comentário HTML `<!-- GUIA DE MANUTENÇÃO -->` do `index.html`.
+
+### Etapa 7.4 · Filtro por tipo na página de lançamentos
+Botões segmentados no desktop, `<select>` no celular. Filtros: Todas, Compra, Venda, Entrada, Saída, Conversão, Rendimento. Atualização parcial do DOM (`atualizarFiltroLanc`).
+
+### Etapa 8 · Busca de moeda fora do top 100
+- Campo de busca na gaveta de lançamento que aceita moedas além das 100 do pacote diário.
+- Moeda já cadastrada no `BANCO.moedas` sempre disponível, mesmo que saia do top 100.
+- Busca pelo símbolo/nome com sugestões; confirma existência do par Binance antes de aceitar.
+
+### Etapa 9 · Supabase Camada 1 — autenticação
+- **Login e cadastro** via Supabase Auth (e-mail + senha). PIN local substituído.
+- **Sessão persistente** entre aberturas: JWT guardado pelo supabase-js.
+- **Nome do perfil** em `user_metadata` (campo `nome`).
+- **supabase-js** carregado via CDN (UMD), `SUPABASE_URL` e `SUPABASE_ANON_KEY` embutidos. Anon key público por design: segurança via RLS.
+- Tela de entrada: painel da marca à esquerda, formulário à direita.
+
+### Etapa 9.1 · Tabelas SQL no Supabase
+- **`transacoes`:** `id`, `user_id` (FK → `auth.users`, cascade delete), `tipo`, `moeda_id`, `quantidade`, `preco_unitario`, `taxas`, `data`, `descricao`, `moeda_destino_id`, `quantidade_destino`. Índice em `(user_id)`.
+- **`moedas_conhecidas`:** PK composta `(id, user_id)`. Cache permanente de `simbolo`, `nome`, `logo`.
+- **RLS ativada em ambas:** `using (auth.uid() = user_id)`.
+
+### Etapa 9.2 · Banco assíncrono — lançamentos no Supabase
+- `carregarBanco()` busca `transacoes` e `moedas_conhecidas` do Supabase.
+- `salvarLancamento`, `editarLancamento`, `excluirLancamento` operam diretamente no Supabase.
+- Motor de cálculo não alterado — opera sobre lista recebida como dado puro.
+- `verificarMigracao` detecta dados no localStorage e oferece migração via `window.confirm` (**limitação:** pode não aparecer no standalone — ver pendências).
+
+### Etapa 9.3 · Modo offline + abertura instantânea
+- `carregarBanco()` lê localStorage primeiro (síncrono) e exibe dados imediatamente.
+- Confirma com Supabase em segundo plano; se diferir, atualiza e redesenha.
+- Erros de rede silenciosos — app funciona offline com os dados do último acesso.
+
+### Etapa 9.4 · Cloudflare Worker para CoinGecko
 - `COINGECKO` aponta para `https://teste-koin.correiaerisvaldo.workers.dev`.
-- A chave Demo da CoinGecko (`CG_CHAVE`) vive como variável de ambiente no Worker, nunca no `index.html`.
-- Mesma regra de 1 chamada por dia continua valendo; o Worker entrega a resposta em cache para o restante do dia.
+- Chave Demo da CoinGecko vive como variável de ambiente no Worker, nunca no `index.html`.
+- Mesma regra de 1 chamada por dia; o Worker entrega resposta em cache para o restante do dia.
 
-### Etapa 9.5 · Refinamento de storage (entregue)
-- Ajustes finos no ciclo de leitura e gravação do banco local/Supabase.
+### Etapa 9.5 · Refinamento de storage
+Ajustes finos no ciclo de leitura e gravação do banco local/Supabase.
 
-### Etapa 10 · Balanceamento (entregue)
-- Página `/balanceamento`: tabela com alocação atual (%) vs. target (%), desvio e simulador de aporte.
-- Dois modos: distribuição por **%** (soma 100%) ou por **nota** (0–10 por moeda, normalizado).
-- Targets gravados na tabela `portfolio_targets` do Supabase; cacheados localmente em `TARGETS_<userId>`.
-- `carregarTargets()` lê cache local primeiro e confirma com o Supabase em segundo plano.
-- `salvarTargets()` faz upsert no Supabase e remove linhas de moedas zeradas.
-- Backup exporta `targets` junto com lançamentos; importação restaura targets se presentes.
-- `/balanceamento/ajuda`: FAQ explicando como funciona cada parte da tela.
+### Etapa 10 · Balanceamento
+- Página `/balanceamento`: alocação atual (%) vs. target (%), desvio, simulador de aporte.
+- Dois modos: **%** (soma 100%) ou **nota** (0–10 por moeda, normalizado).
+- Targets em `portfolio_targets` do Supabase, cacheados localmente em `TARGETS_<userId>`.
+- `carregarTargets()` lê cache local primeiro, confirma com Supabase em segundo plano.
+- Backup exporta `targets` junto com lançamentos.
 - `/objetivos` continua como placeholder "em breve".
 
-### Etapa 10.1 · Targets reais via Supabase (entregue, parte da Etapa 10)
-- Tabela `portfolio_targets`: `user_id`, `moeda_id`, `peso_alvo`, `modo`. RLS ativa.
-- `_targets` é o mapa em memória `{ moeda_id: peso_alvo }`.
-- Aviso por toast quando um lançamento novo é feito em moeda sem target definido.
-- `_targets` é limpo ao sair da conta (`sair()`).
+### Etapa 10.1 · Targets reais via Supabase
+Tabela `portfolio_targets`: `user_id`, `moeda_id`, `peso_alvo`, `modo`. RLS ativa. Toast quando lançamento novo é feito em moeda sem target.
 
 ---
 
-## Próximas etapas
+## Entregues no v0.2.0-beta (sem número de etapa próprio)
 
-### Seletor de portfólio (número a definir)
-- Seletor no cabeçalho da página Portfólio (não na nav).
-- Permite trocar de portfólio/perfil sem sair da tela.
-- Portfólios pertencem a um único perfil.
+### PWA
+- `manifest.json` + `sw.js` + ícones 72–512px (maskable em 192 e 512).
+- Service worker cache-first para assets estáticos; APIs externas (Supabase, Binance, Cloudflare, CDNs) vão direto à rede.
+- `navigator.serviceWorker.register('./sw.js')` no fim do script (fora do IIFE).
+- `skipWaiting()` + `clients.claim()` para ativação imediata.
+- `theme-color`, `apple-mobile-web-app-capable`, modo standalone.
 
-### Demais extras (a numerar)
-- **Objetivos:** patrimônio total, patrimônio numa moeda, com progresso, aporte mensal (informado ou média real) e conclusão estimada. Concluídos guardados com data.
-- **Alertas de preço** (no app; notificação de sistema com a Push API).
-
----
-
-## Antes de publicar
-
-1. ~~**Chave da CoinGecko no código:**~~ **resolvido na Etapa 9.4** — Cloudflare Worker como proxy; chave no ambiente do Worker.
-2. **Biblioteca de gráficos por CDN** (`LW_URL`, unpkg, já com SRI): para funcionar offline no PWA, incluir o arquivo no cache do service worker ou servir junto do app.
-3. **Testar pelo endereço publicado**, não pelo arquivo: abrindo por `content://downloads` cada download novo pode virar outra origem e os lançamentos "somem". Publicar no GitHub Pages (mesmo em rascunho) e testar pela URL.
-4. ~~**Página "Sistema visual":** tirar do menu antes de publicar~~ — **feito na Etapa 7.2** (página removida).
-5. ~~**Rodapé "dados só no aparelho":**~~ **resolvido** — o rodapé foi simplificado (versão, TradingView, copyright) e o painel de Ajustes/Armazenamento já informa que os dados ficam na nuvem.
-6. **`window.confirm` na migração** (`verificarMigracao`): pode não aparecer no modo standalone em alguns navegadores. Substituir por modal nativo do app antes da publicação.
+### Tema claro
+- Tokens completos em `:root[data-tema="claro"]`. Toggle em Ajustes. `aplicarTema()` aplica no `<html>`.
+- Persiste em `armazem` (`KOIN_PREFS`).
 
 ---
 
-## Identificação e sincronização — decisão tomada (registrada em 29/09/2026, implementada na Etapa 9)
+## Entregues no v0.3.0-beta
 
-A opção escolhida foi a **(b): identificação real com servidor via Supabase Auth.** O rodapé "dados só no aparelho" precisará mudar (ver "Antes de publicar", item 5).
+### Botão de instalação do PWA
+- `_promptInstalacao` captura `beforeinstallprompt` (fora do IIFE, antes de tudo).
+- `instalarPWA()` ativa o prompt nativo; sem prompt, exibe instrução manual via `avisar`.
+- Botão "Instalar KoinFin" em Ajustes usa `data-pwa-instalar`.
 
-Contexto histórico que levou à decisão:
-- **O que o login do Dash Finance era:** usuários e senha no navegador, hash caseiro da senha (não era segurança real), tela dividida (painel da marca à esquerda, formulário à direita). Servia para separar contas no mesmo aparelho; nada saía do aparelho.
-- **Decisão de produto original do Koin:** "sem login, dados só no aparelho". Para saber quem usa o app, a identificação precisaria ir para um servidor — o que muda a promessa de privacidade e pede política de privacidade (LGPD).
-- **O que foi escolhido:** Supabase Auth (e-mail + senha). Não reaproveitar o hash do Dash Finance. O layout de tela dividida com painel da marca foi aproveitado.
-- **O que os dados locais fazem:** migrados para o Postgres do Supabase na Etapa 9.2. O cache local persiste para abertura instantânea e modo offline. O backup em arquivo continua como camada extra.
-- **Hospedagem:** GitHub Pages ou Netlify, decisão ainda em aberto.
+### Banner de atualização do SW
+- `reg.addEventListener('updatefound')` detecta novo SW instalado.
+- Quando o novo SW ativa (`statechange === 'activated'`), `#banner-atualizacao` aparece.
+- Botão "Atualizar" faz `location.reload()`; botão "✕" descarta o banner.
+- Para disparar: subir nova versão com `CACHE` diferente no `sw.js`.
+
+### Ordenação por lucro no portfólio
+- Coluna "Lucro" da tabela de ativos ganhou seta de ordenação.
+- Estado padrão: ⇅ cinza (ordena por saldo). Clique: ▼ latão (maior → menor lucro). Clique novamente: ▲ latão (menor → maior lucro). Terceiro clique: volta ao padrão.
+- DOM-based: `data-lucro-sort` e `data-saldo-sort` em cada `<tr>`. `atualizarOrdemPortfolio()` reordena o tbody sem redesenhar a página.
+- `atualizarPortfolioTela` mantém `data-lucro-sort` fresco a cada tick do WebSocket.
+- `lucroSortVal(x)`: moeda sem saldo vai para o fim; custo zero ordena pelo saldo.
+
+---
+
+## Pendências para v1.0
+
+### 1. Página Objetivos
+`/objetivos` ainda é `paginaEmBreve`. Era parte do escopo original (Análise > Objetivos). Funcionalidade: patrimônio total ou por moeda, progresso em %, aporte mensal e data estimada de conclusão.
+
+### 2. Lightweight Charts offline
+`LW_URL` carrega de `https://unpkg.com/lightweight-charts@4.2.3/...` — não está em `ASSETS_ESTATICOS` do SW. Sem rede, a página da moeda não consegue carregar o gráfico. Resolver: baixar o bundle para `assets/` e referenciar localmente, ou adicionar o CDN ao cache do SW.
+
+### 3. `window.confirm` → modal nativo
+Três ocorrências que podem não aparecer no modo standalone (PWA instalado) em alguns navegadores/sistemas:
+- `verificarMigracao` (migração localStorage → Supabase)
+- `excluirLancamento` × 2 (confirmação de exclusão)
+Substituir por modal/gaveta nativa do app antes da publicação final.
+
+### 4. Página de perfil (trocar nome/senha)
+Não existe. Hoje o usuário não tem como trocar o nome de exibição ou a senha dentro do app. Mínimo: formulário em Ajustes com campos para nome e senha atual/nova, usando `supabase.auth.updateUser`.
+
+---
+
+## Próximas etapas (pós-v1.0)
+
+- **Seletor de portfólio:** múltiplos portfólios por conta. Seletor no cabeçalho da página Portfólio.
+- **Alertas de preço:** no app (toast) e Push Notifications quando instalado.
+- **Exportação para IR:** CSV com ganhos realizados por ano.
+- **Importação automática:** leitura de extrato de corretoras (Binance, Foxbit).
+
+---
+
+## Antes de publicar com URL definitiva
+
+1. ~~**Chave da CoinGecko no código:**~~ resolvido na Etapa 9.4 — chave no Worker.
+2. **Lightweight Charts offline:** adicionar ao cache do SW (ver Pendências item 2).
+3. ~~**Testar pelo endereço publicado:**~~ resolvido — app já está no ar.
+4. ~~**Página "Sistema visual" no menu:**~~ resolvido na Etapa 7.2.
+5. ~~**Rodapé "dados só no aparelho":**~~ resolvido — rodapé simplificado, Ajustes informa nuvem.
+6. **`window.confirm`:** substituir por modal nativo (ver Pendências item 3).
+7. **Chave CoinGecko nova:** a chave atual apareceu em commits anteriores antes do Worker existir. Gerar nova no painel da CoinGecko e atualizar no Worker antes do lançamento público.
+
+---
+
+## Identificação e sincronização
+
+Decisão tomada em 29/09/2026 e implementada na Etapa 9: **Supabase Auth (e-mail + senha)**.
+
+- O PIN local da Etapa 6 foi substituído pela senha do Supabase.
+- O layout de tela dividida (painel da marca + formulário) foi aproveitado.
+- Dados migrados para o Postgres do Supabase na Etapa 9.2. Cache local persiste para abertura instantânea e modo offline.
+- **Hospedagem:** app publicado e no ar. Cloudflare Worker já em uso.
 
 ---
 
@@ -427,5 +401,5 @@ koin/
   assets/               (ícones PNG: 16, 32, 48, 72, 96, 128, 144, 152, 180, 192, 384, 512)
   CLAUDE.md             (este arquivo)
 ```
-Um commit por etapa (ou por ajuste `N.x`), com a tag no título: `ETAPA 2: página da moeda com gráfico interativo`.
 
+Um commit por etapa (ou por ajuste `N.x`), com a tag no título: `ETAPA 2: página da moeda com gráfico interativo`.
