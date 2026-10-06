@@ -3666,11 +3666,35 @@ body:has(#gaveta.aberta) .avisos {
 'use strict';
 
 /* =================================================================
+   PWA — SERVICE WORKER E INSTALAÇÃO  [ETAPA 8]
+   O prompt de instalação é capturado aqui e acionado pelo botão em
+   Ajustes. Se o navegador não suportar ou o app já estiver instalado,
+   o botão abre uma instrução manual.
+   ================================================================= */
+var _promptInstalacao = null;
+
+window.addEventListener('beforeinstallprompt', function (ev) {
+    ev.preventDefault();
+    _promptInstalacao = ev;
+});
+
+function instalarPWA() {
+    if (_promptInstalacao) {
+        _promptInstalacao.prompt();
+        _promptInstalacao.userChoice.then(function () {
+            _promptInstalacao = null;
+        });
+    } else {
+        avisar('Use o menu do navegador (⋮ ou compartilhar) e escolha "Adicionar à tela inicial".', 'info');
+    }
+}
+
+/* =================================================================
    CONFIGURAÇÃO
    ================================================================= */
 var APP = {
     nome: 'KoinFin',
-    versao: 'v0.2.0-beta',
+    versao: 'v0.3.0-beta',
     ano: 2026,
     autor: 'BitCoderSoft',
 };
@@ -9189,6 +9213,7 @@ document.addEventListener('click', function (ev) {
         return;
     }
     if (ev.target.closest('[data-backup-desfazer]')) { desfazerImportacao(); return; }
+    if (ev.target.closest('[data-pwa-instalar]')) { instalarPWA(); return; }
 });
 
 /* =================================================================
@@ -9231,6 +9256,13 @@ Promise.all([carregarArmazenamento(), _bootAuthPronto]).then(function () {
 });
 
 })();
+
+// [ETAPA 8] registro do service worker — fora do IIFE, roda uma vez após o app
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(function (e) {
+        console.warn('SW não registrado:', e);
+    });
+}
 </script>
 </body>
 </html>

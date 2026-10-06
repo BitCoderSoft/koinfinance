@@ -1,27 +1,27 @@
-# Koin · gestor de portfólio cripto
+# KoinFin · gestor de portfólio cripto
 
-Projeto da BitCoderSoft. Nome provisório: **Koin** (pode mudar; trocar em `APP.nome` e no `<title>`).
+Projeto da BitCoderSoft. Nome do app: **KoinFin** (definido em `APP.nome` e no `<title>`).
 
 App web de gestão de portfólio só de criptomoedas, pensado para virar PWA instalável. Inspiração visual e de produto: CoinMarketCap, CoinGecko e as telas de mercado da Binance. Destino: publicação no portfólio da BitCoderSoft.
 
-Este documento resume o que foi construído até aqui (etapas 0–9.1, iniciadas no claude.ai e continuadas no VS Code) e o plano das próximas etapas.
+Este documento resume o que foi construído até aqui (etapas 0–10.1, iniciadas no claude.ai e continuadas no VS Code) e o plano das próximas etapas.
 
 
 ## Situação atual
 
 | Item | Estado |
 |---|---|
-| Arquivo principal | `koin.html` (single-file: HTML + CSS + JS, sem build) |
-| Versão | `0.1.0` (vira `1.0.0` ao fechar a Etapa 8) |
-| Etapas concluídas | 0 (fundação), 0.1 (navegação no topo), 1 (mercado), 1.1 (CoinGecko com chave), 1.2 (tabela larga), 2 (página da moeda), 2.1 (sem chave do usuário), 3 (motor e lançamentos), 4 (portfólio), 4.1 e 5.1 (ajustes do relatório de testes), 5 (responsivo no celular), 6 (identificação local), 6.1 (painel de login OTP), 6.2 (portfólio e menu mobile), 6.3 (header e lançamentos mobile), 7 (backup), 7.1 (lançamentos mobile), 7.2 (rendimento e detalhe de lançamentos), 7.3 (ajustes do plano MD), 7.4 (filtro de lançamentos), 9 (Supabase Camada 1 — auth), 9.1 (Supabase Camada 2a — tabelas SQL) |
-| Próxima etapa | 9.2 (Supabase Camada 2 — migrar lançamentos para Postgres, async), depois seletor de portfólio, demais extras (balanceamento, objetivos, alertas) e Etapa 8 (PWA) |
+| Arquivo principal | `index.html` (single-file: HTML + CSS + JS, sem build) |
+| Versão | `v0.3.0-beta` (vira `1.0.0` ao fechar publicação e PWA completo) |
+| Etapas concluídas | 0 (fundação), 0.1 (navegação no topo), 1 (mercado), 1.1 (CoinGecko com chave), 1.2 (tabela larga), 2 (página da moeda), 2.1 (sem chave do usuário), 3 (motor e lançamentos), 4 (portfólio), 4.1 e 5.1 (ajustes do relatório de testes), 5 (responsivo no celular), 6 (identificação local), 6.1 (painel de login OTP), 6.2 (portfólio e menu mobile), 6.3 (header e lançamentos mobile), 7 (backup), 7.1 (lançamentos mobile), 7.2 (rendimento e detalhe de lançamentos), 7.3 (ajustes do plano MD), 7.4 (filtro de lançamentos), 8 (PWA — manifest, sw.js, ícones, registro do SW, botão de instalação), 9 (Supabase Camada 1 — auth), 9.1 (Supabase Camada 2a — tabelas SQL), 9.2 (banco async — lançamentos no Postgres), 9.3 (modo offline + abertura instantânea do cache), 9.4 (Cloudflare Worker como proxy da CoinGecko), 9.5 (refinamento de storage), 10 (Balanceamento — UI, targets, modo % / notas, persistência no Supabase), 10.1 (targets reais via Supabase + cache local) |
+| Próxima etapa | Seletor de portfólio, Objetivos (atualmente placeholder "em breve"), demais extras (alertas de preço) |
 | Pendência aberta | — |
 
 ---
 
 ## Origem
 
-O Koin nasceu da parte cripto do **Dash Finance**, painel pessoal de investimentos (ações, FIIs, BDRs e cripto) do mesmo autor, também single-file. Boa parte da lógica foi testada lá com dados reais. O Dash Finance é de uso pessoal e fica congelado em ~70%; o Koin é o produto publicável.
+O KoinFin nasceu da parte cripto do **Dash Finance**, painel pessoal de investimentos (ações, FIIs, BDRs e cripto) do mesmo autor, também single-file. Boa parte da lógica foi testada lá com dados reais. O Dash Finance é de uso pessoal e fica congelado em ~70%; o KoinFin é o produto publicável.
 
 O `dash-finance.html` foi anexado no chat na Etapa 3 e o motor cripto já foi portado. **O arquivo original contém tokens reais (brapi e bolsai) no código: nunca colocar ele no repositório.** Se precisar dele de novo (Balanceamento e Objetivos, Etapa 7, e Backup, `[BACKUP v1]`), colocar uma cópia limpa (sem tokens) em `referencia/`.
 
@@ -332,15 +332,55 @@ Portado do `dash-finance.html` (só a parte cripto: `[CRIPTO v2]`, `[CRIPTO v2.1
 - Casamento Binance × CoinGecko (`parBinanceDe`): com o pacote de até 24h, a tolerância de divergência sobe de 10% para 40% quando o pacote tem mais de 1h. Símbolo repetido de verdade difere por ordens de grandeza.
 - `sairDaMoeda()` roda em todo `desenhar()` e limpa socket, timers e gráfico.
 
-## Próximas etapas
+## Etapas entregues (continuação)
 
-### Etapa 9.2 · Supabase Camada 2 — código assíncrono
-A mudança mais delicada: `lerBanco()` e `gravarBanco()` viram assíncronas e todos os pontos que as chamam precisam ser ajustados.
-1. `lerBanco()` → `async lerBanco()`: busca `transacoes` e `moedas_conhecidas` do Supabase.
-2. `gravarBanco()` → operações individuais de insert/update/delete na tabela `transacoes`; `moedas_conhecidas` atualizada via upsert.
-3. Callers a ajustar: `paginaLancamentos`, `paginaPortfolio`, `lancamentosMoedaHTML`, `salvarLancamento`, `editarLancamento`, `excluirLancamento`, backup.
-4. Motor de cálculo não muda: já opera sobre lista de transações recebida como dado puro.
-5. Primeira abertura pós-migração: detectar dados no localStorage e oferecer importação para o Supabase.
+### Etapa 8 · PWA (entregue)
+- `index.html` + `manifest.json` + `sw.js` + ícones (72 a 512, maskable em 192 e 512).
+- Service worker estratégia cache-first para assets estáticos; APIs externas (Supabase, Binance, Cloudflare, CoinGecko, CDNs) vão direto à rede.
+- `navigator.serviceWorker.register('./sw.js')` no fim do script (fora do IIFE).
+- Botão "Instalar KoinFin" em Ajustes captura `beforeinstallprompt` e aciona `_promptInstalacao.prompt()`; se o prompt não estiver disponível, mostra instrução manual.
+- `theme-color`, `apple-mobile-web-app-capable`, splash via `background_color`, modo standalone.
+- Cloudflare Worker (`https://teste-koin.correiaerisvaldo.workers.dev`) como proxy da CoinGecko — chave no ambiente do Worker, nunca no código.
+
+### Etapa 9.2 · Supabase Camada 2 — banco assíncrono (entregue)
+- `carregarBanco()` busca `transacoes` e `moedas_conhecidas` do Supabase e popula `_banco` em memória.
+- `salvarLancamento`, `editarLancamento`, `excluirLancamento` operam diretamente no Supabase (insert/update/delete).
+- `moedas_conhecidas` atualizada via upsert a cada operação.
+- Motor de cálculo não foi alterado — continua operando sobre lista recebida como dado puro.
+- `verificarMigracao` detecta dados no localStorage que ainda não estão na nuvem e oferece migração via `window.confirm` (limitação: pode não aparecer no modo standalone em alguns navegadores).
+
+### Etapa 9.3 · Modo offline + abertura instantânea (entregue)
+- `carregarBanco()` lê o cache do localStorage primeiro (síncrono, sem rede) e exibe os dados imediatamente.
+- Em segundo plano confirma com o Supabase; se os dados diferirem, atualiza `_banco` e redesenha.
+- Erros de rede são silenciosos — o app funciona offline com os dados do último acesso.
+
+### Etapa 9.4 · Cloudflare Worker para CoinGecko (entregue)
+- `COINGECKO` aponta para `https://teste-koin.correiaerisvaldo.workers.dev`.
+- A chave Demo da CoinGecko (`CG_CHAVE`) vive como variável de ambiente no Worker, nunca no `index.html`.
+- Mesma regra de 1 chamada por dia continua valendo; o Worker entrega a resposta em cache para o restante do dia.
+
+### Etapa 9.5 · Refinamento de storage (entregue)
+- Ajustes finos no ciclo de leitura e gravação do banco local/Supabase.
+
+### Etapa 10 · Balanceamento (entregue)
+- Página `/balanceamento`: tabela com alocação atual (%) vs. target (%), desvio e simulador de aporte.
+- Dois modos: distribuição por **%** (soma 100%) ou por **nota** (0–10 por moeda, normalizado).
+- Targets gravados na tabela `portfolio_targets` do Supabase; cacheados localmente em `TARGETS_<userId>`.
+- `carregarTargets()` lê cache local primeiro e confirma com o Supabase em segundo plano.
+- `salvarTargets()` faz upsert no Supabase e remove linhas de moedas zeradas.
+- Backup exporta `targets` junto com lançamentos; importação restaura targets se presentes.
+- `/balanceamento/ajuda`: FAQ explicando como funciona cada parte da tela.
+- `/objetivos` continua como placeholder "em breve".
+
+### Etapa 10.1 · Targets reais via Supabase (entregue, parte da Etapa 10)
+- Tabela `portfolio_targets`: `user_id`, `moeda_id`, `peso_alvo`, `modo`. RLS ativa.
+- `_targets` é o mapa em memória `{ moeda_id: peso_alvo }`.
+- Aviso por toast quando um lançamento novo é feito em moeda sem target definido.
+- `_targets` é limpo ao sair da conta (`sair()`).
+
+---
+
+## Próximas etapas
 
 ### Seletor de portfólio (número a definir)
 - Seletor no cabeçalho da página Portfólio (não na nav).
@@ -348,28 +388,19 @@ A mudança mais delicada: `lerBanco()` e `gravarBanco()` viram assíncronas e to
 - Portfólios pertencem a um único perfil.
 
 ### Demais extras (a numerar)
-Backup entregue na Etapa 7. Ainda falta:
-- **Balanceamento:** alocação ideal por moeda ou grupo, nota 0 a 10 por moeda, peso ideal, desvio em pontos percentuais, simulador de aporte (só compra, guloso pela maior falta). Vocabulário: "alocação ideal", "nota", "peso ideal", "desvio". A palavra "meta" fica reservada para Objetivos.
 - **Objetivos:** patrimônio total, patrimônio numa moeda, com progresso, aporte mensal (informado ou média real) e conclusão estimada. Concluídos guardados com data.
-- **Alertas de preço** (no app; notificação de sistema depois do PWA).
-
-### Etapa 8 · PWA
-- Separar em `index.html` + `manifest.webmanifest` + `sw.js` + ícones (192, 512, maskable).
-- Service worker: cache da casca e das bibliotecas de CDN; dados de mercado com rede primeiro e cache de reserva.
-- Tela de instalação, splash, `theme-color`, modo standalone.
-- Hospedagem: GitHub Pages (se a chave da CoinGecko for resolvida via Cloudflare Worker) ou Netlify (se preferir Functions serverless para o proxy). Decisão ainda em aberto.
-- Versão `1.0.0`.
+- **Alertas de preço** (no app; notificação de sistema com a Push API).
 
 ---
 
-## Antes de publicar (do relatório de testes de 29/09/2026)
+## Antes de publicar
 
-Nada disso foi feito ainda. Fazer junto com a Etapa 8 (PWA) ou antes de qualquer publicação:
-1. **Chave da CoinGecko no código** (`CG_CHAVE_PADRAO`): publicada, qualquer um copia a chave e todos dividem a cota de 10 mil chamadas por mês do plano Demo (com 1 chamada por dia por aparelho, ~330 usuários diários esgotam o mês). Solução: um intermediário (Cloudflare Worker gratuito) que guarda a chave, busca `/coins/markets` a cada poucos minutos e entrega a resposta em cache; o app chama o Worker, nunca a CoinGecko. **Ao montar o Worker, gerar chave nova e apagar a atual** (ela já apareceu fora do repositório).
-2. **Biblioteca de gráficos por CDN** (`LW_URL`, unpkg, já com SRI): para o PWA, incluir o arquivo no cache do service worker (ou servir junto do app), senão o gráfico some offline.
-3. **Testar pelo endereço publicado**, não pelo arquivo: abrindo por `content://downloads` cada download novo pode virar outra origem e os lançamentos "somem". Publicar no GitHub Pages (mesmo em rascunho) e testar pela URL. É também pré-requisito do PWA.
+1. ~~**Chave da CoinGecko no código:**~~ **resolvido na Etapa 9.4** — Cloudflare Worker como proxy; chave no ambiente do Worker.
+2. **Biblioteca de gráficos por CDN** (`LW_URL`, unpkg, já com SRI): para funcionar offline no PWA, incluir o arquivo no cache do service worker ou servir junto do app.
+3. **Testar pelo endereço publicado**, não pelo arquivo: abrindo por `content://downloads` cada download novo pode virar outra origem e os lançamentos "somem". Publicar no GitHub Pages (mesmo em rascunho) e testar pela URL.
 4. ~~**Página "Sistema visual":** tirar do menu antes de publicar~~ — **feito na Etapa 7.2** (página removida).
-5. **Rodapé "dados só no aparelho":** precisa ser atualizado antes de qualquer publicação pública. Com a Etapa 9.2 os lançamentos passam a ser armazenados no Supabase (nuvem). O texto atual promete privacidade local que não vale mais.
+5. ~~**Rodapé "dados só no aparelho":**~~ **resolvido** — o rodapé foi simplificado (versão, TradingView, copyright) e o painel de Ajustes/Armazenamento já informa que os dados ficam na nuvem.
+6. **`window.confirm` na migração** (`verificarMigracao`): pode não aparecer no modo standalone em alguns navegadores. Substituir por modal nativo do app antes da publicação.
 
 ---
 
@@ -381,19 +412,20 @@ Contexto histórico que levou à decisão:
 - **O que o login do Dash Finance era:** usuários e senha no navegador, hash caseiro da senha (não era segurança real), tela dividida (painel da marca à esquerda, formulário à direita). Servia para separar contas no mesmo aparelho; nada saía do aparelho.
 - **Decisão de produto original do Koin:** "sem login, dados só no aparelho". Para saber quem usa o app, a identificação precisaria ir para um servidor — o que muda a promessa de privacidade e pede política de privacidade (LGPD).
 - **O que foi escolhido:** Supabase Auth (e-mail + senha). Não reaproveitar o hash do Dash Finance. O layout de tela dividida com painel da marca foi aproveitado.
-- **O que os dados locais fazem:** continuam no localStorage enquanto a Etapa 9.2 não está pronta; depois migram para o Postgres do Supabase. O backup em arquivo continua como camada extra.
-- **Hospedagem:** GitHub Pages ou Netlify, decisão ainda em aberto (ver item 1 de "Antes de publicar").
+- **O que os dados locais fazem:** migrados para o Postgres do Supabase na Etapa 9.2. O cache local persiste para abertura instantânea e modo offline. O backup em arquivo continua como camada extra.
+- **Hospedagem:** GitHub Pages ou Netlify, decisão ainda em aberto.
 
 ---
 
-## Sugestão para o repositório
+## Estrutura do repositório
 
 ```
 koin/
-  index.html            (hoje: koin.html; renomear na Etapa 8)
+  index.html            (single-file: HTML + CSS + JS)
+  manifest.json         (PWA manifest)
+  sw.js                 (service worker)
+  assets/               (ícones PNG: 16, 32, 48, 72, 96, 128, 144, 152, 180, 192, 384, 512)
   CLAUDE.md             (este arquivo)
-  referencia/
-    dash-finance.html   (consulta do motor; sem dados pessoais)
 ```
 Um commit por etapa (ou por ajuste `N.x`), com a tag no título: `ETAPA 2: página da moeda com gráfico interativo`.
 
