@@ -776,6 +776,17 @@ a[data-rota] {
     transition: color 120ms ease, border-color 120ms ease;
 }
 
+.botao-icone-queda {
+    color: var(--queda);
+    border-color: rgba(242, 85, 90, 0.3);
+}
+
+.botao-icone-queda:hover {
+    color: #fff;
+    background: var(--queda);
+    border-color: var(--queda);
+}
+
 .botao-icone:hover,
 .nav-grupo.aberto .botao-icone,
 .botao-icone.ativo {
@@ -987,6 +998,16 @@ main#miolo {
 
 .botao-neutro:hover {
     background: var(--superficie-3);
+}
+
+.botao-perigo {
+    background: var(--queda);
+    color: #fff;
+    border-color: transparent;
+}
+
+.botao-perigo:hover {
+    background: #d93f44;
 }
 
 .botao-fantasma {
@@ -2206,6 +2227,106 @@ body:has(#gaveta.aberta) .avisos {
 #pf-conteudo > .painel + .painel,
 #pf-conteudo > .painel + .pf-nota,
 #pf-conteudo > .painel + .painel-tabela,
+/* [ETAPA 11] seletor de portfólio no cabeçalho da página Portfólio */
+.portfolio-seletor {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.portfolio-select-ctrl {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--superficie-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23A3AEC4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    color: var(--texto);
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 6px 32px 6px 12px;
+    cursor: pointer;
+    max-width: 220px;
+    transition: border-color 0.15s;
+}
+
+.portfolio-select-ctrl:focus {
+    outline: 2px solid var(--marca);
+    outline-offset: 2px;
+    border-color: var(--marca);
+}
+
+.portfolio-select-ctrl option {
+    background: var(--superficie-2);
+    color: var(--texto);
+}
+
+.botao-pequeno {
+    padding: 5px 10px;
+    font-size: 0.8125rem;
+    gap: 4px;
+}
+
+/* [ETAPA 11] gavetas de portfólio reutilizam as classes .gaveta / .gaveta-fundo */
+#gaveta-portfolio .gaveta,
+#gaveta-confirmar .gaveta {
+    width: min(480px, 100vw);
+}
+#gaveta-portfolio.aberta .gaveta-fundo,
+#gaveta-confirmar.aberta .gaveta-fundo {
+    opacity: 1;
+    visibility: visible;
+}
+#gaveta-portfolio.aberta .gaveta,
+#gaveta-confirmar.aberta .gaveta {
+    transform: none;
+    visibility: visible;
+}
+body:has(#gaveta-portfolio.aberta) .avisos,
+body:has(#gaveta-confirmar.aberta) .avisos {
+    right: calc(min(480px, 100vw) + 20px);
+}
+
+/* corpo da gaveta de confirmação de exclusão */
+.confirmar-alerta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    text-align: center;
+    padding: 8px 0 4px;
+}
+
+.confirmar-alerta-icone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(242, 85, 90, 0.15);
+    color: var(--queda);
+    flex-shrink: 0;
+}
+
+.confirmar-alerta-icone svg {
+    width: 28px;
+    height: 28px;
+}
+
+.confirmar-alerta p {
+    color: var(--texto-2);
+    font-size: var(--t-sm);
+    line-height: 1.6;
+    margin: 0;
+}
+
+.confirmar-alerta strong {
+    color: var(--texto);
+    font-weight: 600;
+}
+
 #pf-conteudo > .pf-topo-grade + .painel {
     margin-top: 16px;
 }
@@ -3698,6 +3819,8 @@ body:has(#gaveta.aberta) .avisos {
 <div id="app"></div>
 <div class="avisos" id="avisos" aria-live="polite"></div>
 <div id="gaveta"></div>
+<div id="gaveta-portfolio"></div>
+<div id="gaveta-confirmar"></div>
 
 <div id="banner-atualizacao" hidden role="status" aria-live="polite">
     <p>
@@ -4118,6 +4241,8 @@ var ICONES = {
     mais: '<path d="M12 5v14M5 12h14"/>',
     alta: '<path d="M5 15l7-7 7 7"/>',
     queda: '<path d="M5 9l7 7 7-7"/>',
+    lixo: '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6M9 3h6a1 1 0 011 1v2H8V4a1 1 0 011-1z"/>',
+    alerta: '<path d="M10.3 4.2L2.7 17a2 2 0 001.7 3h15.2a2 2 0 001.7-3L13.7 4.2a2 2 0 00-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
     exportar: '<path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2M12 3v12M8 11l4 4 4-4"/>',
     importar: '<path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2M16 7l-4-4-4 4M12 3v12"/>',
 };
@@ -6787,6 +6912,9 @@ function sair() {
     try { sairDoPortfolio(); } catch (e) {}
     _banco = null;  // [ETAPA 9.3] descarta cache em memória E no localStorage ao sair
     _targets = {};  // [ETAPA 10.1] limpa targets ao sair
+    _portfolios = [];           // [ETAPA 11] limpa estado em memória (localStorage permanece)
+    _mapaPortfolioTx = {};
+    estado.definir('portfolioAtivo', 'todos');
     try { armazem.remove(chaveDosBanco()); } catch (e) {}
     try { armazem.remove(chaveTargets()); } catch (e) {}
     encerrarSessao().then(function () {
@@ -6827,9 +6955,21 @@ function chaveDosBanco() {
     var id = sessaoAtual();
     return id ? 'BANCO_' + id : 'BANCO';
 }
+function chavePortfolios() {
+    var id = sessaoAtual();
+    return id ? 'PORTFOLIOS_' + id : 'PORTFOLIOS';
+}
+function chaveMapaPortfolioTx() {
+    var id = sessaoAtual();
+    return id ? 'PORTFOLIO_MAP_' + id : 'PORTFOLIO_MAP';
+}
 
 // [ETAPA 9.2] cache em memória — carregado do Supabase em carregarBanco()
 var _banco = null;
+
+// [ETAPA 11] multi-portfólio — fase visual (armazenamento em localStorage)
+var _portfolios = [];        // [{ id, nome, criadoEm }]
+var _mapaPortfolioTx = {};   // { [txId]: portfolioId }
 
 // [ETAPA 9.2] lê do cache; fallback para localStorage durante migração ou offline
 function lerBanco() {
@@ -6839,6 +6979,214 @@ function lerBanco() {
     b.moedas = b.moedas || {};
     b.proximoId = b.proximoId || 1;
     return b;
+}
+
+/* =================================================================
+   MULTI-PORTFÓLIO  [ETAPA 11]
+   Fase visual: portfólios e mapeamento tx→portfólio em localStorage.
+   Fase DB (etapa futura): substituir por leitura/escrita no Supabase.
+   ================================================================= */
+
+function portfolioAtivoId() {
+    return estado.ler('portfolioAtivo') || 'todos';
+}
+
+// carrega do localStorage e executa migração silenciosa (cria "Principal"
+// se há transações sem portfólio definido)
+function carregarPortfolios() {
+    _portfolios = armazem.json(chavePortfolios(), []) || [];
+    _mapaPortfolioTx = armazem.json(chaveMapaPortfolioTx(), {}) || {};
+    var txs = lerBanco().transacoes;
+    if (!txs.length) return;
+
+    // sem nenhum portfólio: criar "Principal" e associar todas as txs
+    if (_portfolios.length === 0) {
+        var principal = { id: 'p' + Date.now(), nome: 'Principal', criadoEm: new Date().toISOString() };
+        _portfolios = [principal];
+        txs.forEach(function (t) { _mapaPortfolioTx[t.id] = principal.id; });
+        try { armazem.set(chavePortfolios(), JSON.stringify(_portfolios)); } catch (e) {}
+        try { armazem.set(chaveMapaPortfolioTx(), JSON.stringify(_mapaPortfolioTx)); } catch (e) {}
+        return;
+    }
+
+    // portfólios existem mas alguma tx ficou sem mapeamento → associar ao 1º portfólio
+    var defaultId = _portfolios[0].id;
+    var mudou = false;
+    txs.forEach(function (t) {
+        if (_mapaPortfolioTx[t.id] === undefined) {
+            _mapaPortfolioTx[t.id] = defaultId;
+            mudou = true;
+        }
+    });
+    if (mudou) try { armazem.set(chaveMapaPortfolioTx(), JSON.stringify(_mapaPortfolioTx)); } catch (e) {}
+}
+
+function salvarPortfolios() {
+    try { armazem.set(chavePortfolios(), JSON.stringify(_portfolios)); } catch (e) {}
+}
+
+function salvarMapaPortfolioTx() {
+    try { armazem.set(chaveMapaPortfolioTx(), JSON.stringify(_mapaPortfolioTx)); } catch (e) {}
+}
+
+// cria portfólio e persiste; retorna o novo objeto
+function criarPortfolio(nome) {
+    nome = (nome || '').trim() || 'Portfólio';
+    var p = { id: 'p' + Date.now(), nome: nome, criadoEm: new Date().toISOString() };
+    _portfolios.push(p);
+    salvarPortfolios();
+    return p;
+}
+
+// garante que existe pelo menos 1 portfólio ("Principal" automático)
+function garantirPortfolioPadrao() {
+    if (_portfolios.length === 0) criarPortfolio('Principal');
+}
+
+// registra a associação de uma tx recém-criada ao portfólio correto
+function registrarPortfolioTx(txId, portfolioIdExplicito) {
+    garantirPortfolioPadrao();
+    var pId = portfolioIdExplicito;
+    if (!pId || pId === 'todos') {
+        var ativo = portfolioAtivoId();
+        pId = (ativo !== 'todos') ? ativo : _portfolios[0].id;
+    }
+    _mapaPortfolioTx[txId] = pId;
+    salvarMapaPortfolioTx();
+}
+
+// transações do portfólio ativo (ou todas se 'todos')
+function transacoesDoPortfolioAtivo() {
+    var txs = lerBanco().transacoes;
+    var ativo = portfolioAtivoId();
+    if (ativo === 'todos' || !_portfolios.length) return txs;
+    return txs.filter(function (t) { return _mapaPortfolioTx[t.id] === ativo; });
+}
+
+// carteira calculada apenas com as txs do portfólio ativo
+function carteiraDoPortfolioAtivo() {
+    return processarCarteira(ordenarTransacoes(transacoesDoPortfolioAtivo()));
+}
+
+// HTML do seletor de portfólio para o cabeçalho da página Portfólio
+function seletorPortfolioHTML() {
+    var ativo = portfolioAtivoId();
+    var ops = '<option value="todos"' + (ativo === 'todos' ? ' selected' : '') + '>Todos os portfólios</option>';
+    _portfolios.forEach(function (p) {
+        ops += '<option value="' + escapar(p.id) + '"' + (ativo === p.id ? ' selected' : '') + '>' + escapar(p.nome) + '</option>';
+    });
+    var podExcluir = ativo !== 'todos' && portfolioEstaVazio(ativo);
+    return '<div class="portfolio-seletor">' +
+        '<select id="portfolio-select" class="portfolio-select-ctrl" aria-label="Selecionar portfólio">' + ops + '</select>' +
+        (podExcluir
+            ? '<button type="button" class="botao botao-perigo botao-pequeno" data-portfolio-excluir="' + escapar(ativo) + '" title="Excluir portfólio" aria-label="Excluir portfólio">' + icone('lixo') + '</button>'
+            : '') +
+        '<button type="button" class="botao botao-neutro botao-pequeno" data-portfolio-novo aria-label="Novo portfólio">' +
+        icone('mais') + '<span class="so-computador">Novo portfólio</span></button>' +
+        '</div>';
+}
+
+// HTML e controle da gaveta de criação de portfólio
+function gavetaPortfolioHTML() {
+    return '<div class="gaveta-fundo" data-portfolio-fundo></div>' +
+        '<div class="gaveta" role="dialog" aria-modal="true" aria-labelledby="gav-pf-titulo">' +
+        '<div class="gaveta-topo"><h2 id="gav-pf-titulo">Novo portfólio</h2>' +
+        '<button type="button" class="botao-icone" data-portfolio-fundo aria-label="Fechar">&times;</button></div>' +
+        '<div class="gaveta-corpo">' +
+        '<div class="campo"><label for="portfolio-nome-input">Nome do portfólio</label>' +
+        '<input type="text" class="entrada" id="portfolio-nome-input" ' +
+        'placeholder="Ex.: Binance, Longo prazo..." maxlength="40" autocomplete="off"></div>' +
+        '</div>' +
+        '<div class="gaveta-pe">' +
+        '<button type="button" class="botao botao-neutro" data-portfolio-fundo>Cancelar</button>' +
+        '<button type="button" class="botao botao-marca" data-portfolio-criar>Criar portfólio</button>' +
+        '</div></div>';
+}
+
+function abrirGavetaPortfolio() {
+    var raiz = document.getElementById('gaveta-portfolio');
+    if (!raiz) return;
+    raiz.innerHTML = gavetaPortfolioHTML();
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function () {
+        raiz.classList.add('aberta');
+        var inp = raiz.querySelector('input');
+        if (inp) inp.focus();
+    });
+}
+
+function fecharGavetaPortfolio() {
+    var raiz = document.getElementById('gaveta-portfolio');
+    if (!raiz) return;
+    raiz.classList.remove('aberta');
+    document.body.style.overflow = '';
+    setTimeout(function () { raiz.innerHTML = ''; }, menosMovimento ? 0 : 240);
+}
+
+// [ETAPA 11] verifica se um portfólio específico não tem nenhuma transação associada
+function portfolioEstaVazio(id) {
+    return !lerBanco().transacoes.some(function (t) {
+        return _mapaPortfolioTx[t.id] === id;
+    });
+}
+
+// [ETAPA 11] gaveta de confirmação de exclusão de portfólio
+function gavetaConfirmarExcluirHTML(p) {
+    return '<div class="gaveta-fundo" data-confirmar-fechar></div>' +
+        '<div class="gaveta" role="dialog" aria-modal="true" aria-labelledby="gav-conf-titulo">' +
+        '<div class="gaveta-topo"><h2 id="gav-conf-titulo">Excluir portfólio</h2>' +
+        '<button type="button" class="botao-icone" data-confirmar-fechar aria-label="Fechar">&times;</button></div>' +
+        '<div class="gaveta-corpo">' +
+        '<div class="confirmar-alerta">' +
+        '<div class="confirmar-alerta-icone">' + icone('alerta') + '</div>' +
+        '<p>Você está prestes a excluir o portfólio <strong>' + escapar(p.nome) + '</strong>.</p>' +
+        '<p>Essa ação é permanente e não pode ser desfeita. O portfólio vai sumir, mas seus lançamentos continuam salvos — só deixarão de aparecer agrupados aqui.</p>' +
+        '</div>' +
+        '</div>' +
+        '<div class="gaveta-pe">' +
+        '<button type="button" class="botao botao-neutro" data-confirmar-fechar>Cancelar</button>' +
+        '<button type="button" class="botao botao-perigo" data-confirmar-ok="' + escapar(p.id) + '">' + icone('lixo') + 'Excluir portfólio</button>' +
+        '</div></div>';
+}
+
+function abrirConfirmarExcluirPortfolio(id) {
+    var p = _portfolios.filter(function (x) { return x.id === id; })[0];
+    if (!p) return;
+    var raiz = document.getElementById('gaveta-confirmar');
+    if (!raiz) return;
+    raiz.innerHTML = gavetaConfirmarExcluirHTML(p);
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function () { raiz.classList.add('aberta'); });
+}
+
+function fecharConfirmar() {
+    var raiz = document.getElementById('gaveta-confirmar');
+    if (!raiz) return;
+    raiz.classList.remove('aberta');
+    document.body.style.overflow = '';
+    setTimeout(function () { raiz.innerHTML = ''; }, menosMovimento ? 0 : 240);
+}
+
+function excluirPortfolio(id) {
+    _portfolios = _portfolios.filter(function (p) { return p.id !== id; });
+    Object.keys(_mapaPortfolioTx).forEach(function (txId) {
+        if (_mapaPortfolioTx[txId] === id) delete _mapaPortfolioTx[txId];
+    });
+    salvarPortfolios();
+    salvarMapaPortfolioTx();
+    estado.definir('portfolioAtivo', 'todos');
+    desenhar();
+}
+
+// estado vazio quando o portfólio ativo não tem lançamentos (mas outros têm)
+function portfolioEspecificoVazioHTML() {
+    var ativo = portfolioAtivoId();
+    var p = _portfolios.filter(function (x) { return x.id === ativo; })[0];
+    var nome = p ? p.nome : 'este portfólio';
+    return '<div class="painel">' +
+        '<p class="painel-titulo">' + escapar(nome) + ' está vazio</p>' +
+        '<p class="painel-sub">Este portfólio ainda não tem lançamentos. Adicione um para começar.</p>' +
+        '<button type="button" class="botao botao-marca" data-lanc-novo>' + icone('mais') + 'Novo lançamento</button></div>';
 }
 
 // [ETAPA 9.3 · 03/10/2026] atualiza o cache em memória E persiste uma
@@ -7240,6 +7588,9 @@ function validarLancamento(d, editId) {
     var desc = String(d.descricao || '').trim();
     if (desc) dados.descricao = desc;  // [ETAPA 7] opcional
 
+    // [ETAPA 11] portfólio de destino (passado pelo seletor da gaveta)
+    if (d.portfolioId) dados.portfolioId = d.portfolioId;
+
     // linha do tempo: só roda com os campos que ela usa já válidos
     var podeSimular = !erros.tipo && !erros.moeda && !erros.quantidade && !erros.data && !erros.destino && !erros.quantidadeDestino;
     if (podeSimular) {
@@ -7325,6 +7676,8 @@ function salvarLancamento(dados, editId) {
                     criadoEm: new Date(r.data.criado_em).getTime()
                 }));
                 gravarBanco(banco);
+                // [ETAPA 11] associa a nova tx ao portfólio correto
+                registrarPortfolioTx(r.data.id, dados.portfolioId);
             });
         }
     });
@@ -7344,6 +7697,9 @@ function excluirLancamento(id) {
             if (r.error) return 'Erro ao excluir: ' + r.error.message;
             banco.transacoes = banco.transacoes.filter(function (t) { return t.id !== id; });
             gravarBanco(banco);
+            // [ETAPA 11] remove a associação de portfólio
+            delete _mapaPortfolioTx[id];
+            salvarMapaPortfolioTx();
             return null;
         });
     });
@@ -7469,6 +7825,17 @@ function corpoLancamentoHTML(v, e, editId) {
     html += campoLancHTML('l-descricao', 'Nota (opcional)',
         '<input class="entrada" type="text" name="descricao" id="l-descricao" autocomplete="off" placeholder="Ex.: compra na Binance, staking Lido…" value="' + escapar(v.descricao || '') + '">',
         null, null);  // [ETAPA 7]
+
+    // [ETAPA 11] seletor de portfólio: só aparece para novos lançamentos e quando há 2+ portfólios
+    if (!editId && _portfolios.length > 1) {
+        var opsPf = _portfolios.map(function (p) {
+            var sel = (v.portfolioId === p.id || (!v.portfolioId && p === _portfolios[0])) ? ' selected' : '';
+            return '<option value="' + escapar(p.id) + '"' + sel + '>' + escapar(p.nome) + '</option>';
+        }).join('');
+        html += campoLancHTML('l-portfolio', 'Portfólio',
+            '<select class="entrada" name="portfolioId" id="l-portfolio">' + opsPf + '</select>',
+            null, null);
+    }
 
     if (NOTA_DA_OPERACAO[tipo]) html += '<p class="nota-operacao">' + NOTA_DA_OPERACAO[tipo] + '</p>';
     return html;
@@ -8218,7 +8585,8 @@ function abrirCanalAoVivo(streams, aoTick) {
 function ordemDeEntrada() {
     var ordem = {};
     var n = 0;
-    ordenarTransacoes(lerBanco().transacoes).forEach(function (t) {
+    // [ETAPA 11] usa as txs do portfólio ativo para a rosca refletir a visão correta
+    ordenarTransacoes(transacoesDoPortfolioAtivo()).forEach(function (t) {
         pernasDaTransacao(t).forEach(function (p) { if (ordem[p.moedaId] === undefined) ordem[p.moedaId] = n++; });
     });
     return ordem;
@@ -8413,18 +8781,19 @@ function cartaoResumoHTML(rotulo, id, nota) {
 }
 
 function paginaPortfolio() {
-    // [ETAPA 4.1] carteira vazia: sem indicador "ao vivo" (não há o que conectar) e
-    // sem o botão de novo lançamento no topo (fica só o do cartão vazio)
-    var temLancamentos = lerBanco().transacoes.length > 0;
+    // [ETAPA 4.1] carteira vazia: sem indicador "ao vivo" e sem botão no topo
+    // (fica só o do cartão vazio); mas com multi-portfólio o botão sempre aparece
+    var temLancamentosTotal = lerBanco().transacoes.length > 0;
     return '<div class="pagina">' +
-        '<div class="pagina-cabecalho"><div><h1>Portfólio</h1>' +
-        '<p>Quanto você tem, quanto pagou e quanto ganhou, moeda por moeda.</p></div>' +
-        '<div class="cabecalho-acoes">' + (temLancamentos ? statusConexaoHTML() : '') +
+        '<div class="pagina-cabecalho"><div>' +
+        '<h1>Portfólio</h1>' +
+        seletorPortfolioHTML() +   // [ETAPA 11] seletor de portfólio
+        '</div>' +
+        '<div class="cabecalho-acoes">' + (temLancamentosTotal ? statusConexaoHTML() : '') +
         '<button type="button" class="botao botao-neutro" data-rota="/lancamentos">' + icone('lancamentos') + 'Lançamentos</button>' +
-        (temLancamentos
-            ? '<button type="button" class="botao botao-marca" data-lanc-novo>' + icone('mais') +
-              '<span class="so-computador">Novo lançamento</span><span class="so-celular">Lançar</span></button>'
-            : '') + '</div></div>' +
+        '<button type="button" class="botao botao-marca" data-lanc-novo>' + icone('mais') +
+        '<span class="so-computador">Novo lançamento</span><span class="so-celular">Lançar</span></button>' +
+        '</div></div>' +
         '<div id="pf-conteudo"><div class="painel"><span class="esqueleto" style="width: 40%; height: 42px;"></span>' +
         '<span class="esqueleto" style="margin-top: 20px; height: 80px; border-radius: 12px;"></span></div></div></div>';
 }
@@ -8803,9 +9172,12 @@ function carregarEvolucao() {
 ROTAS['/portfolio'].montar = function () {
     var raiz = document.getElementById('pf-conteudo');
     var banco = lerBanco();
-    if (!banco.transacoes.length) { raiz.innerHTML = portfolioVazioHTML(); return; }
+    var txsAtivas = transacoesDoPortfolioAtivo();   // [ETAPA 11]
 
-    var carteira = carteiraAtual();
+    if (!banco.transacoes.length) { raiz.innerHTML = portfolioVazioHTML(); return; }
+    if (!txsAtivas.length) { raiz.innerHTML = portfolioEspecificoVazioHTML(); return; }
+
+    var carteira = carteiraDoPortfolioAtivo();  // [ETAPA 11] usa só as txs do portfólio ativo
     var realizado = { total: 0, vendas: 0 };
     Object.keys(carteira.realizado).forEach(function (k) { realizado.total += carteira.realizado[k]; realizado.vendas++; });
 
@@ -8886,6 +9258,82 @@ document.addEventListener('click', function (ev) {
         else portfolioPg.ordemLucro = null;
         atualizarOrdemPortfolio();
         return;
+    }
+
+    // [ETAPA 11] abrir gaveta de novo portfólio
+    if (ev.target.closest('[data-portfolio-novo]')) {
+        abrirGavetaPortfolio();
+        return;
+    }
+
+    // [ETAPA 11] fechar gaveta de portfólio (fundo ou cancelar)
+    if (ev.target.closest('[data-portfolio-fundo]')) {
+        fecharGavetaPortfolio();
+        return;
+    }
+
+    // [ETAPA 11] abrir confirmação de exclusão de portfólio
+    if (ev.target.closest('[data-portfolio-excluir]')) {
+        var idExcluir = ev.target.closest('[data-portfolio-excluir]').getAttribute('data-portfolio-excluir');
+        abrirConfirmarExcluirPortfolio(idExcluir);
+        return;
+    }
+
+    // [ETAPA 11] fechar gaveta de confirmação
+    if (ev.target.closest('[data-confirmar-fechar]')) {
+        fecharConfirmar();
+        return;
+    }
+
+    // [ETAPA 11] confirmar exclusão de portfólio
+    if (ev.target.closest('[data-confirmar-ok]')) {
+        var idOk = ev.target.closest('[data-confirmar-ok]').getAttribute('data-confirmar-ok');
+        fecharConfirmar();
+        excluirPortfolio(idOk);
+        return;
+    }
+
+    // [ETAPA 11] criar portfólio pela gaveta
+    if (ev.target.closest('[data-portfolio-criar]')) {
+        var inpCriar = document.getElementById('portfolio-nome-input');
+        var nomeNovo = inpCriar ? inpCriar.value.trim() : '';
+        if (!nomeNovo) { if (inpCriar) inpCriar.focus(); return; }
+        var novoP = criarPortfolio(nomeNovo);
+        fecharGavetaPortfolio();
+        estado.definir('portfolioAtivo', novoP.id);
+        desenhar();
+        return;
+    }
+});
+
+// [ETAPA 11] troca de portfólio pelo seletor
+document.addEventListener('change', function (ev) {
+    if (ev.target.id === 'portfolio-select') {
+        estado.definir('portfolioAtivo', ev.target.value);
+        desenhar();
+    }
+});
+
+// [ETAPA 11] Esc fecha a gaveta de confirmação (qualquer foco)
+document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape' && document.getElementById('gaveta-confirmar') &&
+            document.getElementById('gaveta-confirmar').classList.contains('aberta')) {
+        fecharConfirmar();
+    }
+});
+
+// [ETAPA 11] teclado na gaveta de portfólio: Enter cria, Esc fecha
+document.addEventListener('keydown', function (ev) {
+    if (ev.target.id !== 'portfolio-nome-input') return;
+    if (ev.key === 'Escape') { fecharGavetaPortfolio(); return; }
+    if (ev.key === 'Enter') {
+        ev.preventDefault();
+        var nomeKd = ev.target.value.trim();
+        if (!nomeKd) return;
+        var pKd = criarPortfolio(nomeKd);
+        fecharGavetaPortfolio();
+        estado.definir('portfolioAtivo', pKd.id);
+        desenhar();
     }
 });
 
@@ -9328,6 +9776,9 @@ function iniciarApp() {
     estado.definir('moeda', MOEDAS[prefs.moeda] ? prefs.moeda : 'BRL');
     aplicarTema(prefs.tema || 'escuro');
     estado.definir('conexao', 'conectando');
+    // [ETAPA 11] carrega portfólios do cache (síncrono) antes do primeiro desenhar
+    _portfolios = armazem.json(chavePortfolios(), []) || [];
+    _mapaPortfolioTx = armazem.json(chaveMapaPortfolioTx(), {}) || {};
     rotaAtual = lerRotaDoEndereco() || ROTA_INICIAL;
     desenhar();               // casca rápida; páginas verão banco vazio até carregar
     atualizarInfoUsuario();
@@ -9342,6 +9793,7 @@ function iniciarApp() {
     // Supabase roda em segundo plano; se trouxer diferença, redesenha
     // sozinha. Erros de rede são silenciosos — o app funciona offline.
     Promise.all([carregarBanco(), carregarTargets()]).then(function () {
+        carregarPortfolios();  // [ETAPA 11] migração silenciosa após banco carregar
         verificarMigracao();
     }).catch(function () {});
 }
