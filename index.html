@@ -921,6 +921,14 @@ main#miolo {
     letter-spacing: -0.02em;
 }
 
+/* [ETAPA 11] agrupa seletor de portfólio + botão no cabeçalho de Lançamentos */
+.lanc-cabecalho-acoes {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
 .pagina-cabecalho p {
     color: var(--texto-2);
     margin-top: 4px;
@@ -1074,6 +1082,18 @@ main#miolo {
     font-family: inherit;
     font-size: var(--t-md);
     transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+/* seta customizada em todos os <select class="entrada"> */
+select.entrada {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23A3AEC4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-color: var(--bg);
+    padding-right: 36px;
+    cursor: pointer;
 }
 
 .entrada::placeholder {
@@ -8367,6 +8387,7 @@ function linhaLancamentoHTML(t) {
 
 // [ETAPA 7.4] estado do filtro de lançamentos (persiste na sessão, igual a mercado.aba)
 var filtroLanc = 'TODAS';
+var filtroLancPf = 'todos';  // [ETAPA 11] filtro de portfólio na página de Lançamentos
 
 var FILTROS_LANC = [['TODAS', 'Todas']].concat(TIPOS_ORDEM.map(function (k) { return [k, TIPOS[k]]; }));
 
@@ -8383,19 +8404,36 @@ function filtroBarraLancHTML() {
         '</div>';
 }
 
+function _lancListaFiltrada(lista) {
+    var porPf = (filtroLancPf !== 'todos' && _portfolios.length > 0)
+        ? lista.filter(function (t) { return _mapaPortfolioTx[t.id] === filtroLancPf; })
+        : lista;
+    return filtroLanc === 'TODAS' ? porPf : porPf.filter(function (t) { return t.tipo === filtroLanc; });
+}
+
 function paginaLancamentos() {
     var banco = lerBanco();
     var carteira = processarCarteira(ordenarTransacoes(banco.transacoes));
     var lista = ordenarTransacoes(banco.transacoes).reverse();   // mais recente primeiro
-    var listaFiltrada = filtroLanc === 'TODAS' ? lista : lista.filter(function (t) { return t.tipo === filtroLanc; });
+    var listaFiltrada = _lancListaFiltrada(lista);
     var realizadoTotal = Object.keys(carteira.realizado).reduce(function (s, k) { return s + carteira.realizado[k]; }, 0);
     var temVenda = Object.keys(carteira.realizado).length > 0;
+
+    // [ETAPA 11] seletor de portfólio: aparece só com 2+ portfólios
+    var seletorPf = '';
+    if (_portfolios.length > 1) {
+        var opsPf = '<option value="todos"' + (filtroLancPf === 'todos' ? ' selected' : '') + '>Todos os portfólios</option>';
+        _portfolios.forEach(function (p) {
+            opsPf += '<option value="' + escapar(p.id) + '"' + (filtroLancPf === p.id ? ' selected' : '') + '>' + escapar(p.nome) + '</option>';
+        });
+        seletorPf = '<select id="filtro-lanc-pf" class="portfolio-select-ctrl" style="max-width:200px" aria-label="Filtrar por portfólio">' + opsPf + '</select>';
+    }
 
     var corpo;
     if (lista.length) {
         var linhas = listaFiltrada.length
             ? listaFiltrada.map(function (t) { return linhaLancamentoHTML(t); }).join('')
-            : '<tr><td colspan="6" class="tabela-vazia">Nenhum lançamento do tipo "' + escapar(TIPOS[filtroLanc] || filtroLanc) + '".</td></tr>';
+            : '<tr><td colspan="6" class="tabela-vazia">Nenhum lançamento encontrado com esse filtro.</td></tr>';
         corpo = '<div class="painel painel-tabela"><table class="tabela tabela-lanc"><thead><tr>' +
             '<th>Data</th><th>Operação</th><th>Moeda</th><th>Quantidade</th><th>Preço</th><th>Valor total</th>' +
             '</tr></thead><tbody id="lanc-corpo">' + linhas + '</tbody></table></div>';
@@ -8408,7 +8446,8 @@ function paginaLancamentos() {
     return '<div class="pagina">' +
         '<div class="pagina-cabecalho"><div><h1>Lançamentos</h1>' +
         '<p>Compras, vendas, entradas, saídas e conversões. Cada lançamento é conferido na linha do tempo: nenhuma baixa pode ficar sem saldo.</p></div>' +
-        '<button type="button" class="botao botao-marca" data-lanc-novo>' + icone('mais') + 'Novo lançamento</button></div>' +
+        '<div class="lanc-cabecalho-acoes">' + seletorPf +
+        '<button type="button" class="botao botao-marca" data-lanc-novo>' + icone('mais') + 'Novo lançamento</button></div></div>' +
         (lista.length ? '<div class="grade-2 lanc-resumo"><div class="cartao"><p class="indicador-rotulo">Lançamentos</p><p class="indicador-valor" id="lanc-count">' + listaFiltrada.length + '</p></div>' +
             '<div class="cartao"><p class="indicador-rotulo">Lucro realizado</p><p class="indicador-valor">' +
             (temVenda ? '<span class="var ' + (realizadoTotal >= 0 ? 'alta' : 'queda') + '" data-brl="' + realizadoTotal + '"></span>' : '<span class="sem-dado sem-dado-legenda">sem vendas ainda</span>') +
@@ -8426,29 +8465,29 @@ function atualizarFiltroLanc(novo) {  // [ETAPA 7.4]
     // sincroniza seletor mobile
     var sel = document.getElementById('filtro-lanc-mobile');
     if (sel) sel.value = novo;
-    // re-renderiza só o tbody
-    var banco = lerBanco();
-    var lista = ordenarTransacoes(banco.transacoes).reverse();
-    var listaFiltrada = novo === 'TODAS' ? lista : lista.filter(function (t) { return t.tipo === novo; });
+    // re-renderiza só o tbody (respeita filtro de portfólio também)
+    var lista = ordenarTransacoes(lerBanco().transacoes).reverse();
+    var listaFiltrada = _lancListaFiltrada(lista);
     var tbody = document.getElementById('lanc-corpo');
     if (tbody) {
         tbody.innerHTML = listaFiltrada.length
             ? listaFiltrada.map(function (t) { return linhaLancamentoHTML(t); }).join('')
-            : '<tr><td colspan="6" class="tabela-vazia">Nenhum lançamento do tipo "' + escapar(TIPOS[novo] || novo) + '".</td></tr>';
+            : '<tr><td colspan="6" class="tabela-vazia">Nenhum lançamento encontrado com esse filtro.</td></tr>';
         preencherValores(tbody);
     }
-    // atualiza o contador de lançamentos
     var countEl = document.getElementById('lanc-count');
     if (countEl) countEl.textContent = listaFiltrada.length;
 }
 
 ROTAS['/lancamentos'].montar = function () {  // [ETAPA 7.4]
     var sel = document.getElementById('filtro-lanc-mobile');
-    if (sel) {
-        sel.addEventListener('change', function () {
-            atualizarFiltroLanc(this.value);
-        });
-    }
+    if (sel) sel.addEventListener('change', function () { atualizarFiltroLanc(this.value); });
+    // [ETAPA 11] seletor de portfólio
+    var selPf = document.getElementById('filtro-lanc-pf');
+    if (selPf) selPf.addEventListener('change', function () {
+        filtroLancPf = this.value;
+        atualizarFiltroLanc(filtroLanc);
+    });
 };
 
 // ---------- moeda: sua posição e seus lançamentos ----------
@@ -9225,7 +9264,7 @@ function criarGraficoPortfolio() {
 
 function carregarEvolucao() {
     var pg = portfolioPg;
-    var transacoes = lerBanco().transacoes;
+    var transacoes = transacoesDoPortfolioAtivo(); // [ETAPA 11] só txs do portfólio ativo
     if (!transacoes.length) return;
     var msg = document.getElementById('pf-grafico-msg');
     buscarHistoricosPortfolio(pg, transacoes).then(function (precos) {
