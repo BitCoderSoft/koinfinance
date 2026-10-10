@@ -2288,23 +2288,27 @@ body:has(#gaveta.aberta) .avisos {
     gap: 4px;
 }
 
-/* [ETAPA 11] gavetas de portfólio reutilizam as classes .gaveta / .gaveta-fundo */
+/* [ETAPA 11] gavetas de portfólio e objetivos reutilizam as classes .gaveta / .gaveta-fundo */
 #gaveta-portfolio .gaveta,
-#gaveta-confirmar .gaveta {
+#gaveta-confirmar .gaveta,
+#gaveta-objetivos .gaveta {
     width: min(480px, 100vw);
 }
 #gaveta-portfolio.aberta .gaveta-fundo,
-#gaveta-confirmar.aberta .gaveta-fundo {
+#gaveta-confirmar.aberta .gaveta-fundo,
+#gaveta-objetivos.aberta .gaveta-fundo {
     opacity: 1;
     visibility: visible;
 }
 #gaveta-portfolio.aberta .gaveta,
-#gaveta-confirmar.aberta .gaveta {
+#gaveta-confirmar.aberta .gaveta,
+#gaveta-objetivos.aberta .gaveta {
     transform: none;
     visibility: visible;
 }
 body:has(#gaveta-portfolio.aberta) .avisos,
-body:has(#gaveta-confirmar.aberta) .avisos {
+body:has(#gaveta-confirmar.aberta) .avisos,
+body:has(#gaveta-objetivos.aberta) .avisos {
     right: calc(min(480px, 100vw) + 20px);
 }
 
@@ -2557,6 +2561,126 @@ body:has(#gaveta-confirmar.aberta) .avisos {
     display: block;
     font-size: var(--t-xs);
     color: var(--alta);
+}
+
+/* ── Objetivos [ETAPA 12] ────────────────────────────────────────── */
+
+.obj-progresso-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.obj-barra-bg {
+    background: var(--superficie-3);
+    border-radius: 999px;
+    height: 10px;
+    overflow: hidden;
+}
+
+.obj-barra-fill {
+    background: var(--marca);
+    border-radius: 999px;
+    height: 100%;
+    min-width: 4px;
+    transition: width 0.6s ease;
+}
+
+.obj-barra-fill.completo {
+    background: var(--alta);
+}
+
+.obj-pct {
+    font-size: var(--t-2xl);
+    font-weight: 700;
+    color: var(--texto);
+    line-height: 1.1;
+}
+
+.obj-grade-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.obj-card {
+    background: var(--superficie-2);
+    border-radius: 14px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.obj-card-rotulo {
+    font-size: var(--t-xs);
+    color: var(--texto-3);
+}
+
+.obj-card-valor {
+    font-size: var(--t-md);
+    font-weight: 600;
+    color: var(--texto);
+}
+
+.obj-projecao {
+    background: var(--superficie-2);
+    border-radius: 14px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.obj-projecao-icone {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: rgba(233, 185, 73, 0.12);
+    color: var(--marca);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.obj-projecao-icone svg {
+    width: 20px;
+    height: 20px;
+}
+
+.obj-projecao-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.obj-projecao-destaque {
+    font-size: var(--t-md);
+    font-weight: 700;
+    color: var(--texto);
+}
+
+.obj-projecao-sub {
+    font-size: var(--t-sm);
+    color: var(--texto-2);
+}
+
+.obj-nota {
+    font-size: var(--t-xs);
+    color: var(--texto-3);
+    line-height: 1.55;
+    padding: 12px 14px;
+    background: var(--superficie-2);
+    border-radius: 10px;
+    border-left: 3px solid var(--borda);
+}
+
+.obj-acoes {
+    display: flex;
+    gap: 8px;
+    align-items: center;
 }
 
 /* ── backup [ETAPA 7] ────────────────────────────────────────────*/
@@ -3397,6 +3521,15 @@ body:has(#gaveta-confirmar.aberta) .avisos {
     .rosca-total {
         font-size: 22px;
     }
+
+    /* Objetivos: cards de 3 colunas viram 1 coluna no celular [ETAPA 12] */
+    .obj-grade-3 {
+        grid-template-columns: 1fr;
+    }
+
+    .obj-pct {
+        font-size: var(--t-xl);
+    }
 }
 
 /* =================================================================
@@ -3841,6 +3974,7 @@ body:has(#gaveta-confirmar.aberta) .avisos {
 <div id="gaveta"></div>
 <div id="gaveta-portfolio"></div>
 <div id="gaveta-confirmar"></div>
+<div id="gaveta-objetivos"></div>
 
 <div id="banner-atualizacao" hidden role="status" aria-live="polite">
     <p>
@@ -4263,6 +4397,7 @@ var ICONES = {
     queda: '<path d="M5 9l7 7 7-7"/>',
     lixo: '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6M9 3h6a1 1 0 011 1v2H8V4a1 1 0 011-1z"/>',
     alerta: '<path d="M10.3 4.2L2.7 17a2 2 0 001.7 3h15.2a2 2 0 001.7-3L13.7 4.2a2 2 0 00-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    editar: '<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>',
     exportar: '<path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2M12 3v12M8 11l4 4 4-4"/>',
     importar: '<path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2M16 7l-4-4-4 4M12 3v12"/>',
 };
@@ -4304,7 +4439,7 @@ var ROTAS = {
     '/lancamentos':   { titulo: 'Lançamentos',    icone: 'lancamentos',   etapa: 3, render: paginaLancamentos },
     '/balanceamento': { titulo: 'Balanceamento',  icone: 'balanceamento', etapa: 6, render: paginaBalanceamento },
     '/balanceamento/ajuda': { titulo: 'Como funciona o Balanceamento', icone: 'balanceamento', etapa: 6, render: paginaAjudaBalanceamento },
-    '/objetivos':     { titulo: 'Objetivos',      icone: 'objetivos',     etapa: 6, render: paginaEmBreve },
+    '/objetivos':     { titulo: 'Objetivos',      icone: 'objetivos',     etapa: 12, render: paginaObjetivos },
     '/ajustes':       { titulo: 'Ajustes',        icone: 'ajustes',       render: paginaAjustes },
     // [ETAPA 1] rota com parâmetro: /moeda/bitcoin, /moeda/ethereum...
     '/moeda':         { titulo: 'Moeda',          icone: 'mercado',       etapa: 2, render: paginaMoeda, dinamica: true },
@@ -4343,7 +4478,7 @@ var NAV = [
                 titulo: 'Sua carteira',
                 itens: [
                     { rota: '/balanceamento', desc: 'Alocação ideal e simulador de aporte' },
-                    { rota: '/objetivos', desc: 'Metas de patrimônio e previsão', emBreve: true },
+                    { rota: '/objetivos', desc: 'Metas de patrimônio e previsão' },
                 ],
             },
         ],
@@ -4999,11 +5134,209 @@ function orientacaoBalanceamentoHTML() {
     '</div>';
 }
 
+// ── OBJETIVOS [ETAPA 12] ─────────────────────────────────────────────
+
+function chaveObjetivos() {
+    var id = sessaoAtual();
+    return id ? 'OBJETIVOS_' + id : 'OBJETIVOS';
+}
+
+function _objSemObjetivoHTML() {
+    return '<div class="painel">' +
+        '<p class="painel-titulo">Nenhum objetivo definido</p>' +
+        '<p class="painel-sub">Defina uma meta de patrimônio e o app estima quando você chega lá, com base nos seus aportes mensais.</p>' +
+        '<button type="button" class="botao botao-marca" data-obj-editar>' + icone('mais') + 'Definir objetivo</button>' +
+        '</div>';
+}
+
+function gavetaObjetivoHTML(obj) {
+    var vNome   = obj ? escapar(obj.nome || '')  : '';
+    var vAlvo   = obj ? String(obj.valorAlvo)    : '';
+    var vAporte = obj ? String(obj.aporteMensal) : '';
+    return '<div class="gaveta-fundo" data-obj-gav-fechar></div>' +
+        '<div class="gaveta" role="dialog" aria-modal="true" aria-labelledby="gav-obj-titulo">' +
+        '<div class="gaveta-topo"><h2 id="gav-obj-titulo">' + (obj ? 'Editar objetivo' : 'Definir objetivo') + '</h2>' +
+        '<button type="button" class="botao-icone" data-obj-gav-fechar aria-label="Fechar">&times;</button></div>' +
+        '<div class="gaveta-corpo">' +
+        '<div class="campo-grupo">' +
+        '<label class="campo-rotulo" for="obj-nome">Nome do objetivo (opcional)</label>' +
+        '<input type="text" id="obj-nome" class="entrada" placeholder="Ex.: Independência financeira" maxlength="60" autocomplete="off" value="' + vNome + '">' +
+        '</div>' +
+        '<div class="campo-grupo">' +
+        '<label class="campo-rotulo" for="obj-alvo">Meta de patrimônio (R$)</label>' +
+        '<input type="number" id="obj-alvo" class="entrada" inputmode="decimal" placeholder="Ex.: 50000" min="1" step="any" value="' + escapar(vAlvo) + '">' +
+        '</div>' +
+        '<div class="campo-grupo">' +
+        '<label class="campo-rotulo" for="obj-aporte">Aporte mensal estimado (R$)</label>' +
+        '<input type="number" id="obj-aporte" class="entrada" inputmode="decimal" placeholder="Ex.: 1000 (opcional)" min="0" step="any" value="' + escapar(vAporte) + '">' +
+        '</div>' +
+        '</div>' +
+        '<div class="gaveta-pe">' +
+        '<button type="button" class="botao botao-neutro" data-obj-gav-fechar>Cancelar</button>' +
+        '<button type="button" class="botao botao-marca" data-obj-gav-salvar>Salvar objetivo</button>' +
+        '</div></div>';
+}
+
+function abrirGavetaObjetivo() {
+    var raiz = document.getElementById('gaveta-objetivos');
+    if (!raiz) return;
+    var obj = armazem.json(chaveObjetivos(), null);
+    raiz.innerHTML = gavetaObjetivoHTML(obj);
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function () {
+        raiz.classList.add('aberta');
+        var inp = raiz.querySelector('input');
+        if (inp) inp.focus();
+    });
+}
+
+function fecharGavetaObjetivo() {
+    var raiz = document.getElementById('gaveta-objetivos');
+    if (!raiz) return;
+    raiz.classList.remove('aberta');
+    document.body.style.overflow = '';
+    setTimeout(function () { raiz.innerHTML = ''; }, menosMovimento ? 0 : 240);
+}
+
+function abrirConfirmarRemoverObjetivo() {
+    var raiz = document.getElementById('gaveta-confirmar');
+    if (!raiz) return;
+    raiz.innerHTML = '<div class="gaveta-fundo" data-confirmar-fechar></div>' +
+        '<div class="gaveta" role="dialog" aria-modal="true" aria-labelledby="gav-obj-rem-titulo">' +
+        '<div class="gaveta-topo"><h2 id="gav-obj-rem-titulo">Remover objetivo</h2>' +
+        '<button type="button" class="botao-icone" data-confirmar-fechar aria-label="Fechar">&times;</button></div>' +
+        '<div class="gaveta-corpo">' +
+        '<div class="confirmar-alerta">' +
+        '<div class="confirmar-alerta-icone">' + icone('alerta') + '</div>' +
+        '<p>Você está prestes a remover o objetivo definido.</p>' +
+        '<p>Nenhum lançamento ou portfólio é afetado — só a meta e a projeção serão apagadas.</p>' +
+        '</div>' +
+        '</div>' +
+        '<div class="gaveta-pe">' +
+        '<button type="button" class="botao botao-neutro" data-confirmar-fechar>Cancelar</button>' +
+        '<button type="button" class="botao botao-perigo" data-obj-remover-ok>' + icone('lixo') + 'Remover objetivo</button>' +
+        '</div></div>';
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function () { raiz.classList.add('aberta'); });
+}
+
+function _objConteudoHTML(obj, patrimonio) {
+    var pct      = obj.valorAlvo > 0 ? Math.min(100, patrimonio / obj.valorAlvo * 100) : 0;
+    var falta    = Math.max(0, obj.valorAlvo - patrimonio);
+    var meses    = falta > 0 && obj.aporteMensal > 0 ? Math.ceil(falta / obj.aporteMensal) : 0;
+    var completo = pct >= 100;
+
+    var dataEstTexto = '';
+    if (meses > 0) {
+        var d = new Date();
+        d.setMonth(d.getMonth() + meses);
+        dataEstTexto = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    }
+
+    var projecaoHTML;
+    if (completo) {
+        projecaoHTML = '<div class="obj-projecao">' +
+            '<div class="obj-projecao-icone" style="background:rgba(34,195,142,0.12);color:var(--alta);">' + icone('objetivos') + '</div>' +
+            '<div class="obj-projecao-texto"><p class="obj-projecao-destaque">Meta atingida!</p>' +
+            '<p class="obj-projecao-sub">Seu patrimônio já alcançou o objetivo definido.</p></div></div>';
+    } else if (meses > 0) {
+        projecaoHTML = '<div class="obj-projecao">' +
+            '<div class="obj-projecao-icone">' + icone('balanceamento') + '</div>' +
+            '<div class="obj-projecao-texto"><p class="obj-projecao-destaque">Previsão: ' + dataEstTexto + '</p>' +
+            '<p class="obj-projecao-sub">Aportando <span data-brl="' + obj.aporteMensal + '"></span>/mês, são cerca de ' +
+            meses + (meses === 1 ? ' mês.' : ' meses.') + '</p></div></div>';
+    } else {
+        projecaoHTML = '<div class="obj-projecao">' +
+            '<div class="obj-projecao-icone" style="background:rgba(163,174,196,0.1);color:var(--texto-3);">' + icone('objetivos') + '</div>' +
+            '<div class="obj-projecao-texto">' +
+            '<p class="obj-projecao-sub">Defina um aporte mensal para ver a previsão de conclusão.</p></div></div>';
+    }
+
+    var pctStr = String(Math.round(pct * 10) / 10).replace(',', '.');
+    return '<div class="painel">' +
+        '<div style="display:flex;flex-direction:column;gap:20px;">' +
+        (obj.nome ? '<p class="painel-titulo" style="margin-bottom:0;">' + escapar(obj.nome) + '</p>' : '') +
+        '<div class="obj-progresso-wrap">' +
+        (obj.nome ? '' : '<p class="painel-titulo" style="margin-bottom:0;">Progresso</p>') +
+        '<div class="obj-barra-bg"><div class="obj-barra-fill' + (completo ? ' completo' : '') + '" style="width:' + pctStr + '%"></div></div>' +
+        '<span class="obj-pct">' + formatarBR(pct, 1) + '%</span>' +
+        '</div>' +
+        '<div class="obj-grade-3">' +
+        '<div class="obj-card"><p class="obj-card-rotulo">Patrimônio atual</p><p class="obj-card-valor" data-brl="' + patrimonio + '"></p></div>' +
+        '<div class="obj-card"><p class="obj-card-rotulo">Meta</p><p class="obj-card-valor" data-brl="' + obj.valorAlvo + '"></p></div>' +
+        '<div class="obj-card"><p class="obj-card-rotulo">Falta</p><p class="obj-card-valor"' + (falta <= 0 ? ' style="color:var(--alta)"' : '') + ' data-brl="' + falta + '"></p></div>' +
+        '</div>' +
+        projecaoHTML +
+        '<p class="obj-nota">Estimativa conservadora: considera apenas aportes mensais fixos, sem valorização de mercado. Os valores dos ativos são calculados com os últimos preços disponíveis.</p>' +
+        '<div class="obj-acoes">' +
+        '<button type="button" class="botao botao-neutro botao-pequeno" data-obj-editar>' + icone('editar') + 'Editar</button>' +
+        '<button type="button" class="botao botao-pequeno" style="color:var(--queda);border-color:rgba(242,85,90,0.3);" data-obj-excluir>' + icone('lixo') + 'Remover</button>' +
+        '</div>' +
+        '</div>' +
+        '</div>';
+}
+
+function paginaObjetivos() {
+    return '<div class="pagina">' +
+        '<div class="pagina-cabecalho"><div><h1>Objetivos</h1>' +
+        '<p>Acompanhe o progresso em direção à sua meta de patrimônio.</p></div></div>' +
+        '<div id="obj-raiz"><div class="painel"><span class="esqueleto" style="width:50%;height:28px;display:block;margin-bottom:16px;"></span>' +
+        '<span class="esqueleto" style="width:100%;height:80px;display:block;border-radius:12px;"></span></div></div>' +
+        '</div>';
+}
+
+function _objCalcularPatrimonio(cb) {
+    var banco = lerBanco();
+    var carteira = processarCarteira(ordenarTransacoes(banco.transacoes));
+    var pronto = mercado.lista.length ? Promise.resolve() : carregarMercado().catch(function () {});
+    pronto.then(function () {
+        return obterPrecosBinance().catch(function () { return {}; }).then(function (precos) {
+            var usdtbrl = precos['USDTBRL'] || 0;
+            var total = 0;
+            Object.keys(carteira.posicoes).forEach(function (id) {
+                var p = carteira.posicoes[id];
+                if (p.quantidade <= QTD_EPSILON) return;
+                var m = mercado.porId[id];
+                if (!m) {
+                    var extra = infoMoedaExtra(id);
+                    if (extra) m = construirMoedaExtra(extra, precos);
+                }
+                var par = m ? (m.extra ? m.parBinance : parBinanceDe(m, precos)) : null;
+                var preco = null;
+                if (par && precos[par]) {
+                    preco = par === 'USDTBRL' ? precos[par] : (usdtbrl > 0 ? precos[par] * usdtbrl : null);
+                }
+                if (preco === null && m && m.preco > 0) preco = m.preco;
+                total += preco !== null ? p.quantidade * preco : p.custoTotal;
+            });
+            cb(total);
+        });
+    }).catch(function () { cb(0); });
+}
+
+ROTAS['/objetivos'].montar = function () {
+    var raiz = document.getElementById('obj-raiz');
+    if (!raiz) return;
+    var obj = armazem.json(chaveObjetivos(), null);
+    if (!obj) {
+        raiz.innerHTML = _objSemObjetivoHTML();
+        return;
+    }
+    _objCalcularPatrimonio(function (patrimonio) {
+        if (rotaAtual !== '/objetivos') return;
+        var r = document.getElementById('obj-raiz');
+        if (!r) return;
+        r.innerHTML = _objConteudoHTML(obj, patrimonio);
+        preencherValores(r);
+    });
+};
+
+// ─────────────────────────────────────────────────────────────────────
+
 function paginaEmBreve(r) {
     var textos = {
         '/lancamentos': 'Compra, venda, entrada, saída e conversão, com validação na linha do tempo (o motor vem do Dash Finance).',
         '/balanceamento': 'Alocação ideal, notas por moeda e simulador de aporte.',
-        '/objetivos': 'Objetivos de patrimônio com progresso e previsão de conclusão.',
     };
     return '<div class="pagina">' +
         '<div class="pagina-cabecalho"><div><h1>' + r.titulo + '</h1></div></div>' +
@@ -9445,6 +9778,11 @@ document.addEventListener('keydown', function (ev) {
             document.getElementById('gaveta-confirmar').classList.contains('aberta')) {
         fecharConfirmar();
     }
+    // [ETAPA 12] Esc fecha gaveta de objetivo
+    if (ev.key === 'Escape' && document.getElementById('gaveta-objetivos') &&
+            document.getElementById('gaveta-objetivos').classList.contains('aberta')) {
+        fecharGavetaObjetivo();
+    }
 });
 
 // [ETAPA 11] teclado na gaveta de portfólio: Enter cria, Esc fecha
@@ -9890,6 +10228,37 @@ document.addEventListener('click', function (ev) {
         return;
     }
     if (ev.target.closest('[data-backup-desfazer]')) { desfazerImportacao(); return; }
+
+    // [ETAPA 12] Objetivos — gaveta
+    if (ev.target.closest('[data-obj-editar]')) { abrirGavetaObjetivo(); return; }
+    if (ev.target.closest('[data-obj-gav-fechar]')) { fecharGavetaObjetivo(); return; }
+    if (ev.target.closest('[data-obj-gav-salvar]')) {
+        var inpAlvo   = document.getElementById('obj-alvo');
+        var inpAporte = document.getElementById('obj-aporte');
+        var inpNome   = document.getElementById('obj-nome');
+        if (!inpAlvo) return;
+        var vAlvo   = parseFloat(inpAlvo.value);
+        var vAporte = parseFloat(inpAporte ? inpAporte.value : '0') || 0;
+        if (!vAlvo || vAlvo <= 0) {
+            avisar('Informe uma meta maior que zero.', 'erro');
+            inpAlvo.focus();
+            return;
+        }
+        var novoObj = { nome: inpNome ? inpNome.value.trim() : '', valorAlvo: vAlvo, aporteMensal: vAporte };
+        try { armazem.set(chaveObjetivos(), JSON.stringify(novoObj)); } catch (e) {}
+        fecharGavetaObjetivo();
+        if (rotaAtual === '/objetivos' && ROTAS['/objetivos'].montar) ROTAS['/objetivos'].montar();
+        return;
+    }
+    if (ev.target.closest('[data-obj-excluir]')) { abrirConfirmarRemoverObjetivo(); return; }
+    if (ev.target.closest('[data-obj-remover-ok]')) {
+        fecharConfirmar();
+        try { armazem.remove(chaveObjetivos()); } catch (e) {}
+        var raizObjX = document.getElementById('obj-raiz');
+        if (raizObjX) raizObjX.innerHTML = _objSemObjetivoHTML();
+        return;
+    }
+
     if (ev.target.closest('[data-pwa-instalar]')) { instalarPWA(); return; }
 });
 
