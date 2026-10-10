@@ -2385,25 +2385,82 @@ body:has(#gaveta.aberta) .avisos {
 /* [ETAPA 11] gavetas de portfólio e objetivos reutilizam as classes .gaveta / .gaveta-fundo */
 #gaveta-portfolio .gaveta,
 #gaveta-confirmar .gaveta,
-#gaveta-objetivos .gaveta {
+#gaveta-objetivos .gaveta,
+#gaveta-sim .gaveta {
     width: min(480px, 100vw);
 }
 #gaveta-portfolio.aberta .gaveta-fundo,
 #gaveta-confirmar.aberta .gaveta-fundo,
-#gaveta-objetivos.aberta .gaveta-fundo {
+#gaveta-objetivos.aberta .gaveta-fundo,
+#gaveta-sim.aberta .gaveta-fundo {
     opacity: 1;
     visibility: visible;
 }
 #gaveta-portfolio.aberta .gaveta,
 #gaveta-confirmar.aberta .gaveta,
-#gaveta-objetivos.aberta .gaveta {
+#gaveta-objetivos.aberta .gaveta,
+#gaveta-sim.aberta .gaveta {
     transform: none;
     visibility: visible;
 }
 body:has(#gaveta-portfolio.aberta) .avisos,
 body:has(#gaveta-confirmar.aberta) .avisos,
-body:has(#gaveta-objetivos.aberta) .avisos {
+body:has(#gaveta-objetivos.aberta) .avisos,
+body:has(#gaveta-sim.aberta) .avisos {
     right: calc(min(480px, 100vw) + 20px);
+}
+
+/* [ETAPA 13] Simulador de Aporte */
+.sim-resultado-item {
+    padding: 16px;
+    border-radius: 14px;
+    background: var(--superficie);
+    border: 1px solid var(--borda);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.sim-resultado-item + .sim-resultado-item {
+    margin-top: 10px;
+}
+.sim-resultado-item.bloqueado {
+    opacity: 0.6;
+}
+.sim-item-cabecalho {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.sim-item-moeda {
+    flex: 1;
+    font-weight: 600;
+    font-size: var(--t-md);
+}
+.sim-item-sugestao {
+    font-weight: 700;
+    font-size: var(--t-lg);
+    color: var(--marca);
+}
+.sim-item-detalhe {
+    font-size: var(--t-sm);
+    color: var(--texto-2);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+}
+.sim-item-motivo {
+    font-size: var(--t-sm);
+    color: var(--queda);
+}
+.sim-nota-disclaimer {
+    background: var(--superficie);
+    border: 1px solid var(--borda);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: var(--t-sm);
+    color: var(--texto-2);
+    line-height: 1.5;
+    margin: 0;
 }
 
 /* corpo da gaveta de confirmação de exclusão */
@@ -4054,6 +4111,7 @@ body:has(#gaveta-objetivos.aberta) .avisos {
 <div id="gaveta-portfolio"></div>
 <div id="gaveta-confirmar"></div>
 <div id="gaveta-objetivos"></div>
+<div id="gaveta-sim"></div>
 
 <div id="banner-atualizacao" hidden role="status" aria-live="polite">
     <p>
@@ -4479,6 +4537,7 @@ var ICONES = {
     editar: '<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>',
     exportar: '<path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2M12 3v12M8 11l4 4 4-4"/>',
     importar: '<path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2M16 7l-4-4-4 4M12 3v12"/>',
+    simulador: '<circle cx="12" cy="12" r="8.5"/><path d="M12 15.5V8.5M9.5 11l2.5-2.5 2.5 2.5"/>',
 };
 
 function icone(nome) {
@@ -4519,6 +4578,7 @@ var ROTAS = {
     '/balanceamento': { titulo: 'Balanceamento',  icone: 'balanceamento', etapa: 6, render: paginaBalanceamento },
     '/balanceamento/ajuda': { titulo: 'Como funciona o Balanceamento', icone: 'balanceamento', etapa: 6, render: paginaAjudaBalanceamento },
     '/objetivos':     { titulo: 'Objetivos',      icone: 'objetivos',     etapa: 12, render: paginaObjetivos },
+    '/simulador':     { titulo: 'Simulador de Aporte', icone: 'simulador', etapa: 13, render: paginaSimulador },
     '/ajustes':       { titulo: 'Ajustes',        icone: 'ajustes',       render: paginaAjustes },
     // [ETAPA 1] rota com parâmetro: /moeda/bitcoin, /moeda/ethereum...
     '/moeda':         { titulo: 'Moeda',          icone: 'mercado',       etapa: 2, render: paginaMoeda, dinamica: true },
@@ -4556,7 +4616,8 @@ var NAV = [
             {
                 titulo: 'Sua carteira',
                 itens: [
-                    { rota: '/balanceamento', desc: 'Alocação ideal e simulador de aporte' },
+                    { rota: '/balanceamento', desc: 'Alocação atual vs. targets definidos por você' },
+                    { rota: '/simulador', desc: 'Sugestão de compra baseada nos seus targets' },
                     { rota: '/objetivos', desc: 'Metas de patrimônio e previsão' },
                 ],
             },
@@ -5486,6 +5547,243 @@ function paginaObjetivos() {
         '<div id="obj-raiz"><div class="painel"><span class="esqueleto" style="width:60%;height:28px;display:block;margin-bottom:14px;"></span>' +
         '<span class="esqueleto" style="width:100%;height:100px;display:block;border-radius:12px;"></span></div></div>' +
         '</div>';
+}
+
+/* =================================================================
+   SIMULADOR DE APORTE  [ETAPA 13]
+   Sugere distribuição de um novo aporte com base nos targets de
+   balanceamento, filtro de upside (preço atual vs PM) e limite de
+   4 ativos.
+   ================================================================= */
+
+function paginaSimulador() {
+    return '<div class="pagina">' +
+        '<div class="pagina-cabecalho"><div>' +
+            '<h1>Simulador de Aporte</h1>' +
+            '<p>Sugestão de compra baseada nos seus targets de balanceamento.</p>' +
+        '</div>' +
+        '<div class="cabecalho-acoes">' +
+            '<button type="button" class="botao botao-marca" data-sim-abrir>' +
+                icone('mais') +
+                '<span class="so-computador">Simular aporte</span>' +
+                '<span class="so-celular">Simular</span>' +
+            '</button>' +
+        '</div></div>' +
+        '<div id="sim-resultado"></div>' +
+        '</div>';
+}
+
+// função pura — sem efeitos colaterais
+function calcularSimulador(aporte, filtroUpside, linhas, targets, modo) {
+    if (!aporte || aporte <= 0) return { itens: [], bloqueados: [], erro: 'aporte-zero' };
+
+    var temTargets = linhas.some(function (l) {
+        var t = targets[l.id];
+        return t !== undefined && t > 0;
+    });
+    if (!temTargets) return { itens: [], bloqueados: [], erro: 'sem-targets' };
+
+    var somaNotas = 0;
+    if (modo === 'nota') {
+        linhas.forEach(function (l) { somaNotas += (targets[l.id] || 0); });
+    }
+
+    function targetPct(id) {
+        var t = targets[id] || 0;
+        if (modo === 'nota') return somaNotas > 0 ? t / somaNotas * 100 : 0;
+        return t;
+    }
+
+    var saldoTotal = linhas.reduce(function (s, l) { return s + l.saldo; }, 0);
+    var novoTotal = saldoTotal + aporte;
+
+    var candidatos = [];
+    var bloqueados = [];
+
+    linhas.forEach(function (l) {
+        var tPct = targetPct(l.id);
+        if (!tPct) return;
+
+        var delta = (novoTotal * (tPct / 100)) - l.saldo;
+        if (delta <= 0) return; // já no peso ou acima do target
+
+        // PM: se custoTotal = 0, ativo sempre elegível (ENTRADA, RENDIMENTO)
+        var pm = l.pos.custoTotal > 0 && l.pos.quantidade > 0
+            ? l.pos.custoTotal / l.pos.quantidade
+            : 0;
+        var preco = l.preco || 0;
+        var elegivel = pm === 0 || preco <= pm * (1 + filtroUpside / 100);
+        var upside = pm > 0 ? (preco / pm - 1) * 100 : 0;
+
+        var item = {
+            id: l.id, info: l.info, pm: pm, preco: preco,
+            delta: delta, tPct: tPct, pctAtual: l.pctAtual,
+            upside: upside, saldo: l.saldo, pos: l.pos,
+        };
+
+        if (elegivel) { candidatos.push(item); } else { bloqueados.push(item); }
+    });
+
+    if (!candidatos.length) {
+        return { itens: [], bloqueados: bloqueados, erro: 'todos-bloqueados' };
+    }
+
+    candidatos.sort(function (a, b) { return b.delta - a.delta; });
+    var top4 = candidatos.slice(0, 4);
+    var somaDeltas = top4.reduce(function (s, c) { return s + c.delta; }, 0);
+
+    top4.forEach(function (c) {
+        c.sugestao = aporte * (c.delta / somaDeltas);
+        c.qtd = c.preco > 0 ? c.sugestao / c.preco : null;
+    });
+
+    return { itens: top4, bloqueados: bloqueados, erro: null };
+}
+
+function renderizarResultadoSimulador(resultado, aporte, filtroUpside) {
+    var raiz = document.getElementById('sim-resultado');
+    if (!raiz) return;
+
+    if (resultado.erro === 'sem-targets') {
+        raiz.innerHTML = '<div class="painel"><p class="painel-sub">Configure targets em ' +
+            '<a role="link" tabindex="0" data-rota="/balanceamento">Balanceamento</a>' +
+            ' para usar o simulador.</p></div>';
+        return;
+    }
+    if (resultado.erro === 'todos-bloqueados') {
+        raiz.innerHTML = '<div class="painel"><p class="painel-sub">Nenhum ativo elegível com o filtro ' +
+            'de ' + formatarBR(filtroUpside, 0) + '% de upside. Tente aumentar o percentual.</p></div>';
+        return;
+    }
+    if (!resultado.itens.length) { raiz.innerHTML = ''; return; }
+
+    var itensHTML = resultado.itens.map(function (c) {
+        var simbolo = c.info ? c.info.simbolo.toUpperCase() : c.id.toUpperCase();
+        var nome    = c.info ? (c.info.nome || c.info.simbolo) : c.id;
+        var logo    = c.info ? logoHTML(c.info) : '';
+        var qtdTxt  = c.qtd !== null ? formatarBR(c.qtd, 8) + ' ' + simbolo : '';
+        var pmTxt    = c.pm > 0
+            ? 'PM <span data-brl="' + c.pm + '" data-tipo="preco"></span>'
+            : 'PM: custo zero';
+        var precoTxt = c.preco > 0
+            ? 'Preço atual <span data-brl="' + c.preco + '" data-tipo="preco"></span>'
+            : '';
+        var upsideTxt = c.pm > 0
+            ? 'Upside +' + formatarBR(Math.abs(c.upside), 1) + '%'
+            : '';
+
+        return '<div class="sim-resultado-item">' +
+            '<div class="sim-item-cabecalho">' +
+                logo +
+                '<div class="sim-item-moeda">' + escapar(simbolo) +
+                    '<br><span style="font-size:var(--t-sm);font-weight:400;color:var(--texto-2);">' +
+                    escapar(nome) + '</span>' +
+                '</div>' +
+                '<div style="text-align:right;">' +
+                    '<div class="sim-item-sugestao" data-brl="' + c.sugestao + '"></div>' +
+                    (qtdTxt ? '<div style="font-size:var(--t-sm);color:var(--texto-2);">' +
+                        escapar(qtdTxt) + '</div>' : '') +
+                '</div>' +
+            '</div>' +
+            '<div class="sim-item-detalhe">' +
+                '<span>' + pmTxt + '</span>' +
+                (precoTxt ? '<span>' + precoTxt + '</span>' : '') +
+                (upsideTxt ? '<span>' + upsideTxt + '</span>' : '') +
+                '<span>Alocação ' + formatarBR(c.pctAtual, 1) + '% → target ' +
+                    formatarBR(c.tPct, 1) + '%</span>' +
+            '</div>' +
+        '</div>';
+    }).join('');
+
+    var bloqueadosHTML = '';
+    if (resultado.bloqueados && resultado.bloqueados.length) {
+        var bloqItems = resultado.bloqueados.map(function (c) {
+            var simbolo = c.info ? c.info.simbolo.toUpperCase() : c.id.toUpperCase();
+            var logo    = c.info ? logoHTML(c.info) : '';
+            return '<div class="sim-resultado-item bloqueado" style="padding:10px 16px;">' +
+                '<div class="sim-item-cabecalho">' +
+                    logo +
+                    '<div class="sim-item-moeda" style="font-size:var(--t-sm);">' +
+                        escapar(simbolo) + '</div>' +
+                    '<div class="sim-item-motivo">Upside +' + formatarBR(c.upside, 1) +
+                        '% — acima do filtro de ' + formatarBR(filtroUpside, 0) + '%</div>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+        bloqueadosHTML =
+            '<div style="margin-top:18px;">' +
+            '<p style="font-size:var(--t-sm);color:var(--texto-3);margin:0 0 8px;">' +
+                'Excluídos pelo filtro de upside</p>' +
+            bloqItems + '</div>';
+    }
+
+    var total = resultado.itens.length;
+
+    raiz.innerHTML =
+        '<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:16px;flex-wrap:wrap;">' +
+            '<span style="font-size:var(--t-sm);color:var(--texto-2);">Distribuição sugerida para aporte de</span>' +
+            '<strong data-brl="' + aporte + '"></strong>' +
+            '<span style="font-size:var(--t-xs);color:var(--texto-3);margin-left:auto;">' +
+                'entre os ' + total + ' mais prioritários</span>' +
+        '</div>' +
+        itensHTML + bloqueadosHTML +
+        '<p class="sim-nota-disclaimer" style="margin-top:18px;">' +
+            'Esta sugestão é gerada automaticamente com base nos seus targets de balanceamento, ' +
+            'preço médio de aquisição e preço de mercado atual. Não é uma recomendação de investimento. ' +
+            'Revise os valores antes de operar.' +
+        '</p>';
+
+    preencherValores(raiz);
+}
+
+function gavetaSimuladorHTML() {
+    var moeda = estado.ler('moeda') || 'BRL';
+    var simbolo = moeda === 'BRL' ? 'R$' : (moeda === 'USD' ? 'US$' : '₿');
+    return '<div class="gaveta-fundo" data-sim-fechar></div>' +
+        '<div class="gaveta" role="dialog" aria-modal="true" aria-labelledby="sim-gav-titulo">' +
+        '<div class="gaveta-topo">' +
+            '<h2 id="sim-gav-titulo">Simular aporte</h2>' +
+            '<button type="button" class="botao-icone" data-sim-fechar aria-label="Fechar">' +
+                '&times;</button>' +
+        '</div>' +
+        '<div class="gaveta-corpo">' +
+        '<div class="campo-grupo">' +
+            '<label class="campo-rotulo" for="sim-aporte">Valor do aporte (' + simbolo + ')</label>' +
+            '<input type="number" id="sim-aporte" class="entrada" inputmode="decimal" ' +
+                'placeholder="Ex.: 1000" min="0.01" step="any" autocomplete="off">' +
+        '</div>' +
+        '<div class="campo-grupo">' +
+            '<label class="campo-rotulo" for="sim-upside">Filtro de upside (%)</label>' +
+            '<input type="number" id="sim-upside" class="entrada" inputmode="decimal" ' +
+                'placeholder="12" min="0" max="9999" step="1" value="12" autocomplete="off">' +
+            '<p class="campo-ajuda">Ativos com preço acima de PM + este percentual são ' +
+                'excluídos da sugestão.</p>' +
+        '</div>' +
+        '</div>' +
+        '<div class="gaveta-pe">' +
+            '<button type="button" class="botao botao-neutro" data-sim-fechar>Cancelar</button>' +
+            '<button type="button" class="botao botao-marca" data-sim-calcular>Calcular</button>' +
+        '</div></div>';
+}
+
+function abrirGavetaSim() {
+    var raiz = document.getElementById('gaveta-sim');
+    if (!raiz) return;
+    raiz.innerHTML = gavetaSimuladorHTML();
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function () {
+        raiz.classList.add('aberta');
+        var inp = document.getElementById('sim-aporte');
+        if (inp) inp.focus();
+    });
+}
+
+function fecharGavetaSim() {
+    var raiz = document.getElementById('gaveta-sim');
+    if (!raiz) return;
+    raiz.classList.remove('aberta');
+    document.body.style.overflow = '';
+    setTimeout(function () { raiz.innerHTML = ''; }, menosMovimento ? 0 : 240);
 }
 
 function _objCalcularPatrimonio(cb) {
@@ -10342,6 +10640,11 @@ document.addEventListener('keydown', function (ev) {
             document.getElementById('gaveta-objetivos').classList.contains('aberta')) {
         fecharGavetaObjetivo();
     }
+    // [ETAPA 13] Esc fecha gaveta do simulador
+    if (ev.key === 'Escape' && document.getElementById('gaveta-sim') &&
+            document.getElementById('gaveta-sim').classList.contains('aberta')) {
+        fecharGavetaSim();
+    }
 });
 
 // [ETAPA 11] teclado na gaveta de portfólio: Enter cria, Esc fecha
@@ -10835,6 +11138,59 @@ document.addEventListener('click', function (ev) {
         _excluirObjetivoNoBanco(remId, function () {
             if (rotaAtual === '/objetivos') _objRenderizar(_objUltimoPatrimonio);
         });
+        return;
+    }
+
+    // [ETAPA 13] Simulador de Aporte
+    if (ev.target.closest('[data-sim-abrir]')) { abrirGavetaSim(); return; }
+    if (ev.target.closest('[data-sim-fechar]')) { fecharGavetaSim(); return; }
+
+    if (ev.target.closest('[data-sim-calcular]')) {
+        var inpSimAporte = document.getElementById('sim-aporte');
+        var inpSimUpside = document.getElementById('sim-upside');
+        if (!inpSimAporte) return;
+
+        var aporteDisplay = parseFloat(String(inpSimAporte.value).replace(',', '.'));
+        var filtroUp = parseFloat(String(inpSimUpside ? inpSimUpside.value : '12').replace(',', '.'));
+        if (isNaN(filtroUp) || filtroUp < 0) filtroUp = 12;
+
+        if (!aporteDisplay || aporteDisplay <= 0) {
+            avisar('Informe um valor de aporte maior que zero.', 'erro');
+            inpSimAporte.focus();
+            return;
+        }
+
+        // converter aporte para BRL (cálculos sempre em BRL)
+        var taxasSim = estado.ler('taxas') || {};
+        var moedaSim = estado.ler('moeda') || 'BRL';
+        var aporteBRL = aporteDisplay;
+        if (moedaSim === 'USD' && taxasSim.USD) { aporteBRL = aporteDisplay * taxasSim.USD; }
+        else if (moedaSim === 'BTC' && taxasSim.BTC) { aporteBRL = aporteDisplay * taxasSim.BTC; }
+
+        // montar linhas da carteira atual (mesma lógica do balanceamento)
+        var carteiraSim = carteiraAtual();
+        var posicoesSim = carteiraSim.posicoes;
+        var idsSim = Object.keys(posicoesSim).filter(function (id) {
+            return posicoesSim[id].quantidade > QTD_EPSILON;
+        });
+        var saldoTotalSim = 0;
+        var linhasSim = idsSim.map(function (id) {
+            var pos = posicoesSim[id];
+            var m = mercado.porId[id];
+            var preco = m ? m.preco : null;
+            var saldo = preco !== null ? pos.quantidade * preco : pos.custoTotal;
+            saldoTotalSim += saldo;
+            return { id: id, info: infoMoeda(id), pos: pos, saldo: saldo, preco: preco || 0 };
+        });
+        linhasSim.forEach(function (l) {
+            l.pctAtual = saldoTotalSim > 0 ? l.saldo / saldoTotalSim * 100 : 0;
+        });
+
+        var modoSim = estado.ler('balModo') || 'pct';
+        var resultadoSim = calcularSimulador(aporteBRL, filtroUp, linhasSim, _targets, modoSim);
+
+        fecharGavetaSim();
+        renderizarResultadoSimulador(resultadoSim, aporteBRL, filtroUp);
         return;
     }
 
