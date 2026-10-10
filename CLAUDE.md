@@ -12,7 +12,7 @@ Este documento resume o que foi construído até aqui e o que falta para v1.0.
 | Item | Estado |
 |---|---|
 | Arquivo principal | `index.html` (single-file: HTML + CSS + JS, sem build) |
-| Versão | `v0.3.0-beta` |
+| Versão | `v1.0.0` |
 | Etapas concluídas | 0, 0.1, 1, 1.1, 1.2, 2, 2.1, 3, 4, 4.1, 5, 5.1, 6, 6.1, 6.2, 6.3, 7, 7.1, 7.2, 7.3, 7.4, 8 (busca fora do top 100), 9 (Supabase auth), 9.1–9.5 (banco assíncrono, offline, Cloudflare Worker, refinamentos), 10 (Balanceamento), 10.1 (targets no Supabase), 11 (Objetivos), 12 (Pendências v1.0: modal nativo, perfil, LW Charts offline, registro em USD), 13 (Simulador de Aporte) |
 | PWA | Entregue no v0.2.0-beta: `manifest.json`, `sw.js`, ícones, registro do SW, botão de instalação, banner de atualização (sem número de etapa próprio) |
 | Tema claro | Entregue no v0.2.0-beta: toggle em Ajustes, `aplicarTema()`, tokens completos em `:root[data-tema="claro"]` |

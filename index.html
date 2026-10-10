@@ -3067,6 +3067,11 @@ body:has(#gaveta-sim.aberta) .avisos {
         padding: 16px;
     }
 
+    /* [ETAPA 5] seletor de portfólio no cabeçalho de lançamentos: limita para caber com o botão */
+    .portfolio-select-ctrl {
+        max-width: 160px;
+    }
+
     .entrada,
     select.entrada {
         font-size: 16px;
@@ -4155,7 +4160,7 @@ function instalarPWA() {
    ================================================================= */
 var APP = {
     nome: 'KoinFin',
-    versao: 'v0.3.0-beta',
+    versao: 'v1.0.0',
     ano: 2026,
     autor: 'BitCoderSoft',
 };
@@ -9629,7 +9634,8 @@ function paginaLancamentos() {
         '<div class="pagina-cabecalho"><div><h1>Lançamentos</h1>' +
         '<p>Compras, vendas, entradas, saídas e conversões. Cada lançamento é conferido na linha do tempo: nenhuma baixa pode ficar sem saldo.</p></div>' +
         '<div class="lanc-cabecalho-acoes">' + seletorPf +
-        '<button type="button" class="botao botao-marca" data-lanc-novo>' + icone('mais') + 'Novo lançamento</button></div></div>' +
+        '<button type="button" class="botao botao-marca" data-lanc-novo>' + icone('mais') +
+        '<span class="so-computador">Novo lançamento</span><span class="so-celular">Novo</span></button></div></div>' +
         (lista.length ? '<div class="grade-2 lanc-resumo"><div class="cartao"><p class="indicador-rotulo">Lançamentos</p><p class="indicador-valor" id="lanc-count">' + listaFiltrada.length + '</p></div>' +
             '<div class="cartao"><p class="indicador-rotulo">Lucro realizado</p><p class="indicador-valor">' +
             (temVenda ? '<span class="var ' + (realizadoTotal >= 0 ? 'alta' : 'queda') + '" data-brl="' + realizadoTotal + '"></span>' : '<span class="sem-dado sem-dado-legenda">sem vendas ainda</span>') +
