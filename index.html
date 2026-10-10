@@ -2104,6 +2104,80 @@ body:has(#gaveta.aberta) .avisos {
     line-height: 1.5;
 }
 
+/* ── Total do lançamento na gaveta [ETAPA N] ───────────────────── */
+#lanc-total {
+    display: none;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex-shrink: 1;
+}
+#lanc-total:not(:empty) {
+    display: flex;
+    margin-right: auto;
+}
+.lanc-total-rotulo {
+    font-size: var(--t-xs);
+    color: var(--texto-3);
+    white-space: nowrap;
+}
+.lanc-total-valor {
+    font-size: var(--t-base);
+    font-weight: 700;
+    color: var(--texto);
+    font-feature-settings: "tnum";
+    white-space: nowrap;
+}
+
+/* ── Cotação automática na conversão [ETAPA N] ─────────────────── */
+.conv-cotacao {
+    background: var(--superficie-2);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-top: 4px;
+}
+.conv-cotacao-data {
+    font-size: var(--t-xs);
+    color: var(--texto-3);
+    margin: 0 0 8px;
+}
+.conv-cotacao-linha {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 4px 0;
+}
+.conv-cotacao-linha + .conv-cotacao-linha {
+    border-top: 1px solid var(--borda);
+    margin-top: 4px;
+}
+.conv-cotacao-simbolo {
+    font-size: var(--t-sm);
+    font-weight: 700;
+    color: var(--texto);
+    min-width: 52px;
+}
+.conv-cotacao-valor {
+    font-size: var(--t-sm);
+    color: var(--marca);
+    font-feature-settings: "tnum";
+    flex: 1;
+}
+.conv-cotacao-valor.conv-cotacao-nd {
+    color: var(--texto-3);
+}
+.conv-cotacao-label {
+    font-size: var(--t-xs);
+    color: var(--texto-3);
+}
+.conv-cotacao-aviso {
+    font-size: var(--t-xs);
+    color: var(--texto-3);
+    margin: 8px 0 0;
+    padding-top: 8px;
+    border-top: 1px solid var(--borda);
+}
+
 /* [ETAPA 7] painel de ajuda dos tipos de operação */
 .botao-ajuda-tipo {
     display: inline-flex;
@@ -3357,11 +3431,23 @@ body:has(#gaveta-objetivos.aberta) .avisos {
 
     .gaveta-pe {
         padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+        flex-wrap: wrap;
     }
 
     .gaveta-pe .botao {
         flex: 1;
         height: 48px;
+    }
+
+    /* [ETAPA N] total do lançamento: linha própria no mobile */
+    #lanc-total:not(:empty) {
+        width: 100%;
+        margin-right: 0;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--borda);
+        flex-direction: row;
+        align-items: baseline;
+        gap: 8px;
     }
 
     .avisos,
@@ -5752,6 +5838,43 @@ function obterPrecosBinance() {
         });
 }
 
+// [ETAPA N] Busca o preço de fechamento de uma moeda (em R$) para uma data.
+// Para hoje usa obterPrecosBinance(); para datas anteriores usa klines diárias.
+// cb(preco) → number ou null se indisponível.
+function buscarPrecoConvNaData(moedaId, dataISO, cb) {
+    var banco = lerBanco();
+    var mc = banco.moedas[moedaId] || (mercado.porId[moedaId] ? { simbolo: mercado.porId[moedaId].simbolo } : null);
+    if (!mc) { cb(null); return; }
+    var simbolo = (mc.simbolo || '').toUpperCase();
+    if (!simbolo) { cb(null); return; }
+    var hoje = hojeISO();
+    if (dataISO >= hoje) {
+        obterPrecosBinance().then(function (precos) {
+            var usdtbrl = precos['USDTBRL'] || 0;
+            if (simbolo === 'USDT' || simbolo === 'USDC') { cb(usdtbrl || null); return; }
+            var par = simbolo + 'USDT';
+            cb(precos[par] && usdtbrl ? precos[par] * usdtbrl : null);
+        }).catch(function () { cb(null); });
+        return;
+    }
+    var startMs = new Date(dataISO).getTime();
+    if (simbolo === 'USDT' || simbolo === 'USDC') {
+        fetch(BINANCE + '/api/v3/klines?symbol=USDTBRL&interval=1d&startTime=' + startMs + '&limit=1')
+            .then(function (r) { return r.json(); })
+            .then(function (d) { cb(d && d[0] ? parseFloat(d[0][4]) : null); })
+            .catch(function () { cb(null); });
+        return;
+    }
+    Promise.all([
+        fetch(BINANCE + '/api/v3/klines?symbol=USDTBRL&interval=1d&startTime=' + startMs + '&limit=1').then(function (r) { return r.json(); }),
+        fetch(BINANCE + '/api/v3/klines?symbol=' + simbolo + 'USDT&interval=1d&startTime=' + startMs + '&limit=1').then(function (r) { return r.json(); })
+    ]).then(function (res) {
+        var usdtbrl   = res[0] && res[0][0] ? parseFloat(res[0][0][4]) : 0;
+        var closeUsdt = res[1] && res[1][0] ? parseFloat(res[1][0][4]) : 0;
+        cb(usdtbrl && closeUsdt ? closeUsdt * usdtbrl : null);
+    }).catch(function () { cb(null); });
+}
+
 // par da Binance que corresponde à moeda da CoinGecko, ou null.
 // Mesmo símbolo pode ser moeda diferente (caso do ENA), então compara o
 // preço. [ETAPA 2] Com a CoinGecko 1x por dia, o preço do pacote pode ter
@@ -6880,8 +7003,9 @@ function ordenarTransacoes(lista) {
 //             airdrop, presente). Não mexe no preço médio de compra
 //   VENDA     tira quantidade e o custo proporcional pelo preço médio
 //   SAIDA     igual à venda, mas sem devolver reais (taxa de rede, envio, perda)
-//   CONVERSAO tira da origem pelo preço médio e ESSE MESMO custo entra no
-//             destino. Nenhuma cotação participa; o custo total não muda
+//   CONVERSAO tira da origem pelo preço médio; se houver precoUnitario,
+//             realiza lucro e destino entra com o valor de mercado como custo.
+//             Sem precoUnitario (legado): custo migra sem realização  [ETAPA N]
 // PREÇO MÉDIO DE COMPRA = custoTotal / qtdComCusto. Cada posição sabe quanto
 // da sua quantidade TEM custo (qtdComCusto): a entrada gratuita aumenta a
 // quantidade mas não derruba o preço médio. Na baixa, a parte com custo e a
@@ -6933,12 +7057,22 @@ function processarCarteira(ordenadas) {
                 realizado[t.id] = (t.quantidade * t.precoUnitario - (t.taxas || 0)) - saiu.custo;
             }
         } else if (t.tipo === 'CONVERSAO') {
-            var origem = baixar(pos(t.moedaId), t.quantidade);
-            var destino = pos(t.moedaDestinoId);
-            destino.quantidade += t.quantidadeDestino;
-            destino.custoTotal += origem.custo;
-            var fracaoComCusto = t.quantidade > 0 ? origem.qtdComCusto / t.quantidade : 0;
-            destino.qtdComCusto += t.quantidadeDestino * fracaoComCusto;
+            var saiu2 = baixar(pos(t.moedaId), t.quantidade);
+            delta = -saiu2.custo;
+            var dest2 = pos(t.moedaDestinoId);
+            dest2.quantidade += t.quantidadeDestino;
+            if (t.precoUnitario) {
+                // [ETAPA N] novo: realiza lucro no ativo de origem; destino entra pelo valor de mercado
+                var valorConv = t.quantidade * t.precoUnitario;
+                realizado[t.id] = valorConv - saiu2.custo;
+                dest2.custoTotal  += valorConv;
+                dest2.qtdComCusto += t.quantidadeDestino;
+            } else {
+                // legado (sem cotação registrada): custo migra sem realização
+                dest2.custoTotal += saiu2.custo;
+                var fracaoCC = t.quantidade > 0 ? saiu2.qtdComCusto / t.quantidade : 0;
+                dest2.qtdComCusto += t.quantidadeDestino * fracaoCC;
+            }
         }
         deltaCusto[t.id] = delta;
     });
@@ -8124,6 +8258,10 @@ function validarLancamento(d, editId) {
         else if (isNaN(qd)) erros.quantidadeDestino = 'Número inválido.';
         else if (qd <= 0) erros.quantidadeDestino = 'A quantidade precisa ser maior que zero.';
         dados.quantidadeDestino = qd;
+
+        // [ETAPA N] cotação buscada automaticamente pelo app (campo oculto)
+        var precoConv = parseFloat(d._precoConversao);
+        if (precoConv > 0) dados.precoUnitario = precoConv;
     }
 
     var desc = String(d.descricao || '').trim();
@@ -8171,7 +8309,7 @@ function salvarLancamento(dados, editId) {
             tipo: dados.tipo,
             moedaId: dados.moeda.id,
             quantidade: dados.quantidade,
-            precoUnitario: TIPOS_COM_PRECO[dados.tipo] ? dados.precoUnitario : 0,
+            precoUnitario: (TIPOS_COM_PRECO[dados.tipo] || dados.tipo === 'CONVERSAO') ? (dados.precoUnitario || 0) : 0,  // [ETAPA N]
             taxas: TIPOS_COM_PRECO[dados.tipo] ? dados.taxas : 0,
             data: dados.data,
         };
@@ -8299,7 +8437,7 @@ function infoMoedaTexto(tipo, valor, editId) {
 var NOTA_DA_OPERACAO = {
     ENTRADA: 'Entrada soma a quantidade com custo zero: o valor investido e o preço médio de compra não mudam, e o ganho aparece no lucro. Use para mineração, recompensa, airdrop ou presente.',
     SAIDA: 'Saída tira a quantidade junto com o custo proporcional (pelo preço médio), sem receber reais. Use para taxa de rede, envio a terceiros ou perda.',
-    CONVERSAO: 'O custo que sai da moeda de origem passa inteiro para o destino. Nenhuma cotação em reais entra na conta, e o total investido não muda.',
+    CONVERSAO: 'Troca direta de uma cripto por outra. O app busca a cotação do ativo de origem na data para calcular o lucro realizado e o custo de aquisição do destino.',  // [ETAPA N]
     VENDA: 'O lucro realizado é o valor recebido (quantidade x preço, menos taxas) menos o custo da parte vendida, pelo preço médio.',
     RENDIMENTO: 'Rendimento soma a quantidade com custo zero, igual à entrada gratuita. Use para staking, DeFi, mining ou cashback de exchange.',  // [ETAPA 7]
 };
@@ -8318,7 +8456,7 @@ function corpoLancamentoHTML(v, e, editId) {
         '<dt>Venda</dt><dd>Você desfez a posição recebendo fiat ou stablecoin. O lucro realizado é calculado aqui.</dd>' +
         '<dt>Entrada</dt><dd>Você recebeu moeda de outra carteira — sua ou de terceiros — sem comprar. Transferência, pagamento recebido.</dd>' +
         '<dt>Saída</dt><dd>Você enviou moeda para outra carteira. Sem venda, sem lucro calculado.</dd>' +
-        '<dt>Conversão</dt><dd>Você trocou uma cripto por outra diretamente (ex.: BTC por ETH). O custo da origem é transferido para o destino.</dd>' +
+        '<dt>Conversão</dt><dd>Você trocou uma cripto por outra diretamente (ex.: BTC por ETH). O app busca a cotação da data e calcula o lucro realizado na origem; o destino entra com o valor de mercado como custo.</dd>' +
         '<dt>Rendimento</dt><dd>Você ganhou moeda sem comprar nem transferir: staking, DeFi, mining, cashback de exchange.</dd>' +
         '</dl></div>';
 
@@ -8345,7 +8483,9 @@ function corpoLancamentoHTML(v, e, editId) {
             'Pode ser uma moeda que você já tem ou uma nova.', e.destino) +
             campoLancHTML('l-quantidade-destino', 'Quantidade recebida',
                 '<input class="entrada" type="text" inputmode="decimal" name="quantidadeDestino" id="l-quantidade-destino" autocomplete="off" placeholder="0" value="' + escapar(v.quantidadeDestino || '') + '">',
-                'O que de fato chegou, já descontadas as taxas da conversão.', e.quantidadeDestino);
+                'O que de fato chegou, já descontadas as taxas da conversão.', e.quantidadeDestino) +
+            '<div class="campo"><div id="conv-cotacao"></div>' +
+            '<input type="hidden" name="_precoConversao" id="l-conv-preco" value="' + escapar(v._precoConversao || '') + '"></div>';
     }
 
     if (TIPOS_COM_PRECO[tipo]) {
@@ -8388,7 +8528,8 @@ function gavetaHTML() {
         '<div class="gaveta-topo"><h2 id="gaveta-titulo">' + (editId ? 'Editar lançamento' : 'Novo lançamento') + '</h2>' +
         '<button type="button" class="botao-icone" data-lanc-fechar aria-label="Fechar">&times;</button></div>' +
         '<div class="gaveta-corpo" id="gaveta-corpo">' + corpoLancamentoHTML(lanc.valores, lanc.erros, editId) + '</div>' +
-        '<div class="gaveta-pe"><button type="button" class="botao botao-neutro" data-lanc-fechar>Cancelar</button>' +
+        '<div class="gaveta-pe"><div id="lanc-total"></div>' +
+        '<button type="button" class="botao botao-neutro" data-lanc-fechar>Cancelar</button>' +
         '<button type="button" class="botao botao-marca" data-lanc-salvar>Salvar lançamento</button></div></div>';
 }
 
@@ -8427,6 +8568,8 @@ function abrirLancamento(opcoes) {
         if (primeiro) primeiro.focus();
     });
     if (!opcoes.editId) aplicarAutopreenchimento();
+    if (lanc.valores.tipo === 'CONVERSAO') atualizarCotacaoConversao(); // [ETAPA N]
+    atualizarTotalLancamento(); // [ETAPA N]
 
     // sem o pacote diário carregado não há lista de moedas: busca e redesenha
     if (!mercado.lista.length) {
@@ -8450,6 +8593,8 @@ function redesenharCorpoLancamento(valores, erros) {
     lanc.valores = valores;
     lanc.erros = erros || {};
     document.getElementById('gaveta-corpo').innerHTML = corpoLancamentoHTML(lanc.valores, lanc.erros, lanc.editId);
+    if (lanc.valores.tipo === 'CONVERSAO') atualizarCotacaoConversao(); // [ETAPA N]
+    atualizarTotalLancamento(); // [ETAPA N]
 }
 
 // Sugestões só em lançamento novo, nunca em edição. Tudo que é sugerido leva
@@ -8481,6 +8626,7 @@ function aplicarAutopreenchimento() {
             if (infoPreco) infoPreco.textContent = 'Sugerido pelo preço atual. Confira antes de salvar.';
         }
     }
+    atualizarTotalLancamento(); // [ETAPA N]
 }
 
 function moedaMudou() {
@@ -8490,6 +8636,113 @@ function moedaMudou() {
     var info = document.getElementById('l-moeda-ajuda');
     if (info) info.textContent = infoMoedaTexto(lanc.valores.tipo, lanc.valores.moeda, lanc.editId);
     aplicarAutopreenchimento();
+    if (lanc.valores.tipo === 'CONVERSAO') atualizarCotacaoConversao(); // [ETAPA N]
+}
+
+// [ETAPA N] Busca e exibe as cotações de origem e destino na gaveta de conversão.
+// Chamada ao abrir, ao mudar moeda/destino/data. Armazena o preço da origem
+// no campo oculto #l-conv-preco para o motor usar em precoUnitario.
+function atualizarCotacaoConversao() {
+    if (!lanc || lanc.valores.tipo !== 'CONVERSAO') return;
+    var divCot  = document.getElementById('conv-cotacao');
+    var inpPreco = document.getElementById('l-conv-preco');
+    if (!divCot) return;
+    var v = lerCamposLancamento();
+    var mOrigem  = resolverMoeda(v.moeda);
+    var mDestino = resolverMoeda(v.destino);
+    var data = v.data || hojeISO();
+    if (!mOrigem) {
+        divCot.innerHTML = '';
+        if (inpPreco) inpPreco.value = '';
+        return;
+    }
+    divCot.innerHTML = '<div class="conv-cotacao conv-cotacao-loading">' +
+        '<span class="esqueleto" style="width:190px;height:14px;display:inline-block;border-radius:6px;"></span>' +
+        '</div>';
+    if (inpPreco) inpPreco.value = '';
+    var d = new Date(data + 'T12:00:00');
+    var dataDisplay = d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+
+    function linhaHTML(simbolo, preco, label) {
+        return '<div class="conv-cotacao-linha">' +
+            '<span class="conv-cotacao-simbolo">' + escapar(simbolo) + '</span>' +
+            (preco !== null
+                ? '<span class="conv-cotacao-valor">' + formatarPreco(preco) + '</span>'
+                : '<span class="conv-cotacao-valor conv-cotacao-nd">—</span>') +
+            '<span class="conv-cotacao-label">' + label + '</span>' +
+            '</div>';
+    }
+
+    buscarPrecoConvNaData(mOrigem.id, data, function (precoOrigem) {
+        if (!divCot.parentElement) return;
+        if (inpPreco && precoOrigem !== null) inpPreco.value = String(precoOrigem);
+        var html = '<div class="conv-cotacao"><p class="conv-cotacao-data">Cotação em ' + dataDisplay + '</p>' +
+            linhaHTML(mOrigem.simbolo, precoOrigem, 'por unidade · base do cálculo');
+        if (mDestino) {
+            buscarPrecoConvNaData(mDestino.id, data, function (precoDestino) {
+                if (!divCot.parentElement) return;
+                html += linhaHTML(mDestino.simbolo, precoDestino, 'por unidade · referência');
+                if (!precoOrigem) html += '<p class="conv-cotacao-aviso">Cotação indisponível — o custo será calculado sem realização de lucro.</p>';
+                html += '</div>';
+                divCot.innerHTML = html;
+            });
+        } else {
+            if (!precoOrigem) html += '<p class="conv-cotacao-aviso">Cotação indisponível — o custo será calculado sem realização de lucro.</p>';
+            html += '</div>';
+            divCot.innerHTML = html;
+        }
+    });
+}
+
+// [ETAPA N] Atualiza a sugestão de preço em COMPRA/VENDA quando a data muda.
+// Só age se o campo ainda for uma sugestão automática (data-auto="1") — nunca
+// sobrescreve o que o usuário digitou. Para datas passadas busca o kline diário;
+// para hoje mantém o preço ao vivo já preenchido por aplicarAutopreenchimento.
+function atualizarPrecoHistorico() {
+    if (!lanc || !TIPOS_COM_PRECO[lanc.valores.tipo]) return;
+    var elPreco = document.getElementById('l-preco');
+    var elInfo  = document.getElementById('l-preco-ajuda');
+    if (!elPreco || elPreco.dataset.auto !== '1') return;   // campo já é do usuário
+    var moeda = resolverMoeda(document.getElementById('l-moeda') ? document.getElementById('l-moeda').value : '');
+    if (!moeda) return;
+    var data = document.getElementById('l-data') ? document.getElementById('l-data').value : hojeISO();
+    if (data >= hojeISO()) return;   // hoje: preço ao vivo já está correto
+    if (elInfo) elInfo.textContent = 'Buscando cotação de ' + new Date(data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) + '…';
+    buscarPrecoConvNaData(moeda.id, data, function (historico) {
+        var el   = document.getElementById('l-preco');
+        var info = document.getElementById('l-preco-ajuda');
+        if (!el || el.dataset.auto !== '1') return;   // usuário digitou enquanto buscávamos
+        if (historico !== null) {
+            el.value = numeroParaCampo(historico, 10);
+            var dLabel = new Date(data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
+            if (info) info.textContent = 'Fechamento de ' + dLabel + '. Confira antes de salvar.';
+        } else {
+            if (info) info.textContent = 'Cotação histórica indisponível. Ajuste o valor se necessário.';
+        }
+        atualizarTotalLancamento(); // [ETAPA N]
+    });
+}
+
+// [ETAPA N] Exibe o total da operação no rodapé da gaveta (Compra e Venda).
+// Atualiza ao digitar quantidade, preço ou taxas. Limpa para outros tipos.
+function atualizarTotalLancamento() {
+    var el = document.getElementById('lanc-total');
+    if (!el || !lanc) return;
+    var tipo = lanc.valores.tipo;
+    if (!TIPOS_COM_PRECO[tipo]) { el.innerHTML = ''; return; }
+    var elQtd   = document.getElementById('l-quantidade');
+    var elPreco = document.getElementById('l-preco');
+    var elTaxas = document.getElementById('l-taxas');
+    var qtd   = elQtd   ? lerNumero(elQtd.value)  : NaN;
+    var preco = elPreco ? lerNumero(elPreco.value) : NaN;
+    var taxas = (elTaxas && elTaxas.value.trim()) ? lerNumero(elTaxas.value) : 0;
+    if (isNaN(qtd) || isNaN(preco) || qtd <= 0 || preco <= 0) { el.innerHTML = ''; return; }
+    if (isNaN(taxas) || taxas < 0) taxas = 0;
+    var total  = tipo === 'COMPRA' ? qtd * preco + taxas : qtd * preco - taxas;
+    var rotulo = tipo === 'COMPRA' ? 'Total pago' : 'Total recebido';
+    el.innerHTML = '<span class="lanc-total-rotulo">' + rotulo + '</span>' +
+        '<span class="lanc-total-valor" data-brl="' + total + '"></span>';
+    preencherValores(el);
 }
 
 // [ETAPA 8 · 02/10/2026] BUSCA EXTERNA NA GAVETA
@@ -8658,6 +8911,14 @@ document.addEventListener('click', function (ev) {
 
 document.addEventListener('change', function (ev) {
     if (lanc && ev.target.id === 'l-moeda') moedaMudou();
+    // [ETAPA N] cotação da conversão: atualiza quando data ou destino mudam
+    if (lanc && lanc.valores.tipo === 'CONVERSAO' && (ev.target.id === 'l-data' || ev.target.id === 'l-destino')) {
+        atualizarCotacaoConversao();
+    }
+    // [ETAPA N] compra/venda: atualiza sugestão de preço quando a data muda
+    if (lanc && TIPOS_COM_PRECO[lanc.valores.tipo] && ev.target.id === 'l-data') {
+        atualizarPrecoHistorico();
+    }
     // [ETAPA 7] seletor de tipo no celular — mesma lógica dos botões data-lanc-tipo
     if (lanc && ev.target.id === 'l-tipo-select') {
         var campos = lerCamposLancamento();
@@ -8712,6 +8973,10 @@ document.addEventListener('input', function (ev) {
             var info = document.getElementById('l-preco-ajuda');
             if (info) info.textContent = 'Em reais, por unidade da moeda.';
         }
+    }
+    // [ETAPA N] atualiza o total ao digitar quantidade, preço ou taxas
+    if (ev.target.id === 'l-quantidade' || ev.target.id === 'l-preco' || ev.target.id === 'l-taxas') {
+        atualizarTotalLancamento();
     }
 });
 
