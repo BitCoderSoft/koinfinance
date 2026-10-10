@@ -1072,6 +1072,26 @@ main#miolo {
     color: var(--texto-2);
 }
 
+.campo-rotulo-flex {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+.campo-rotulo-flex label {
+    margin: 0;
+}
+.segmentado-preco {
+    padding: 2px;
+    gap: 1px;
+    border-radius: 8px;
+}
+.segmentado-preco button {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 5px;
+}
+
 .entrada {
     height: 42px;
     padding: 0 14px;
@@ -4338,7 +4358,7 @@ function trocarMoeda(m) {
 }
 
 // a moeda muda -> todos os [data-brl] da tela se reescrevem
-estado.ouvir('moeda', function () { preencherValores(); atualizarSeletoresMoeda(); });
+estado.ouvir('moeda', function () { preencherValores(); atualizarSeletoresMoeda(); atualizarPulso(); }); // [ETAPA N]
 estado.ouvir('taxas', function () { preencherValores(); atualizarSeletoresMoeda(); });
 
 function seletorMoedaHTML() {
@@ -4835,21 +4855,29 @@ function atualizarPulso() {
     return fetch(BINANCE + '/api/v3/ticker/24hr?symbol=BTCBRL')
         .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
         .then(function (d) {
-            var preco = Number(d.lastPrice);
+            var precoBRL = Number(d.lastPrice);
             var pct = Number(d.priceChangePercent);
             var caixa = document.getElementById('pulso');
             var el = document.getElementById('pulso-preco');
             if (!caixa || !el) return;
             caixa.hidden = false;
-            var fmt = function (v) { return 'R$ ' + formatarBR(v, 0); };
-            if (pulsoAnterior !== null && preco !== pulsoAnterior) {
-                piscar(el, preco > pulsoAnterior);
-                animarNumero(el, pulsoAnterior, preco, fmt);
+            // [ETAPA N] respeita a moeda de exibição do usuário
+            var moeda = estado.ler('moeda');
+            var taxasPulso = estado.ler('taxas');
+            var usdtbrlPulso = (moeda === 'USD' && taxasPulso && taxasPulso.USD) ? taxasPulso.USD : 0;
+            var preco = usdtbrlPulso > 0 ? precoBRL / usdtbrlPulso : precoBRL;
+            var fmt = usdtbrlPulso > 0
+                ? function (v) { return 'US$ ' + formatarBR(v, 0); }
+                : function (v) { return 'R$ ' + formatarBR(v, 0); };
+            if (pulsoAnterior !== null && precoBRL !== pulsoAnterior) {
+                var prevPreco = usdtbrlPulso > 0 ? pulsoAnterior / usdtbrlPulso : pulsoAnterior;
+                piscar(el, precoBRL > pulsoAnterior);
+                animarNumero(el, prevPreco, preco, fmt);
             } else {
                 el.textContent = fmt(preco);
             }
             document.getElementById('pulso-var').innerHTML = varHTML(pct);
-            pulsoAnterior = preco;
+            pulsoAnterior = precoBRL;  // sempre BRL para comparação correta
         })
         .catch(function () {
             var caixa = document.getElementById('pulso');
@@ -7879,6 +7907,8 @@ function rowParaTransacao(row) {
     if (row.moeda_destino_id) t.moedaDestinoId = row.moeda_destino_id;
     if (row.quantidade_destino != null) t.quantidadeDestino = Number(row.quantidade_destino);
     if (row.portfolio_id != null) t.portfolioId = String(row.portfolio_id); // [ETAPA 11]
+    if (row.moeda_registro && row.moeda_registro !== 'BRL') t.moedaRegistro = row.moeda_registro; // [ETAPA N]
+    if (row.taxa_cambial != null) t.taxaCambial = Number(row.taxa_cambial); // [ETAPA N]
     return t;
 }
 
@@ -7903,6 +7933,8 @@ function transacaoParaRow(reg) {
     if (reg.descricao) row.descricao = reg.descricao;
     if (reg.moedaDestinoId) row.moeda_destino_id = reg.moedaDestinoId;
     if (reg.quantidadeDestino != null) row.quantidade_destino = reg.quantidadeDestino;
+    if (reg.moedaRegistro && reg.moedaRegistro !== 'BRL') row.moeda_registro = reg.moedaRegistro; // [ETAPA N]
+    if (reg.taxaCambial) row.taxa_cambial = reg.taxaCambial; // [ETAPA N]
     return row;
 }
 
@@ -8236,12 +8268,14 @@ function validarLancamento(d, editId) {
         else if (isNaN(preco)) erros.preco = 'Número inválido.';
         else if (preco <= 0) erros.preco = 'O preço precisa ser maior que zero.';
         dados.precoUnitario = preco;
+        dados.moedaPreco = d._moedaPreco === 'USD' ? 'USD' : 'BRL';  // [ETAPA N]
+        if (dados.moedaPreco === 'USD') dados.precoUSD = preco;       // [ETAPA N]
 
         if (String(d.taxas || '').trim()) {
             var taxas = lerNumero(d.taxas);
             if (isNaN(taxas)) erros.taxas = 'Número inválido.';
             else if (taxas < 0) erros.taxas = 'As taxas não podem ser negativas.';
-            else dados.taxas = taxas;
+            else { dados.taxas = taxas; if (dados.moedaPreco === 'USD') dados.taxasUSD = taxas; } // [ETAPA N]
         }
     }
 
@@ -8300,6 +8334,18 @@ function validarLancamento(d, editId) {
 
 // [ETAPA 9.2] async: escreve no Supabase e atualiza o cache
 function salvarLancamento(dados, editId) {
+    // [ETAPA N] conversão USD → BRL antes de gravar
+    var promConv;
+    if (dados.moedaPreco === 'USD' && dados.precoUSD) {
+        promConv = buscarTaxas().then(function (t) {
+            var taxa = t && t.USD ? t.USD : 0;
+            if (!taxa) throw new Error('Taxa de câmbio indisponível. Verifique sua conexão e tente novamente.');
+            return { precoUnitario: dados.precoUSD * taxa, taxas: dados.taxasUSD ? dados.taxasUSD * taxa : 0, taxa: taxa };
+        });
+    } else {
+        promConv = Promise.resolve({ precoUnitario: dados.precoUnitario, taxas: dados.taxas, taxa: null });
+    }
+    return promConv.then(function (conv) {
     return supabaseClient.auth.getUser().then(function (sessao) {
         var user = sessao.data.user;
         if (!user) throw new Error('Sem sessão ativa.');
@@ -8309,10 +8355,11 @@ function salvarLancamento(dados, editId) {
             tipo: dados.tipo,
             moedaId: dados.moeda.id,
             quantidade: dados.quantidade,
-            precoUnitario: (TIPOS_COM_PRECO[dados.tipo] || dados.tipo === 'CONVERSAO') ? (dados.precoUnitario || 0) : 0,  // [ETAPA N]
-            taxas: TIPOS_COM_PRECO[dados.tipo] ? dados.taxas : 0,
+            precoUnitario: (TIPOS_COM_PRECO[dados.tipo] || dados.tipo === 'CONVERSAO') ? (conv.precoUnitario || 0) : 0,  // [ETAPA N]
+            taxas: TIPOS_COM_PRECO[dados.tipo] ? conv.taxas : 0,
             data: dados.data,
         };
+        if (conv.taxa) { registro.moedaRegistro = 'USD'; registro.taxaCambial = conv.taxa; } // [ETAPA N]
         if (dados.descricao) registro.descricao = dados.descricao;
         if (dados.tipo === 'CONVERSAO') {
             registro.moedaDestinoId = dados.destino.id;
@@ -8341,6 +8388,8 @@ function salvarLancamento(dados, editId) {
                     delete t.moedaDestinoId;
                     delete t.quantidadeDestino;
                     delete t.descricao;
+                    delete t.moedaRegistro;   // [ETAPA N] limpa antes de re-aplicar
+                    delete t.taxaCambial;     // [ETAPA N]
                     Object.assign(t, registro);
                 }
                 gravarBanco(banco);
@@ -8360,6 +8409,7 @@ function salvarLancamento(dados, editId) {
             });
         }
     });
+    }); // fim promConv.then [ETAPA N]
 }
 
 // [ETAPA 9.2] async — devolve Promise<null> (ok) ou Promise<string> (motivo da recusa)
@@ -8488,18 +8538,29 @@ function corpoLancamentoHTML(v, e, editId) {
             '<input type="hidden" name="_precoConversao" id="l-conv-preco" value="' + escapar(v._precoConversao || '') + '"></div>';
     }
 
+    // [ETAPA N] campo de preço com toggle R$/US$
+    var moedaPreco = v._moedaPreco || (estado.ler('moeda') === 'USD' ? 'USD' : 'BRL');
     if (TIPOS_COM_PRECO[tipo]) {
-        html += campoLancHTML('l-preco', 'Preço unitário (R$)',
-            '<input class="entrada" type="text" inputmode="decimal" name="preco" id="l-preco" autocomplete="off" placeholder="0,00" value="' + escapar(v.preco || '') + '"' + (v._autoPreco ? ' data-auto="1"' : '') + '>',
-            escapar(v._infoPreco || 'Em reais, por unidade da moeda.'), e.preco);
+        var infoPreco = v._infoPreco || (moedaPreco === 'USD' ? 'Em dólares, por unidade da moeda.' : 'Em reais, por unidade da moeda.');
+        html += '<div class="campo">' +
+            '<div class="campo-rotulo-flex"><label for="l-preco">Preço unitário</label>' +
+            '<span class="segmentado segmentado-preco" role="group">' +
+            '<button type="button" data-moeda-preco="BRL" aria-pressed="' + (moedaPreco !== 'USD' ? 'true' : 'false') + '">R$</button>' +
+            '<button type="button" data-moeda-preco="USD" aria-pressed="' + (moedaPreco === 'USD' ? 'true' : 'false') + '">US$</button>' +
+            '</span></div>' +
+            '<input class="entrada" type="text" inputmode="decimal" name="preco" id="l-preco" autocomplete="off" placeholder="0,00" value="' + escapar(v.preco || '') + '"' + (v._autoPreco ? ' data-auto="1"' : '') + '>' +
+            '<input type="hidden" name="_moedaPreco" id="l-moeda-preco" value="' + moedaPreco + '">' +
+            '<p class="campo-ajuda" id="l-preco-ajuda">' + escapar(infoPreco) + '</p>' +
+            (e.preco ? '<p class="campo-erro">' + escapar(e.preco) + '</p>' : '') +
+            '</div>';
     }
 
     html += campoLancHTML('l-data', 'Data', '<input class="entrada" type="date" name="data" id="l-data" max="' + hojeISO() + '" value="' + escapar(v.data || hojeISO()) + '">', null, e.data);
 
     if (TIPOS_COM_PRECO[tipo]) {
-        html += campoLancHTML('l-taxas', 'Taxas (R$)',
+        html += campoLancHTML('l-taxas', 'Taxas (' + (moedaPreco === 'USD' ? 'US$' : 'R$') + ')',
             '<input class="entrada" type="text" inputmode="decimal" name="taxas" id="l-taxas" autocomplete="off" placeholder="0,00" value="' + escapar(v.taxas || '') + '">',
-            'Opcional. Taxas da corretora ou da rede, em reais.', e.taxas);
+            'Opcional. Taxas da corretora ou da rede, em ' + (moedaPreco === 'USD' ? 'dólares.' : 'reais.'), e.taxas);
     }
 
     html += campoLancHTML('l-descricao', 'Nota (opcional)',
@@ -8546,10 +8607,12 @@ function abrirLancamento(opcoes) {
     if (opcoes.editId) {
         var t = lerBanco().transacoes.filter(function (x) { return x.id === opcoes.editId; })[0];
         if (!t) return;
+        var editEhUSD = t.moedaRegistro === 'USD' && t.taxaCambial;
         valores = {
             tipo: t.tipo, moeda: t.moedaId, quantidade: numeroParaCampo(t.quantidade, 8), data: t.data,
-            preco: TIPOS_COM_PRECO[t.tipo] ? numeroParaCampo(t.precoUnitario, 10) : '',
-            taxas: t.taxas ? numeroParaCampo(t.taxas, 8) : '',
+            preco: TIPOS_COM_PRECO[t.tipo] ? (editEhUSD ? numeroParaCampo(t.precoUnitario / t.taxaCambial, 10) : numeroParaCampo(t.precoUnitario, 10)) : '',
+            taxas: t.taxas ? (editEhUSD ? numeroParaCampo(t.taxas / t.taxaCambial, 8) : numeroParaCampo(t.taxas, 8)) : '',
+            _moedaPreco: editEhUSD ? 'USD' : 'BRL',  // [ETAPA N]
             destino: t.moedaDestinoId || '',
             quantidadeDestino: t.quantidadeDestino ? numeroParaCampo(t.quantidadeDestino, 8) : '',
             descricao: t.descricao || '',  // [ETAPA 7]
@@ -8621,9 +8684,21 @@ function aplicarAutopreenchimento() {
     if (preco && preco.value === '') {
         var m = mercado.porId[moeda.id];
         if (m && m.preco > 0) {
-            preco.value = numeroParaCampo(m.preco, 10);
-            preco.dataset.auto = '1';
-            if (infoPreco) infoPreco.textContent = 'Sugerido pelo preço atual. Confira antes de salvar.';
+            var mpEl = document.getElementById('l-moeda-preco');
+            var mp = mpEl ? mpEl.value : 'BRL';
+            if (mp === 'USD') {
+                var taxasCached = estado.ler('taxas');
+                var usdtbrl = taxasCached && taxasCached.USD ? taxasCached.USD : 0;
+                if (usdtbrl > 0) {
+                    preco.value = numeroParaCampo(m.preco / usdtbrl, 10);
+                    preco.dataset.auto = '1';
+                    if (infoPreco) infoPreco.textContent = 'Sugerido pelo preço atual. Confira antes de salvar.';
+                }
+            } else {
+                preco.value = numeroParaCampo(m.preco, 10);
+                preco.dataset.auto = '1';
+                if (infoPreco) infoPreco.textContent = 'Sugerido pelo preço atual. Confira antes de salvar.';
+            }
         }
     }
     atualizarTotalLancamento(); // [ETAPA N]
@@ -8707,15 +8782,27 @@ function atualizarPrecoHistorico() {
     if (!moeda) return;
     var data = document.getElementById('l-data') ? document.getElementById('l-data').value : hojeISO();
     if (data >= hojeISO()) return;   // hoje: preço ao vivo já está correto
+    var mpElH = document.getElementById('l-moeda-preco');
+    var mpH = mpElH ? mpElH.value : 'BRL';
     if (elInfo) elInfo.textContent = 'Buscando cotação de ' + new Date(data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) + '…';
-    buscarPrecoConvNaData(moeda.id, data, function (historico) {
+    buscarPrecoConvNaData(moeda.id, data, function (historico) {  // historico em R$
         var el   = document.getElementById('l-preco');
         var info = document.getElementById('l-preco-ajuda');
         if (!el || el.dataset.auto !== '1') return;   // usuário digitou enquanto buscávamos
         if (historico !== null) {
-            el.value = numeroParaCampo(historico, 10);
+            var precoFinal = historico;
             var dLabel = new Date(data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
-            if (info) info.textContent = 'Fechamento de ' + dLabel + '. Confira antes de salvar.';
+            if (mpH === 'USD') {
+                var taxasCachedH = estado.ler('taxas');
+                var usdtbrlH = taxasCachedH && taxasCachedH.USD ? taxasCachedH.USD : 0;
+                precoFinal = usdtbrlH > 0 ? historico / usdtbrlH : null;
+            }
+            if (precoFinal !== null) {
+                el.value = numeroParaCampo(precoFinal, 10);
+                if (info) info.textContent = 'Fechamento de ' + dLabel + (mpH === 'USD' ? ' (em US$, câmbio de hoje).' : '.') + ' Confira antes de salvar.';
+            } else {
+                if (info) info.textContent = 'Cotação histórica indisponível. Ajuste o valor se necessário.';
+            }
         } else {
             if (info) info.textContent = 'Cotação histórica indisponível. Ajuste o valor se necessário.';
         }
@@ -8740,9 +8827,16 @@ function atualizarTotalLancamento() {
     if (isNaN(taxas) || taxas < 0) taxas = 0;
     var total  = tipo === 'COMPRA' ? qtd * preco + taxas : qtd * preco - taxas;
     var rotulo = tipo === 'COMPRA' ? 'Total pago' : 'Total recebido';
-    el.innerHTML = '<span class="lanc-total-rotulo">' + rotulo + '</span>' +
-        '<span class="lanc-total-valor" data-brl="' + total + '"></span>';
-    preencherValores(el);
+    var elMP2 = document.getElementById('l-moeda-preco');
+    var mp2 = elMP2 ? elMP2.value : 'BRL';
+    if (mp2 === 'USD') {
+        el.innerHTML = '<span class="lanc-total-rotulo">' + rotulo + '</span>' +
+            '<span class="lanc-total-valor">US$ ' + formatarBR(total, 2) + '</span>';
+    } else {
+        el.innerHTML = '<span class="lanc-total-rotulo">' + rotulo + '</span>' +
+            '<span class="lanc-total-valor" data-brl="' + total + '"></span>';
+        preencherValores(el);
+    }
 }
 
 // [ETAPA 8 · 02/10/2026] BUSCA EXTERNA NA GAVETA
@@ -8892,6 +8986,38 @@ document.addEventListener('click', function (ev) {
         }
         return;
     }
+    // [ETAPA N] toggle R$/US$ no campo de preço
+    var btnMoeP = ev.target.closest('[data-moeda-preco]');
+    if (btnMoeP && lanc) {
+        var novoMP = btnMoeP.getAttribute('data-moeda-preco');
+        var inpMP = document.getElementById('l-moeda-preco');
+        if (inpMP && inpMP.value !== novoMP) {
+            inpMP.value = novoMP;
+            if (lanc.valores) lanc.valores._moedaPreco = novoMP;
+            // atualiza aria-pressed dos botões do toggle
+            document.querySelectorAll('.segmentado-preco [data-moeda-preco]').forEach(function (b) {
+                b.setAttribute('aria-pressed', b.getAttribute('data-moeda-preco') === novoMP ? 'true' : 'false');
+            });
+            // atualiza textos de ajuda e label das taxas
+            var elInfo2 = document.getElementById('l-preco-ajuda');
+            if (elInfo2) elInfo2.textContent = novoMP === 'USD' ? 'Em dólares, por unidade da moeda.' : 'Em reais, por unidade da moeda.';
+            var elTxLabel = document.querySelector('#l-taxas') ? document.querySelector('#l-taxas').closest('.campo').querySelector('label') : null;
+            if (elTxLabel) elTxLabel.textContent = 'Taxas (' + (novoMP === 'USD' ? 'US$' : 'R$') + ')';
+            var elTxAjuda = document.getElementById('l-taxas-ajuda');
+            if (elTxAjuda) elTxAjuda.textContent = 'Opcional. Taxas da corretora ou da rede, em ' + (novoMP === 'USD' ? 'dólares.' : 'reais.');
+            // se o preço era sugerido, limpa e re-sugere na nova moeda
+            var elPreco2 = document.getElementById('l-preco');
+            if (elPreco2 && elPreco2.dataset.auto === '1') {
+                elPreco2.value = '';
+                delete elPreco2.dataset.auto;
+                aplicarAutopreenchimento();
+            } else {
+                atualizarTotalLancamento();
+            }
+        }
+        return;
+    }
+
     var tipo = ev.target.closest('[data-lanc-tipo]');
     if (tipo) {
         var campos = lerCamposLancamento();
@@ -8971,7 +9097,9 @@ document.addEventListener('input', function (ev) {
         delete ev.target.dataset.auto;
         if (ev.target.id === 'l-preco') {
             var info = document.getElementById('l-preco-ajuda');
-            if (info) info.textContent = 'Em reais, por unidade da moeda.';
+            var mpElI = document.getElementById('l-moeda-preco');
+            var mpI = mpElI ? mpElI.value : 'BRL';
+            if (info) info.textContent = mpI === 'USD' ? 'Em dólares, por unidade da moeda.' : 'Em reais, por unidade da moeda.';
         }
     }
     // [ETAPA N] atualiza o total ao digitar quantidade, preço ou taxas
@@ -9034,6 +9162,11 @@ function gavetaDetalheHTML(t, carteira) {
     if (TIPOS_COM_PRECO[t.tipo]) {
         conteudo += linha('Preço unitário', brl(t.precoUnitario, 'preco'));
         if (t.taxas) conteudo += linha('Taxas', brl(t.taxas));
+        if (t.moedaRegistro === 'USD' && t.taxaCambial) {  // [ETAPA N]
+            conteudo += linha('Registrado em',
+                'US$ ' + formatarPreco(t.precoUnitario / t.taxaCambial) +
+                ' <span style="color:var(--texto-3);">· câmbio R$ ' + formatarBR(t.taxaCambial, 2) + '/US$</span>');
+        }
     }
 
     if (total !== null) conteudo += linha('Valor total', brl(total));
