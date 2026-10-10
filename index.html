@@ -921,6 +921,14 @@ main#miolo {
     letter-spacing: -0.02em;
 }
 
+/* [ETAPA 11] agrupa seletor de portfólio + botão no cabeçalho de Lançamentos */
+.lanc-cabecalho-acoes {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
 .pagina-cabecalho p {
     color: var(--texto-2);
     margin-top: 4px;
@@ -1064,6 +1072,26 @@ main#miolo {
     color: var(--texto-2);
 }
 
+.campo-rotulo-flex {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+.campo-rotulo-flex label {
+    margin: 0;
+}
+.segmentado-preco {
+    padding: 2px;
+    gap: 1px;
+    border-radius: 8px;
+}
+.segmentado-preco button {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 5px;
+}
+
 .entrada {
     height: 42px;
     padding: 0 14px;
@@ -1074,6 +1102,18 @@ main#miolo {
     font-family: inherit;
     font-size: var(--t-md);
     transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+/* seta customizada em todos os <select class="entrada"> */
+select.entrada {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23A3AEC4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-color: var(--bg);
+    padding-right: 36px;
+    cursor: pointer;
 }
 
 .entrada::placeholder {
@@ -2084,6 +2124,80 @@ body:has(#gaveta.aberta) .avisos {
     line-height: 1.5;
 }
 
+/* ── Total do lançamento na gaveta [ETAPA N] ───────────────────── */
+#lanc-total {
+    display: none;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex-shrink: 1;
+}
+#lanc-total:not(:empty) {
+    display: flex;
+    margin-right: auto;
+}
+.lanc-total-rotulo {
+    font-size: var(--t-xs);
+    color: var(--texto-3);
+    white-space: nowrap;
+}
+.lanc-total-valor {
+    font-size: var(--t-base);
+    font-weight: 700;
+    color: var(--texto);
+    font-feature-settings: "tnum";
+    white-space: nowrap;
+}
+
+/* ── Cotação automática na conversão [ETAPA N] ─────────────────── */
+.conv-cotacao {
+    background: var(--superficie-2);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-top: 4px;
+}
+.conv-cotacao-data {
+    font-size: var(--t-xs);
+    color: var(--texto-3);
+    margin: 0 0 8px;
+}
+.conv-cotacao-linha {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 4px 0;
+}
+.conv-cotacao-linha + .conv-cotacao-linha {
+    border-top: 1px solid var(--borda);
+    margin-top: 4px;
+}
+.conv-cotacao-simbolo {
+    font-size: var(--t-sm);
+    font-weight: 700;
+    color: var(--texto);
+    min-width: 52px;
+}
+.conv-cotacao-valor {
+    font-size: var(--t-sm);
+    color: var(--marca);
+    font-feature-settings: "tnum";
+    flex: 1;
+}
+.conv-cotacao-valor.conv-cotacao-nd {
+    color: var(--texto-3);
+}
+.conv-cotacao-label {
+    font-size: var(--t-xs);
+    color: var(--texto-3);
+}
+.conv-cotacao-aviso {
+    font-size: var(--t-xs);
+    color: var(--texto-3);
+    margin: 8px 0 0;
+    padding-top: 8px;
+    border-top: 1px solid var(--borda);
+}
+
 /* [ETAPA 7] painel de ajuda dos tipos de operação */
 .botao-ajuda-tipo {
     display: inline-flex;
@@ -2268,24 +2382,85 @@ body:has(#gaveta.aberta) .avisos {
     gap: 4px;
 }
 
-/* [ETAPA 11] gavetas de portfólio reutilizam as classes .gaveta / .gaveta-fundo */
+/* [ETAPA 11] gavetas de portfólio e objetivos reutilizam as classes .gaveta / .gaveta-fundo */
 #gaveta-portfolio .gaveta,
-#gaveta-confirmar .gaveta {
+#gaveta-confirmar .gaveta,
+#gaveta-objetivos .gaveta,
+#gaveta-sim .gaveta {
     width: min(480px, 100vw);
 }
 #gaveta-portfolio.aberta .gaveta-fundo,
-#gaveta-confirmar.aberta .gaveta-fundo {
+#gaveta-confirmar.aberta .gaveta-fundo,
+#gaveta-objetivos.aberta .gaveta-fundo,
+#gaveta-sim.aberta .gaveta-fundo {
     opacity: 1;
     visibility: visible;
 }
 #gaveta-portfolio.aberta .gaveta,
-#gaveta-confirmar.aberta .gaveta {
+#gaveta-confirmar.aberta .gaveta,
+#gaveta-objetivos.aberta .gaveta,
+#gaveta-sim.aberta .gaveta {
     transform: none;
     visibility: visible;
 }
 body:has(#gaveta-portfolio.aberta) .avisos,
-body:has(#gaveta-confirmar.aberta) .avisos {
+body:has(#gaveta-confirmar.aberta) .avisos,
+body:has(#gaveta-objetivos.aberta) .avisos,
+body:has(#gaveta-sim.aberta) .avisos {
     right: calc(min(480px, 100vw) + 20px);
+}
+
+/* [ETAPA 13] Simulador de Aporte */
+.sim-resultado-item {
+    padding: 16px;
+    border-radius: 14px;
+    background: var(--superficie);
+    border: 1px solid var(--borda);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.sim-resultado-item + .sim-resultado-item {
+    margin-top: 10px;
+}
+.sim-resultado-item.bloqueado {
+    opacity: 0.6;
+}
+.sim-item-cabecalho {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.sim-item-moeda {
+    flex: 1;
+    font-weight: 600;
+    font-size: var(--t-md);
+}
+.sim-item-sugestao {
+    font-weight: 700;
+    font-size: var(--t-lg);
+    color: var(--marca);
+}
+.sim-item-detalhe {
+    font-size: var(--t-sm);
+    color: var(--texto-2);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+}
+.sim-item-motivo {
+    font-size: var(--t-sm);
+    color: var(--queda);
+}
+.sim-nota-disclaimer {
+    background: var(--superficie);
+    border: 1px solid var(--borda);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: var(--t-sm);
+    color: var(--texto-2);
+    line-height: 1.5;
+    margin: 0;
 }
 
 /* corpo da gaveta de confirmação de exclusão */
@@ -2537,6 +2712,103 @@ body:has(#gaveta-confirmar.aberta) .avisos {
     display: block;
     font-size: var(--t-xs);
     color: var(--alta);
+}
+
+/* ── Objetivos [ETAPA 12] ────────────────────────────────────────── */
+
+.obj-barra-bg {
+    background: var(--superficie-3);
+    border-radius: 999px;
+    height: 8px;
+    overflow: hidden;
+    margin: 10px 0 6px;
+}
+
+.obj-barra-fill {
+    background: var(--marca);
+    border-radius: 999px;
+    height: 100%;
+    min-width: 4px;
+    transition: width 0.6s ease;
+}
+
+.obj-barra-fill.completo {
+    background: var(--alta);
+}
+
+.obj-pct {
+    font-size: var(--t-xl);
+    font-weight: 700;
+    color: var(--texto);
+    line-height: 1.1;
+}
+
+/* cabeçalho de cada card: nome/meta à esquerda, ações à direita */
+.obj-card-topo {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.obj-card-meta {
+    font-size: var(--t-sm);
+    color: var(--texto-2);
+    margin: 2px 0 0;
+}
+
+/* card de objetivo concluído: visual mais discreto */
+.obj-card-concluido {
+    opacity: 0.75;
+}
+
+.obj-card-concluido:hover {
+    opacity: 1;
+}
+
+.obj-concluido-icone {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(34, 195, 142, 0.12);
+    color: var(--alta);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.obj-concluido-icone svg {
+    width: 16px;
+    height: 16px;
+}
+
+.obj-datas {
+    font-size: var(--t-xs);
+    color: var(--texto-3);
+    margin-top: 10px;
+}
+
+.obj-nota {
+    font-size: var(--t-xs);
+    color: var(--texto-3);
+    line-height: 1.55;
+    padding: 10px 14px;
+    background: var(--superficie-2);
+    border-radius: 10px;
+    border-left: 3px solid var(--borda);
+}
+
+.obj-acoes {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+/* separa cards consecutivos sem painel extra */
+.obj-card-painel + .obj-card-painel {
+    margin-top: 12px;
 }
 
 /* ── backup [ETAPA 7] ────────────────────────────────────────────*/
@@ -3236,11 +3508,23 @@ body:has(#gaveta-confirmar.aberta) .avisos {
 
     .gaveta-pe {
         padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+        flex-wrap: wrap;
     }
 
     .gaveta-pe .botao {
         flex: 1;
         height: 48px;
+    }
+
+    /* [ETAPA N] total do lançamento: linha própria no mobile */
+    #lanc-total:not(:empty) {
+        width: 100%;
+        margin-right: 0;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--borda);
+        flex-direction: row;
+        align-items: baseline;
+        gap: 8px;
     }
 
     .avisos,
@@ -3376,6 +3660,11 @@ body:has(#gaveta-confirmar.aberta) .avisos {
 
     .rosca-total {
         font-size: 22px;
+    }
+
+    /* Objetivos: botões de ação em linha no celular [ETAPA 12] */
+    .obj-card-topo {
+        flex-wrap: wrap;
     }
 }
 
@@ -3821,6 +4110,8 @@ body:has(#gaveta-confirmar.aberta) .avisos {
 <div id="gaveta"></div>
 <div id="gaveta-portfolio"></div>
 <div id="gaveta-confirmar"></div>
+<div id="gaveta-objetivos"></div>
+<div id="gaveta-sim"></div>
 
 <div id="banner-atualizacao" hidden role="status" aria-live="polite">
     <p>
@@ -4125,7 +4416,7 @@ function trocarMoeda(m) {
 }
 
 // a moeda muda -> todos os [data-brl] da tela se reescrevem
-estado.ouvir('moeda', function () { preencherValores(); atualizarSeletoresMoeda(); });
+estado.ouvir('moeda', function () { preencherValores(); atualizarSeletoresMoeda(); atualizarPulso(); }); // [ETAPA N]
 estado.ouvir('taxas', function () { preencherValores(); atualizarSeletoresMoeda(); });
 
 function seletorMoedaHTML() {
@@ -4243,8 +4534,10 @@ var ICONES = {
     queda: '<path d="M5 9l7 7 7-7"/>',
     lixo: '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6M9 3h6a1 1 0 011 1v2H8V4a1 1 0 011-1z"/>',
     alerta: '<path d="M10.3 4.2L2.7 17a2 2 0 001.7 3h15.2a2 2 0 001.7-3L13.7 4.2a2 2 0 00-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    editar: '<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>',
     exportar: '<path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2M12 3v12M8 11l4 4 4-4"/>',
     importar: '<path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2M16 7l-4-4-4 4M12 3v12"/>',
+    simulador: '<circle cx="12" cy="12" r="8.5"/><path d="M12 15.5V8.5M9.5 11l2.5-2.5 2.5 2.5"/>',
 };
 
 function icone(nome) {
@@ -4284,7 +4577,8 @@ var ROTAS = {
     '/lancamentos':   { titulo: 'Lançamentos',    icone: 'lancamentos',   etapa: 3, render: paginaLancamentos },
     '/balanceamento': { titulo: 'Balanceamento',  icone: 'balanceamento', etapa: 6, render: paginaBalanceamento },
     '/balanceamento/ajuda': { titulo: 'Como funciona o Balanceamento', icone: 'balanceamento', etapa: 6, render: paginaAjudaBalanceamento },
-    '/objetivos':     { titulo: 'Objetivos',      icone: 'objetivos',     etapa: 6, render: paginaEmBreve },
+    '/objetivos':     { titulo: 'Objetivos',      icone: 'objetivos',     etapa: 12, render: paginaObjetivos },
+    '/simulador':     { titulo: 'Simulador de Aporte', icone: 'simulador', etapa: 13, render: paginaSimulador },
     '/ajustes':       { titulo: 'Ajustes',        icone: 'ajustes',       render: paginaAjustes },
     // [ETAPA 1] rota com parâmetro: /moeda/bitcoin, /moeda/ethereum...
     '/moeda':         { titulo: 'Moeda',          icone: 'mercado',       etapa: 2, render: paginaMoeda, dinamica: true },
@@ -4322,8 +4616,9 @@ var NAV = [
             {
                 titulo: 'Sua carteira',
                 itens: [
-                    { rota: '/balanceamento', desc: 'Alocação ideal e simulador de aporte' },
-                    { rota: '/objetivos', desc: 'Metas de patrimônio e previsão', emBreve: true },
+                    { rota: '/balanceamento', desc: 'Alocação atual vs. targets definidos por você' },
+                    { rota: '/simulador', desc: 'Sugestão de compra baseada nos seus targets' },
+                    { rota: '/objetivos', desc: 'Metas de patrimônio e previsão' },
                 ],
             },
         ],
@@ -4621,21 +4916,29 @@ function atualizarPulso() {
     return fetch(BINANCE + '/api/v3/ticker/24hr?symbol=BTCBRL')
         .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
         .then(function (d) {
-            var preco = Number(d.lastPrice);
+            var precoBRL = Number(d.lastPrice);
             var pct = Number(d.priceChangePercent);
             var caixa = document.getElementById('pulso');
             var el = document.getElementById('pulso-preco');
             if (!caixa || !el) return;
             caixa.hidden = false;
-            var fmt = function (v) { return 'R$ ' + formatarBR(v, 0); };
-            if (pulsoAnterior !== null && preco !== pulsoAnterior) {
-                piscar(el, preco > pulsoAnterior);
-                animarNumero(el, pulsoAnterior, preco, fmt);
+            // [ETAPA N] respeita a moeda de exibição do usuário
+            var moeda = estado.ler('moeda');
+            var taxasPulso = estado.ler('taxas');
+            var usdtbrlPulso = (moeda === 'USD' && taxasPulso && taxasPulso.USD) ? taxasPulso.USD : 0;
+            var preco = usdtbrlPulso > 0 ? precoBRL / usdtbrlPulso : precoBRL;
+            var fmt = usdtbrlPulso > 0
+                ? function (v) { return 'US$ ' + formatarBR(v, 0); }
+                : function (v) { return 'R$ ' + formatarBR(v, 0); };
+            if (pulsoAnterior !== null && precoBRL !== pulsoAnterior) {
+                var prevPreco = usdtbrlPulso > 0 ? pulsoAnterior / usdtbrlPulso : pulsoAnterior;
+                piscar(el, precoBRL > pulsoAnterior);
+                animarNumero(el, prevPreco, preco, fmt);
             } else {
                 el.textContent = fmt(preco);
             }
             document.getElementById('pulso-var').innerHTML = varHTML(pct);
-            pulsoAnterior = preco;
+            pulsoAnterior = precoBRL;  // sempre BRL para comparação correta
         })
         .catch(function () {
             var caixa = document.getElementById('pulso');
@@ -4979,11 +5282,574 @@ function orientacaoBalanceamentoHTML() {
     '</div>';
 }
 
+// ── OBJETIVOS [ETAPA 12] ─────────────────────────────────────────────
+
+var _objetivos = [];          // lista em memória carregada do Supabase
+var _objUltimoPatrimonio = 0; // patrimônio calculado na última abertura da página
+
+function chaveObjetivos() {
+    var id = sessaoAtual();
+    return id ? 'OBJETIVOS_' + id : 'OBJETIVOS';
+}
+
+function _rowParaObjetivo(row) {
+    return {
+        id:            String(row.id),
+        nome:          row.nome || '',
+        valorAlvo:     Number(row.valor_alvo),
+        aporteMensal:  Number(row.aporte_mensal),
+        criadoEm:      row.criado_em,
+        concluidoEm:   row.concluido_em || null,
+    };
+}
+
+function carregarObjetivos() {
+    return supabaseClient.auth.getUser().then(function (s) {
+        var user = s.data.user;
+        if (!user) return;
+        return supabaseClient.from('objetivos')
+            .select('*').eq('user_id', user.id)
+            .order('criado_em', { ascending: false })
+            .then(function (r) {
+                if (r.error) throw new Error(r.error.message);
+                _objetivos = (r.data || []).map(_rowParaObjetivo);
+                try { armazem.set(chaveObjetivos(), JSON.stringify(_objetivos)); } catch (e) {}
+            });
+    }).catch(function (e) { console.warn('carregarObjetivos offline:', e && e.message); });
+}
+
+function _salvarObjetivoNoBanco(dados, cb) {
+    supabaseClient.auth.getUser().then(function (s) {
+        var user = s.data.user;
+        if (!user) { avisar('Sem sessão ativa.', 'erro'); return; }
+        return supabaseClient.from('objetivos')
+            .insert({ user_id: user.id, nome: dados.nome || null, valor_alvo: dados.valorAlvo, aporte_mensal: dados.aporteMensal || 0 })
+            .select().single()
+            .then(function (r) {
+                if (r.error) { avisar('Erro ao salvar objetivo.', 'erro'); return; }
+                var obj = _rowParaObjetivo(r.data);
+                _objetivos.unshift(obj);
+                try { armazem.set(chaveObjetivos(), JSON.stringify(_objetivos)); } catch (e) {}
+                if (cb) cb(obj);
+            });
+    }).catch(function () { avisar('Erro ao salvar objetivo.', 'erro'); });
+}
+
+function _editarObjetivoNoBanco(id, dados, cb) {
+    supabaseClient.auth.getUser().then(function (s) {
+        var user = s.data.user;
+        if (!user) { avisar('Sem sessão ativa.', 'erro'); return; }
+        return supabaseClient.from('objetivos')
+            .update({ nome: dados.nome || null, valor_alvo: dados.valorAlvo, aporte_mensal: dados.aporteMensal || 0 })
+            .eq('id', Number(id)).eq('user_id', user.id)
+            .then(function (r) {
+                if (r.error) { avisar('Erro ao editar objetivo.', 'erro'); return; }
+                _objetivos = _objetivos.map(function (o) {
+                    return o.id !== id ? o : Object.assign({}, o, { nome: dados.nome || '', valorAlvo: dados.valorAlvo, aporteMensal: dados.aporteMensal || 0 });
+                });
+                try { armazem.set(chaveObjetivos(), JSON.stringify(_objetivos)); } catch (e) {}
+                if (cb) cb();
+            });
+    }).catch(function () { avisar('Erro ao editar objetivo.', 'erro'); });
+}
+
+function _excluirObjetivoNoBanco(id, cb) {
+    supabaseClient.auth.getUser().then(function (s) {
+        var user = s.data.user;
+        if (!user) { avisar('Sem sessão ativa.', 'erro'); return; }
+        return supabaseClient.from('objetivos')
+            .delete().eq('id', Number(id)).eq('user_id', user.id)
+            .then(function (r) {
+                if (r.error) { avisar('Erro ao remover objetivo.', 'erro'); return; }
+                _objetivos = _objetivos.filter(function (o) { return o.id !== id; });
+                try { armazem.set(chaveObjetivos(), JSON.stringify(_objetivos)); } catch (e) {}
+                if (cb) cb();
+            });
+    }).catch(function () { avisar('Erro ao remover objetivo.', 'erro'); });
+}
+
+function _concluirObjetivoNoBanco(id, cb) {
+    var agora = new Date().toISOString();
+    supabaseClient.auth.getUser().then(function (s) {
+        var user = s.data.user;
+        if (!user) return;
+        return supabaseClient.from('objetivos')
+            .update({ concluido_em: agora }).eq('id', Number(id)).eq('user_id', user.id)
+            .then(function (r) {
+                if (r.error) { console.warn('concluirObjetivo:', r.error.message); return; }
+                _objetivos = _objetivos.map(function (o) {
+                    return o.id !== id ? o : Object.assign({}, o, { concluidoEm: agora });
+                });
+                try { armazem.set(chaveObjetivos(), JSON.stringify(_objetivos)); } catch (e) {}
+                if (cb) cb();
+            });
+    }).catch(function () {});
+}
+
+// gaveta --------------------------------------------------------
+
+function gavetaObjetivoHTML(obj) {
+    var vId     = obj ? escapar(obj.id)          : '';
+    var vNome   = obj ? escapar(obj.nome || '')  : '';
+    var vAlvo   = obj ? String(obj.valorAlvo)    : '';
+    var vAporte = obj ? String(obj.aporteMensal) : '';
+    return '<div class="gaveta-fundo" data-obj-gav-fechar></div>' +
+        '<div class="gaveta" role="dialog" aria-modal="true" aria-labelledby="gav-obj-titulo">' +
+        '<div class="gaveta-topo"><h2 id="gav-obj-titulo">' + (obj ? 'Editar objetivo' : 'Novo objetivo') + '</h2>' +
+        '<button type="button" class="botao-icone" data-obj-gav-fechar aria-label="Fechar">&times;</button></div>' +
+        '<div class="gaveta-corpo">' +
+        (vId ? '<input type="hidden" id="obj-id" value="' + vId + '">' : '') +
+        '<div class="campo-grupo"><label class="campo-rotulo" for="obj-nome">Nome do objetivo (opcional)</label>' +
+        '<input type="text" id="obj-nome" class="entrada" placeholder="Ex.: Independência financeira" maxlength="60" autocomplete="off" value="' + vNome + '"></div>' +
+        '<div class="campo-grupo"><label class="campo-rotulo" for="obj-alvo">Meta de patrimônio (R$)</label>' +
+        '<input type="number" id="obj-alvo" class="entrada" inputmode="decimal" placeholder="Ex.: 50000" min="1" step="any" value="' + escapar(vAlvo) + '"></div>' +
+        '<div class="campo-grupo"><label class="campo-rotulo" for="obj-aporte">Aporte mensal estimado (R$)</label>' +
+        '<input type="number" id="obj-aporte" class="entrada" inputmode="decimal" placeholder="Ex.: 1000 (opcional)" min="0" step="any" value="' + escapar(vAporte) + '"></div>' +
+        '</div>' +
+        '<div class="gaveta-pe">' +
+        '<button type="button" class="botao botao-neutro" data-obj-gav-fechar>Cancelar</button>' +
+        '<button type="button" class="botao botao-marca" data-obj-gav-salvar>' + (obj ? 'Salvar' : 'Criar objetivo') + '</button>' +
+        '</div></div>';
+}
+
+function abrirGavetaObjetivo(id) {
+    var raiz = document.getElementById('gaveta-objetivos');
+    if (!raiz) return;
+    var obj = id ? _objetivos.filter(function (o) { return o.id === id; })[0] : null;
+    raiz.innerHTML = gavetaObjetivoHTML(obj || null);
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function () {
+        raiz.classList.add('aberta');
+        var inp = raiz.querySelector('input:not([type="hidden"])');
+        if (inp) inp.focus();
+    });
+}
+
+function fecharGavetaObjetivo() {
+    var raiz = document.getElementById('gaveta-objetivos');
+    if (!raiz) return;
+    raiz.classList.remove('aberta');
+    document.body.style.overflow = '';
+    setTimeout(function () { raiz.innerHTML = ''; }, menosMovimento ? 0 : 240);
+}
+
+function abrirConfirmarRemoverObjetivo(id) {
+    var obj  = _objetivos.filter(function (o) { return o.id === id; })[0];
+    var nome = obj && obj.nome ? '"' + escapar(obj.nome) + '"' : 'este objetivo';
+    var raiz = document.getElementById('gaveta-confirmar');
+    if (!raiz) return;
+    raiz.innerHTML = '<div class="gaveta-fundo" data-confirmar-fechar></div>' +
+        '<div class="gaveta" role="dialog" aria-modal="true" aria-labelledby="gav-obj-rem-titulo">' +
+        '<div class="gaveta-topo"><h2 id="gav-obj-rem-titulo">Remover objetivo</h2>' +
+        '<button type="button" class="botao-icone" data-confirmar-fechar aria-label="Fechar">&times;</button></div>' +
+        '<div class="gaveta-corpo"><div class="confirmar-alerta">' +
+        '<div class="confirmar-alerta-icone">' + icone('alerta') + '</div>' +
+        '<p>Você está prestes a remover ' + nome + '.</p>' +
+        '<p>Nenhum lançamento ou portfólio é afetado — só esta meta será apagada.</p>' +
+        '</div></div>' +
+        '<div class="gaveta-pe">' +
+        '<button type="button" class="botao botao-neutro" data-confirmar-fechar>Cancelar</button>' +
+        '<button type="button" class="botao botao-perigo" data-obj-remover-ok="' + escapar(id) + '">' + icone('lixo') + 'Remover</button>' +
+        '</div></div>';
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function () { raiz.classList.add('aberta'); });
+}
+
+// render --------------------------------------------------------
+
+function _objCardAtivoHTML(obj, patrimonio) {
+    var pct    = obj.valorAlvo > 0 ? Math.min(100, patrimonio / obj.valorAlvo * 100) : 0;
+    var falta  = Math.max(0, obj.valorAlvo - patrimonio);
+    var meses  = falta > 0 && obj.aporteMensal > 0 ? Math.ceil(falta / obj.aporteMensal) : 0;
+    var pctStr = String(Math.round(pct * 10) / 10).replace(',', '.');
+
+    var projecaoTxt = '';
+    if (meses > 0) {
+        var d = new Date();
+        d.setMonth(d.getMonth() + meses);
+        var dataEst = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+        projecaoTxt = '<p style="font-size:var(--t-xs);color:var(--texto-3);margin-top:4px;">' +
+            'Previsão: ' + dataEst + ' · ' + meses + (meses === 1 ? ' mês' : ' meses') +
+            ' aportando <span data-brl="' + obj.aporteMensal + '"></span>/mês</p>';
+    } else if (!obj.aporteMensal) {
+        projecaoTxt = '<p style="font-size:var(--t-xs);color:var(--texto-3);margin-top:4px;">Adicione um aporte mensal para ver a previsão.</p>';
+    }
+
+    return '<div class="painel obj-card-painel">' +
+        '<div class="obj-card-topo">' +
+        '<div>' +
+        '<p class="painel-titulo" style="margin-bottom:2px;">' + (obj.nome ? escapar(obj.nome) : 'Objetivo') + '</p>' +
+        '<p class="obj-card-meta"><span data-brl="' + patrimonio + '"></span> de <span data-brl="' + obj.valorAlvo + '"></span>' +
+        (falta > 0 ? ' · Falta <span data-brl="' + falta + '"></span>' : ' · Meta atingida!') + '</p>' +
+        '</div>' +
+        '<div class="obj-acoes">' +
+        '<button type="button" class="botao botao-neutro botao-pequeno" data-obj-editar="' + escapar(obj.id) + '">' + icone('editar') + 'Editar</button>' +
+        '<button type="button" class="botao-icone" style="color:var(--texto-3);" data-obj-excluir="' + escapar(obj.id) + '" aria-label="Remover">' + icone('lixo') + '</button>' +
+        '</div>' +
+        '</div>' +
+        '<div class="obj-barra-bg"><div class="obj-barra-fill" style="width:' + pctStr + '%"></div></div>' +
+        '<span class="obj-pct">' + formatarBR(pct, 1) + '%</span>' +
+        projecaoTxt +
+        '<p class="obj-nota" style="margin-top:12px;">Estimativa conservadora: aportes fixos mensais sem valorização de mercado.</p>' +
+        '</div>';
+}
+
+function _objCardConcluidoHTML(obj) {
+    var criadoEm    = obj.criadoEm    ? new Date(obj.criadoEm).toLocaleDateString('pt-BR',    { month: 'long', year: 'numeric' }) : '';
+    var concluidoEm = obj.concluidoEm ? new Date(obj.concluidoEm).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : '';
+    return '<div class="painel obj-card-painel obj-card-concluido">' +
+        '<div class="obj-card-topo">' +
+        '<div style="display:flex;align-items:center;gap:10px;">' +
+        '<div class="obj-concluido-icone">' + icone('objetivos') + '</div>' +
+        '<div>' +
+        '<p class="painel-titulo" style="margin-bottom:2px;">' + (obj.nome ? escapar(obj.nome) : 'Objetivo concluído') + '</p>' +
+        '<p class="obj-card-meta">Meta: <span data-brl="' + obj.valorAlvo + '"></span></p>' +
+        '</div>' +
+        '</div>' +
+        '<button type="button" class="botao-icone" style="color:var(--texto-3);" data-obj-excluir="' + escapar(obj.id) + '" aria-label="Remover">' + icone('lixo') + '</button>' +
+        '</div>' +
+        (criadoEm || concluidoEm
+            ? '<p class="obj-datas">' + (criadoEm ? 'Criado em ' + criadoEm : '') + (concluidoEm ? (criadoEm ? ' · ' : '') + 'Concluído em ' + concluidoEm : '') + '</p>'
+            : '') +
+        '</div>';
+}
+
+function _objRenderizar(patrimonio) {
+    var r = document.getElementById('obj-raiz');
+    if (!r) return;
+    var ativos     = _objetivos.filter(function (o) { return !o.concluidoEm; });
+    var concluidos = _objetivos.filter(function (o) { return !!o.concluidoEm; });
+    var html = '';
+    ativos.forEach(function (o) { html += _objCardAtivoHTML(o, patrimonio); });
+    if (!ativos.length) {
+        html += '<div class="painel" style="text-align:center;">' +
+            '<p class="painel-sub">Nenhum objetivo ativo. Crie um novo para começar a acompanhar.</p>' +
+            '</div>';
+    }
+    if (concluidos.length) {
+        html += '<p style="font-size:var(--t-sm);color:var(--texto-3);margin:24px 0 10px;font-weight:600;">Concluídos</p>';
+        concluidos.forEach(function (o) { html += _objCardConcluidoHTML(o); });
+    }
+    r.innerHTML = html;
+    preencherValores(r);
+}
+
+// page ----------------------------------------------------------
+
+function paginaObjetivos() {
+    return '<div class="pagina">' +
+        '<div class="pagina-cabecalho"><div><h1>Objetivos</h1>' +
+        '<p>Metas de patrimônio com progresso e previsão de conclusão.</p></div>' +
+        '<div class="cabecalho-acoes">' +
+        '<button type="button" class="botao botao-marca" data-obj-novo>' + icone('mais') +
+        '<span class="so-computador">Novo objetivo</span><span class="so-celular">Novo</span></button>' +
+        '</div></div>' +
+        '<div id="obj-raiz"><div class="painel"><span class="esqueleto" style="width:60%;height:28px;display:block;margin-bottom:14px;"></span>' +
+        '<span class="esqueleto" style="width:100%;height:100px;display:block;border-radius:12px;"></span></div></div>' +
+        '</div>';
+}
+
+/* =================================================================
+   SIMULADOR DE APORTE  [ETAPA 13]
+   Sugere distribuição de um novo aporte com base nos targets de
+   balanceamento, filtro de upside (preço atual vs PM) e limite de
+   4 ativos.
+   ================================================================= */
+
+function paginaSimulador() {
+    return '<div class="pagina">' +
+        '<div class="pagina-cabecalho"><div>' +
+            '<h1>Simulador de Aporte</h1>' +
+            '<p>Sugestão de compra baseada nos seus targets de balanceamento.</p>' +
+        '</div>' +
+        '<div class="cabecalho-acoes">' +
+            '<button type="button" class="botao botao-marca" data-sim-abrir>' +
+                icone('mais') +
+                '<span class="so-computador">Simular aporte</span>' +
+                '<span class="so-celular">Simular</span>' +
+            '</button>' +
+        '</div></div>' +
+        '<div id="sim-resultado"></div>' +
+        '</div>';
+}
+
+// função pura — sem efeitos colaterais
+function calcularSimulador(aporte, filtroUpside, linhas, targets, modo) {
+    if (!aporte || aporte <= 0) return { itens: [], bloqueados: [], erro: 'aporte-zero' };
+
+    var temTargets = linhas.some(function (l) {
+        var t = targets[l.id];
+        return t !== undefined && t > 0;
+    });
+    if (!temTargets) return { itens: [], bloqueados: [], erro: 'sem-targets' };
+
+    var somaNotas = 0;
+    if (modo === 'nota') {
+        linhas.forEach(function (l) { somaNotas += (targets[l.id] || 0); });
+    }
+
+    function targetPct(id) {
+        var t = targets[id] || 0;
+        if (modo === 'nota') return somaNotas > 0 ? t / somaNotas * 100 : 0;
+        return t;
+    }
+
+    var saldoTotal = linhas.reduce(function (s, l) { return s + l.saldo; }, 0);
+    var novoTotal = saldoTotal + aporte;
+
+    var candidatos = [];
+    var bloqueados = [];
+
+    linhas.forEach(function (l) {
+        var tPct = targetPct(l.id);
+        if (!tPct) return;
+
+        var delta = (novoTotal * (tPct / 100)) - l.saldo;
+        if (delta <= 0) return; // já no peso ou acima do target
+
+        // PM: se custoTotal = 0, ativo sempre elegível (ENTRADA, RENDIMENTO)
+        var pm = l.pos.custoTotal > 0 && l.pos.quantidade > 0
+            ? l.pos.custoTotal / l.pos.quantidade
+            : 0;
+        var preco = l.preco || 0;
+        var elegivel = pm === 0 || preco <= pm * (1 + filtroUpside / 100);
+        var upside = pm > 0 ? (preco / pm - 1) * 100 : 0;
+
+        var item = {
+            id: l.id, info: l.info, pm: pm, preco: preco,
+            delta: delta, tPct: tPct, pctAtual: l.pctAtual,
+            upside: upside, saldo: l.saldo, pos: l.pos,
+        };
+
+        if (elegivel) { candidatos.push(item); } else { bloqueados.push(item); }
+    });
+
+    if (!candidatos.length) {
+        return { itens: [], bloqueados: bloqueados, erro: 'todos-bloqueados' };
+    }
+
+    candidatos.sort(function (a, b) { return b.delta - a.delta; });
+    var top4 = candidatos.slice(0, 4);
+    var somaDeltas = top4.reduce(function (s, c) { return s + c.delta; }, 0);
+
+    top4.forEach(function (c) {
+        c.sugestao = aporte * (c.delta / somaDeltas);
+        c.qtd = c.preco > 0 ? c.sugestao / c.preco : null;
+    });
+
+    return { itens: top4, bloqueados: bloqueados, erro: null };
+}
+
+function renderizarResultadoSimulador(resultado, aporte, filtroUpside) {
+    var raiz = document.getElementById('sim-resultado');
+    if (!raiz) return;
+
+    if (resultado.erro === 'sem-targets') {
+        raiz.innerHTML = '<div class="painel"><p class="painel-sub">Configure targets em ' +
+            '<a role="link" tabindex="0" data-rota="/balanceamento">Balanceamento</a>' +
+            ' para usar o simulador.</p></div>';
+        return;
+    }
+    if (resultado.erro === 'todos-bloqueados') {
+        raiz.innerHTML = '<div class="painel"><p class="painel-sub">Nenhum ativo elegível com o filtro ' +
+            'de ' + formatarBR(filtroUpside, 0) + '% de upside. Tente aumentar o percentual.</p></div>';
+        return;
+    }
+    if (!resultado.itens.length) { raiz.innerHTML = ''; return; }
+
+    var itensHTML = resultado.itens.map(function (c) {
+        var simbolo = c.info ? c.info.simbolo.toUpperCase() : c.id.toUpperCase();
+        var nome    = c.info ? (c.info.nome || c.info.simbolo) : c.id;
+        var logo    = c.info ? logoHTML(c.info) : '';
+        var qtdTxt  = c.qtd !== null ? formatarBR(c.qtd, 8) + ' ' + simbolo : '';
+        var pmTxt    = c.pm > 0
+            ? 'PM <span data-brl="' + c.pm + '" data-tipo="preco"></span>'
+            : 'PM: custo zero';
+        var precoTxt = c.preco > 0
+            ? 'Preço atual <span data-brl="' + c.preco + '" data-tipo="preco"></span>'
+            : '';
+        var upsideTxt = c.pm > 0
+            ? 'Upside +' + formatarBR(Math.abs(c.upside), 1) + '%'
+            : '';
+
+        return '<div class="sim-resultado-item">' +
+            '<div class="sim-item-cabecalho">' +
+                logo +
+                '<div class="sim-item-moeda">' + escapar(simbolo) +
+                    '<br><span style="font-size:var(--t-sm);font-weight:400;color:var(--texto-2);">' +
+                    escapar(nome) + '</span>' +
+                '</div>' +
+                '<div style="text-align:right;">' +
+                    '<div class="sim-item-sugestao" data-brl="' + c.sugestao + '"></div>' +
+                    (qtdTxt ? '<div style="font-size:var(--t-sm);color:var(--texto-2);">' +
+                        escapar(qtdTxt) + '</div>' : '') +
+                '</div>' +
+            '</div>' +
+            '<div class="sim-item-detalhe">' +
+                '<span>' + pmTxt + '</span>' +
+                (precoTxt ? '<span>' + precoTxt + '</span>' : '') +
+                (upsideTxt ? '<span>' + upsideTxt + '</span>' : '') +
+                '<span>Alocação ' + formatarBR(c.pctAtual, 1) + '% → target ' +
+                    formatarBR(c.tPct, 1) + '%</span>' +
+            '</div>' +
+        '</div>';
+    }).join('');
+
+    var bloqueadosHTML = '';
+    if (resultado.bloqueados && resultado.bloqueados.length) {
+        var bloqItems = resultado.bloqueados.map(function (c) {
+            var simbolo = c.info ? c.info.simbolo.toUpperCase() : c.id.toUpperCase();
+            var logo    = c.info ? logoHTML(c.info) : '';
+            return '<div class="sim-resultado-item bloqueado" style="padding:10px 16px;">' +
+                '<div class="sim-item-cabecalho">' +
+                    logo +
+                    '<div class="sim-item-moeda" style="font-size:var(--t-sm);">' +
+                        escapar(simbolo) + '</div>' +
+                    '<div class="sim-item-motivo">Upside +' + formatarBR(c.upside, 1) +
+                        '% — acima do filtro de ' + formatarBR(filtroUpside, 0) + '%</div>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+        bloqueadosHTML =
+            '<div style="margin-top:18px;">' +
+            '<p style="font-size:var(--t-sm);color:var(--texto-3);margin:0 0 8px;">' +
+                'Excluídos pelo filtro de upside</p>' +
+            bloqItems + '</div>';
+    }
+
+    var total = resultado.itens.length;
+
+    raiz.innerHTML =
+        '<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:16px;flex-wrap:wrap;">' +
+            '<span style="font-size:var(--t-sm);color:var(--texto-2);">Distribuição sugerida para aporte de</span>' +
+            '<strong data-brl="' + aporte + '"></strong>' +
+            '<span style="font-size:var(--t-xs);color:var(--texto-3);margin-left:auto;">' +
+                'entre os ' + total + ' mais prioritários</span>' +
+        '</div>' +
+        itensHTML + bloqueadosHTML +
+        '<p class="sim-nota-disclaimer" style="margin-top:18px;">' +
+            'Esta sugestão é gerada automaticamente com base nos seus targets de balanceamento, ' +
+            'preço médio de aquisição e preço de mercado atual. Não é uma recomendação de investimento. ' +
+            'Revise os valores antes de operar.' +
+        '</p>';
+
+    preencherValores(raiz);
+}
+
+function gavetaSimuladorHTML() {
+    var moeda = estado.ler('moeda') || 'BRL';
+    var simbolo = moeda === 'BRL' ? 'R$' : (moeda === 'USD' ? 'US$' : '₿');
+    return '<div class="gaveta-fundo" data-sim-fechar></div>' +
+        '<div class="gaveta" role="dialog" aria-modal="true" aria-labelledby="sim-gav-titulo">' +
+        '<div class="gaveta-topo">' +
+            '<h2 id="sim-gav-titulo">Simular aporte</h2>' +
+            '<button type="button" class="botao-icone" data-sim-fechar aria-label="Fechar">' +
+                '&times;</button>' +
+        '</div>' +
+        '<div class="gaveta-corpo">' +
+        '<div class="campo-grupo">' +
+            '<label class="campo-rotulo" for="sim-aporte">Valor do aporte (' + simbolo + ')</label>' +
+            '<input type="number" id="sim-aporte" class="entrada" inputmode="decimal" ' +
+                'placeholder="Ex.: 1000" min="0.01" step="any" autocomplete="off">' +
+        '</div>' +
+        '<div class="campo-grupo">' +
+            '<label class="campo-rotulo" for="sim-upside">Filtro de upside (%)</label>' +
+            '<input type="number" id="sim-upside" class="entrada" inputmode="decimal" ' +
+                'placeholder="12" min="0" max="9999" step="1" value="12" autocomplete="off">' +
+            '<p class="campo-ajuda">Ativos com preço acima de PM + este percentual são ' +
+                'excluídos da sugestão.</p>' +
+        '</div>' +
+        '</div>' +
+        '<div class="gaveta-pe">' +
+            '<button type="button" class="botao botao-neutro" data-sim-fechar>Cancelar</button>' +
+            '<button type="button" class="botao botao-marca" data-sim-calcular>Calcular</button>' +
+        '</div></div>';
+}
+
+function abrirGavetaSim() {
+    var raiz = document.getElementById('gaveta-sim');
+    if (!raiz) return;
+    raiz.innerHTML = gavetaSimuladorHTML();
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function () {
+        raiz.classList.add('aberta');
+        var inp = document.getElementById('sim-aporte');
+        if (inp) inp.focus();
+    });
+}
+
+function fecharGavetaSim() {
+    var raiz = document.getElementById('gaveta-sim');
+    if (!raiz) return;
+    raiz.classList.remove('aberta');
+    document.body.style.overflow = '';
+    setTimeout(function () { raiz.innerHTML = ''; }, menosMovimento ? 0 : 240);
+}
+
+function _objCalcularPatrimonio(cb) {
+    var banco    = lerBanco();
+    var carteira = processarCarteira(ordenarTransacoes(banco.transacoes));
+    var pronto   = mercado.lista.length ? Promise.resolve() : carregarMercado().catch(function () {});
+    pronto.then(function () {
+        return obterPrecosBinance().catch(function () { return {}; }).then(function (precos) {
+            var usdtbrl = precos['USDTBRL'] || 0;
+            var total   = 0;
+            Object.keys(carteira.posicoes).forEach(function (id) {
+                var p = carteira.posicoes[id];
+                if (p.quantidade <= QTD_EPSILON) return;
+                var m = mercado.porId[id];
+                if (!m) { var extra = infoMoedaExtra(id); if (extra) m = construirMoedaExtra(extra, precos); }
+                var par  = m ? (m.extra ? m.parBinance : parBinanceDe(m, precos)) : null;
+                var preco = null;
+                if (par && precos[par]) preco = par === 'USDTBRL' ? precos[par] : (usdtbrl > 0 ? precos[par] * usdtbrl : null);
+                if (preco === null && m && m.preco > 0) preco = m.preco;
+                total += preco !== null ? p.quantidade * preco : p.custoTotal;
+            });
+            cb(total);
+        });
+    }).catch(function () { cb(0); });
+}
+
+ROTAS['/objetivos'].montar = function () {
+    var raiz = document.getElementById('obj-raiz');
+    if (!raiz) return;
+    // passo 1: localStorage para render imediato
+    var local = armazem.json(chaveObjetivos(), null);
+    if (Array.isArray(local)) _objetivos = local;
+
+    _objCalcularPatrimonio(function (patrimonio) {
+        _objUltimoPatrimonio = patrimonio;
+        if (rotaAtual !== '/objetivos' || !document.getElementById('obj-raiz')) return;
+
+        // detecta objetivos recém-atingidos e grava concluido_em no Supabase
+        var atingidos = _objetivos.filter(function (o) {
+            return !o.concluidoEm && o.valorAlvo > 0 && patrimonio >= o.valorAlvo;
+        });
+        var pendentes = atingidos.length;
+        if (!pendentes) {
+            _objRenderizar(patrimonio);
+        } else {
+            atingidos.forEach(function (o) {
+                _concluirObjetivoNoBanco(o.id, function () {
+                    pendentes--;
+                    if (!pendentes && rotaAtual === '/objetivos') _objRenderizar(patrimonio);
+                });
+            });
+        }
+
+        // passo 2: confirma com Supabase em segundo plano e re-renderiza se diferir
+        carregarObjetivos().then(function () {
+            if (rotaAtual === '/objetivos') _objRenderizar(_objUltimoPatrimonio);
+        }).catch(function () {});
+    });
+};
+
+// ─────────────────────────────────────────────────────────────────────
+
 function paginaEmBreve(r) {
     var textos = {
         '/lancamentos': 'Compra, venda, entrada, saída e conversão, com validação na linha do tempo (o motor vem do Dash Finance).',
         '/balanceamento': 'Alocação ideal, notas por moeda e simulador de aporte.',
-        '/objetivos': 'Objetivos de patrimônio com progresso e previsão de conclusão.',
     };
     return '<div class="pagina">' +
         '<div class="pagina-cabecalho"><div><h1>' + r.titulo + '</h1></div></div>' +
@@ -5037,6 +5903,29 @@ function paginaAjustes() {
         '<p class="painel-sub">Adicione o KoinFin à tela inicial para acesso rápido, sem abrir o navegador.</p>' +
         '<button type="button" class="botao botao-neutro" data-pwa-instalar>' + icone('sistema') + 'Instalar KoinFin</button>' +
         '</div>' +
+        // [PENDÊNCIA] seção de conta — trocar nome e senha
+        (function () {
+            var u = _usuarioLogado;
+            var nomeAtual = nomeDoUsuario(u);
+            var email = u ? u.email : '';
+            return '<div class="painel">' +
+                '<p class="painel-titulo">Conta</p>' +
+                '<p class="painel-sub">Altere seu nome de exibição ou defina uma nova senha.</p>' +
+                '<p style="font-size:var(--t-sm);color:var(--texto-3);margin-bottom:14px;">' + escapar(email) + '</p>' +
+                '<div style="display:grid;gap:14px;">' +
+                '<div class="campo"><label for="perf-nome">Nome</label>' +
+                '<input class="entrada" type="text" id="perf-nome" autocomplete="name" placeholder="Seu nome" value="' + escapar(nomeAtual) + '"></div>' +
+                '<div class="campo"><label for="perf-senha">Nova senha</label>' +
+                '<input class="entrada" type="password" id="perf-senha" autocomplete="new-password" placeholder="Deixe em branco para não alterar">' +
+                '<p class="campo-ajuda" id="perf-senha-ajuda">Mínimo de 6 caracteres.</p></div>' +
+                '<div class="campo"><label for="perf-senha-conf">Confirmar nova senha</label>' +
+                '<input class="entrada" type="password" id="perf-senha-conf" autocomplete="new-password" placeholder="Repita a nova senha"></div>' +
+                '</div>' +
+                '<div style="display:flex;align-items:center;gap:12px;margin-top:16px;">' +
+                '<button type="button" class="botao botao-marca" data-ajustes-perfil-salvar>Salvar alterações</button>' +
+                '<span id="perf-status" style="font-size:var(--t-sm);color:var(--texto-2);"></span>' +
+                '</div></div>';
+        })() +
         '</div>';
 }
 
@@ -5296,6 +6185,43 @@ function obterPrecosBinance() {
             try { armazem.set('BINANCE_PRECOS', JSON.stringify({ em: Date.now(), precos: precos })); } catch (e) {}
             return precos;
         });
+}
+
+// [ETAPA N] Busca o preço de fechamento de uma moeda (em R$) para uma data.
+// Para hoje usa obterPrecosBinance(); para datas anteriores usa klines diárias.
+// cb(preco) → number ou null se indisponível.
+function buscarPrecoConvNaData(moedaId, dataISO, cb) {
+    var banco = lerBanco();
+    var mc = banco.moedas[moedaId] || (mercado.porId[moedaId] ? { simbolo: mercado.porId[moedaId].simbolo } : null);
+    if (!mc) { cb(null); return; }
+    var simbolo = (mc.simbolo || '').toUpperCase();
+    if (!simbolo) { cb(null); return; }
+    var hoje = hojeISO();
+    if (dataISO >= hoje) {
+        obterPrecosBinance().then(function (precos) {
+            var usdtbrl = precos['USDTBRL'] || 0;
+            if (simbolo === 'USDT' || simbolo === 'USDC') { cb(usdtbrl || null); return; }
+            var par = simbolo + 'USDT';
+            cb(precos[par] && usdtbrl ? precos[par] * usdtbrl : null);
+        }).catch(function () { cb(null); });
+        return;
+    }
+    var startMs = new Date(dataISO).getTime();
+    if (simbolo === 'USDT' || simbolo === 'USDC') {
+        fetch(BINANCE + '/api/v3/klines?symbol=USDTBRL&interval=1d&startTime=' + startMs + '&limit=1')
+            .then(function (r) { return r.json(); })
+            .then(function (d) { cb(d && d[0] ? parseFloat(d[0][4]) : null); })
+            .catch(function () { cb(null); });
+        return;
+    }
+    Promise.all([
+        fetch(BINANCE + '/api/v3/klines?symbol=USDTBRL&interval=1d&startTime=' + startMs + '&limit=1').then(function (r) { return r.json(); }),
+        fetch(BINANCE + '/api/v3/klines?symbol=' + simbolo + 'USDT&interval=1d&startTime=' + startMs + '&limit=1').then(function (r) { return r.json(); })
+    ]).then(function (res) {
+        var usdtbrl   = res[0] && res[0][0] ? parseFloat(res[0][0][4]) : 0;
+        var closeUsdt = res[1] && res[1][0] ? parseFloat(res[1][0][4]) : 0;
+        cb(usdtbrl && closeUsdt ? closeUsdt * usdtbrl : null);
+    }).catch(function () { cb(null); });
 }
 
 // par da Binance que corresponde à moeda da CoinGecko, ou null.
@@ -5830,7 +6756,7 @@ document.addEventListener('keydown', function (ev) {
 //   o gráfico não está disponível (a regra de 1 chamada por dia da CoinGecko
 //   impede buscar o histórico de lá).
 
-var LW_URL = 'https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js';
+var LW_URL = './assets/lightweight-charts.standalone.production.js';  // [PENDÊNCIA] local para offline
 var LW_SRI = 'sha384-stKllnUqA9AD0gsKCuUtf5XlqAW7PwIgDagoNsTWkjkBmJ/GZ/uHTgEBxdLV2VSK';
 
 // período -> tamanho da vela e quantas velas buscar (segundos por vela em `seg`)
@@ -5889,8 +6815,6 @@ function carregarLightweight() {
     lwPromessa = new Promise(function (ok, falha) {
         var el = document.createElement('script');
         el.src = LW_URL;
-        el.integrity = LW_SRI;
-        el.crossOrigin = 'anonymous';
         el.onload = ok;
         el.onerror = function () { lwPromessa = null; falha(new Error('biblioteca do gráfico')); };
         document.head.appendChild(el);
@@ -6426,8 +7350,9 @@ function ordenarTransacoes(lista) {
 //             airdrop, presente). Não mexe no preço médio de compra
 //   VENDA     tira quantidade e o custo proporcional pelo preço médio
 //   SAIDA     igual à venda, mas sem devolver reais (taxa de rede, envio, perda)
-//   CONVERSAO tira da origem pelo preço médio e ESSE MESMO custo entra no
-//             destino. Nenhuma cotação participa; o custo total não muda
+//   CONVERSAO tira da origem pelo preço médio; se houver precoUnitario,
+//             realiza lucro e destino entra com o valor de mercado como custo.
+//             Sem precoUnitario (legado): custo migra sem realização  [ETAPA N]
 // PREÇO MÉDIO DE COMPRA = custoTotal / qtdComCusto. Cada posição sabe quanto
 // da sua quantidade TEM custo (qtdComCusto): a entrada gratuita aumenta a
 // quantidade mas não derruba o preço médio. Na baixa, a parte com custo e a
@@ -6479,12 +7404,22 @@ function processarCarteira(ordenadas) {
                 realizado[t.id] = (t.quantidade * t.precoUnitario - (t.taxas || 0)) - saiu.custo;
             }
         } else if (t.tipo === 'CONVERSAO') {
-            var origem = baixar(pos(t.moedaId), t.quantidade);
-            var destino = pos(t.moedaDestinoId);
-            destino.quantidade += t.quantidadeDestino;
-            destino.custoTotal += origem.custo;
-            var fracaoComCusto = t.quantidade > 0 ? origem.qtdComCusto / t.quantidade : 0;
-            destino.qtdComCusto += t.quantidadeDestino * fracaoComCusto;
+            var saiu2 = baixar(pos(t.moedaId), t.quantidade);
+            delta = -saiu2.custo;
+            var dest2 = pos(t.moedaDestinoId);
+            dest2.quantidade += t.quantidadeDestino;
+            if (t.precoUnitario) {
+                // [ETAPA N] novo: realiza lucro no ativo de origem; destino entra pelo valor de mercado
+                var valorConv = t.quantidade * t.precoUnitario;
+                realizado[t.id] = valorConv - saiu2.custo;
+                dest2.custoTotal  += valorConv;
+                dest2.qtdComCusto += t.quantidadeDestino;
+            } else {
+                // legado (sem cotação registrada): custo migra sem realização
+                dest2.custoTotal += saiu2.custo;
+                var fracaoCC = t.quantidade > 0 ? saiu2.qtdComCusto / t.quantidade : 0;
+                dest2.qtdComCusto += t.quantidadeDestino * fracaoCC;
+            }
         }
         deltaCusto[t.id] = delta;
     });
@@ -6915,9 +7850,12 @@ function sair() {
     _portfolios = [];           // [ETAPA 11] limpa estado em memória (localStorage permanece)
     _mapaPortfolioTx = {};
     estado.definir('portfolioAtivo', 'todos');
+    _objetivos = [];            // [ETAPA 12] limpa objetivos em memória
+    _objUltimoPatrimonio = 0;
     try { armazem.remove(chaveDosBanco()); } catch (e) {}
     try { armazem.remove(chaveTargets()); } catch (e) {}
     try { armazem.remove(chavePortfolios()); } catch (e) {}
+    try { armazem.remove(chaveObjetivos()); } catch (e) {}
     encerrarSessao().then(function () {
         var app = document.getElementById('app');
         app.innerHTML = '';
@@ -7220,7 +8158,33 @@ function fecharConfirmar() {
     if (!raiz) return;
     raiz.classList.remove('aberta');
     document.body.style.overflow = '';
-    setTimeout(function () { raiz.innerHTML = ''; }, menosMovimento ? 0 : 240);
+    setTimeout(function () { raiz.innerHTML = ''; _confirmacaoCallback = null; }, menosMovimento ? 0 : 240);
+}
+
+// [PENDÊNCIA] substitui window.confirm — funciona em modo standalone
+var _confirmacaoCallback = null;
+
+function abrirConfirmacao(opcoes, onOk) {
+    var raiz = document.getElementById('gaveta-confirmar');
+    if (!raiz) return;
+    _confirmacaoCallback = onOk || null;
+    var ehPerigo = opcoes.variante === 'perigo';
+    raiz.innerHTML =
+        '<div class="gaveta-fundo" data-confirmar-fechar></div>' +
+        '<div class="gaveta" role="dialog" aria-modal="true" aria-labelledby="conf-gen-titulo">' +
+        '<div class="gaveta-topo"><h2 id="conf-gen-titulo">' + escapar(opcoes.titulo || 'Confirmar') + '</h2>' +
+        '<button type="button" class="botao-icone" data-confirmar-fechar aria-label="Fechar">&times;</button></div>' +
+        '<div class="gaveta-corpo"><div class="confirmar-alerta">' +
+        '<div class="confirmar-alerta-icone">' + icone(ehPerigo ? 'alerta' : 'info') + '</div>' +
+        '<p>' + escapar(opcoes.mensagem || '') + '</p>' +
+        '</div></div>' +
+        '<div class="gaveta-pe">' +
+        '<button type="button" class="botao botao-neutro" data-confirmar-fechar>Cancelar</button>' +
+        '<button type="button" class="botao ' + (ehPerigo ? 'botao-perigo' : 'botao-marca') + '" data-confirmar-ok-geral>' +
+        escapar(opcoes.rotuloBotao || 'Confirmar') + '</button>' +
+        '</div></div>';
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function () { raiz.classList.add('aberta'); });
 }
 
 // [ETAPA 11] exclui portfólio do Supabase; com ON DELETE CASCADE as txs vinculadas
@@ -7288,6 +8252,8 @@ function rowParaTransacao(row) {
     if (row.moeda_destino_id) t.moedaDestinoId = row.moeda_destino_id;
     if (row.quantidade_destino != null) t.quantidadeDestino = Number(row.quantidade_destino);
     if (row.portfolio_id != null) t.portfolioId = String(row.portfolio_id); // [ETAPA 11]
+    if (row.moeda_registro && row.moeda_registro !== 'BRL') t.moedaRegistro = row.moeda_registro; // [ETAPA N]
+    if (row.taxa_cambial != null) t.taxaCambial = Number(row.taxa_cambial); // [ETAPA N]
     return t;
 }
 
@@ -7312,6 +8278,8 @@ function transacaoParaRow(reg) {
     if (reg.descricao) row.descricao = reg.descricao;
     if (reg.moedaDestinoId) row.moeda_destino_id = reg.moedaDestinoId;
     if (reg.quantidadeDestino != null) row.quantidade_destino = reg.quantidadeDestino;
+    if (reg.moedaRegistro && reg.moedaRegistro !== 'BRL') row.moeda_registro = reg.moedaRegistro; // [ETAPA N]
+    if (reg.taxaCambial) row.taxa_cambial = reg.taxaCambial; // [ETAPA N]
     return row;
 }
 
@@ -7379,9 +8347,8 @@ function verificarMigracao() {
     var local = armazem.json(chaveDosBanco(), null);
     if (!local || !Array.isArray(local.transacoes) || !local.transacoes.length) return;
     var n = local.transacoes.length;
-    var msg = 'Encontramos ' + n + ' lançamento(s) salvos neste aparelho que ainda não estão na nuvem.\nDeseja migrá-los agora?';
-    if (!window.confirm(msg)) return;
-    migrarDadosLocais(local);
+    var msg = 'Encontramos ' + n + ' lançamento(s) salvos neste aparelho que ainda não estão na nuvem. Deseja migrá-los agora?';
+    abrirConfirmacao({ titulo: 'Migrar lançamentos', mensagem: msg, rotuloBotao: 'Migrar agora' }, function () { migrarDadosLocais(local); });
 }
 
 // [ETAPA 9.2] migra lançamentos do localStorage para o Supabase
@@ -7645,12 +8612,14 @@ function validarLancamento(d, editId) {
         else if (isNaN(preco)) erros.preco = 'Número inválido.';
         else if (preco <= 0) erros.preco = 'O preço precisa ser maior que zero.';
         dados.precoUnitario = preco;
+        dados.moedaPreco = d._moedaPreco === 'USD' ? 'USD' : 'BRL';  // [ETAPA N]
+        if (dados.moedaPreco === 'USD') dados.precoUSD = preco;       // [ETAPA N]
 
         if (String(d.taxas || '').trim()) {
             var taxas = lerNumero(d.taxas);
             if (isNaN(taxas)) erros.taxas = 'Número inválido.';
             else if (taxas < 0) erros.taxas = 'As taxas não podem ser negativas.';
-            else dados.taxas = taxas;
+            else { dados.taxas = taxas; if (dados.moedaPreco === 'USD') dados.taxasUSD = taxas; } // [ETAPA N]
         }
     }
 
@@ -7667,6 +8636,10 @@ function validarLancamento(d, editId) {
         else if (isNaN(qd)) erros.quantidadeDestino = 'Número inválido.';
         else if (qd <= 0) erros.quantidadeDestino = 'A quantidade precisa ser maior que zero.';
         dados.quantidadeDestino = qd;
+
+        // [ETAPA N] cotação buscada automaticamente pelo app (campo oculto)
+        var precoConv = parseFloat(d._precoConversao);
+        if (precoConv > 0) dados.precoUnitario = precoConv;
     }
 
     var desc = String(d.descricao || '').trim();
@@ -7705,6 +8678,18 @@ function validarLancamento(d, editId) {
 
 // [ETAPA 9.2] async: escreve no Supabase e atualiza o cache
 function salvarLancamento(dados, editId) {
+    // [ETAPA N] conversão USD → BRL antes de gravar
+    var promConv;
+    if (dados.moedaPreco === 'USD' && dados.precoUSD) {
+        promConv = buscarTaxas().then(function (t) {
+            var taxa = t && t.USD ? t.USD : 0;
+            if (!taxa) throw new Error('Taxa de câmbio indisponível. Verifique sua conexão e tente novamente.');
+            return { precoUnitario: dados.precoUSD * taxa, taxas: dados.taxasUSD ? dados.taxasUSD * taxa : 0, taxa: taxa };
+        });
+    } else {
+        promConv = Promise.resolve({ precoUnitario: dados.precoUnitario, taxas: dados.taxas, taxa: null });
+    }
+    return promConv.then(function (conv) {
     return supabaseClient.auth.getUser().then(function (sessao) {
         var user = sessao.data.user;
         if (!user) throw new Error('Sem sessão ativa.');
@@ -7714,10 +8699,11 @@ function salvarLancamento(dados, editId) {
             tipo: dados.tipo,
             moedaId: dados.moeda.id,
             quantidade: dados.quantidade,
-            precoUnitario: TIPOS_COM_PRECO[dados.tipo] ? dados.precoUnitario : 0,
-            taxas: TIPOS_COM_PRECO[dados.tipo] ? dados.taxas : 0,
+            precoUnitario: (TIPOS_COM_PRECO[dados.tipo] || dados.tipo === 'CONVERSAO') ? (conv.precoUnitario || 0) : 0,  // [ETAPA N]
+            taxas: TIPOS_COM_PRECO[dados.tipo] ? conv.taxas : 0,
             data: dados.data,
         };
+        if (conv.taxa) { registro.moedaRegistro = 'USD'; registro.taxaCambial = conv.taxa; } // [ETAPA N]
         if (dados.descricao) registro.descricao = dados.descricao;
         if (dados.tipo === 'CONVERSAO') {
             registro.moedaDestinoId = dados.destino.id;
@@ -7746,6 +8732,8 @@ function salvarLancamento(dados, editId) {
                     delete t.moedaDestinoId;
                     delete t.quantidadeDestino;
                     delete t.descricao;
+                    delete t.moedaRegistro;   // [ETAPA N] limpa antes de re-aplicar
+                    delete t.taxaCambial;     // [ETAPA N]
                     Object.assign(t, registro);
                 }
                 gravarBanco(banco);
@@ -7765,6 +8753,7 @@ function salvarLancamento(dados, editId) {
             });
         }
     });
+    }); // fim promConv.then [ETAPA N]
 }
 
 // [ETAPA 9.2] async — devolve Promise<null> (ok) ou Promise<string> (motivo da recusa)
@@ -7842,7 +8831,7 @@ function infoMoedaTexto(tipo, valor, editId) {
 var NOTA_DA_OPERACAO = {
     ENTRADA: 'Entrada soma a quantidade com custo zero: o valor investido e o preço médio de compra não mudam, e o ganho aparece no lucro. Use para mineração, recompensa, airdrop ou presente.',
     SAIDA: 'Saída tira a quantidade junto com o custo proporcional (pelo preço médio), sem receber reais. Use para taxa de rede, envio a terceiros ou perda.',
-    CONVERSAO: 'O custo que sai da moeda de origem passa inteiro para o destino. Nenhuma cotação em reais entra na conta, e o total investido não muda.',
+    CONVERSAO: 'Troca direta de uma cripto por outra. O app busca a cotação do ativo de origem na data para calcular o lucro realizado e o custo de aquisição do destino.',  // [ETAPA N]
     VENDA: 'O lucro realizado é o valor recebido (quantidade x preço, menos taxas) menos o custo da parte vendida, pelo preço médio.',
     RENDIMENTO: 'Rendimento soma a quantidade com custo zero, igual à entrada gratuita. Use para staking, DeFi, mining ou cashback de exchange.',  // [ETAPA 7]
 };
@@ -7861,7 +8850,7 @@ function corpoLancamentoHTML(v, e, editId) {
         '<dt>Venda</dt><dd>Você desfez a posição recebendo fiat ou stablecoin. O lucro realizado é calculado aqui.</dd>' +
         '<dt>Entrada</dt><dd>Você recebeu moeda de outra carteira — sua ou de terceiros — sem comprar. Transferência, pagamento recebido.</dd>' +
         '<dt>Saída</dt><dd>Você enviou moeda para outra carteira. Sem venda, sem lucro calculado.</dd>' +
-        '<dt>Conversão</dt><dd>Você trocou uma cripto por outra diretamente (ex.: BTC por ETH). O custo da origem é transferido para o destino.</dd>' +
+        '<dt>Conversão</dt><dd>Você trocou uma cripto por outra diretamente (ex.: BTC por ETH). O app busca a cotação da data e calcula o lucro realizado na origem; o destino entra com o valor de mercado como custo.</dd>' +
         '<dt>Rendimento</dt><dd>Você ganhou moeda sem comprar nem transferir: staking, DeFi, mining, cashback de exchange.</dd>' +
         '</dl></div>';
 
@@ -7888,21 +8877,34 @@ function corpoLancamentoHTML(v, e, editId) {
             'Pode ser uma moeda que você já tem ou uma nova.', e.destino) +
             campoLancHTML('l-quantidade-destino', 'Quantidade recebida',
                 '<input class="entrada" type="text" inputmode="decimal" name="quantidadeDestino" id="l-quantidade-destino" autocomplete="off" placeholder="0" value="' + escapar(v.quantidadeDestino || '') + '">',
-                'O que de fato chegou, já descontadas as taxas da conversão.', e.quantidadeDestino);
+                'O que de fato chegou, já descontadas as taxas da conversão.', e.quantidadeDestino) +
+            '<div class="campo"><div id="conv-cotacao"></div>' +
+            '<input type="hidden" name="_precoConversao" id="l-conv-preco" value="' + escapar(v._precoConversao || '') + '"></div>';
     }
 
+    // [ETAPA N] campo de preço com toggle R$/US$
+    var moedaPreco = v._moedaPreco || (estado.ler('moeda') === 'USD' ? 'USD' : 'BRL');
     if (TIPOS_COM_PRECO[tipo]) {
-        html += campoLancHTML('l-preco', 'Preço unitário (R$)',
-            '<input class="entrada" type="text" inputmode="decimal" name="preco" id="l-preco" autocomplete="off" placeholder="0,00" value="' + escapar(v.preco || '') + '"' + (v._autoPreco ? ' data-auto="1"' : '') + '>',
-            escapar(v._infoPreco || 'Em reais, por unidade da moeda.'), e.preco);
+        var infoPreco = v._infoPreco || (moedaPreco === 'USD' ? 'Em dólares, por unidade da moeda.' : 'Em reais, por unidade da moeda.');
+        html += '<div class="campo">' +
+            '<div class="campo-rotulo-flex"><label for="l-preco">Preço unitário</label>' +
+            '<span class="segmentado segmentado-preco" role="group">' +
+            '<button type="button" data-moeda-preco="BRL" aria-pressed="' + (moedaPreco !== 'USD' ? 'true' : 'false') + '">R$</button>' +
+            '<button type="button" data-moeda-preco="USD" aria-pressed="' + (moedaPreco === 'USD' ? 'true' : 'false') + '">US$</button>' +
+            '</span></div>' +
+            '<input class="entrada" type="text" inputmode="decimal" name="preco" id="l-preco" autocomplete="off" placeholder="0,00" value="' + escapar(v.preco || '') + '"' + (v._autoPreco ? ' data-auto="1"' : '') + '>' +
+            '<input type="hidden" name="_moedaPreco" id="l-moeda-preco" value="' + moedaPreco + '">' +
+            '<p class="campo-ajuda" id="l-preco-ajuda">' + escapar(infoPreco) + '</p>' +
+            (e.preco ? '<p class="campo-erro">' + escapar(e.preco) + '</p>' : '') +
+            '</div>';
     }
 
     html += campoLancHTML('l-data', 'Data', '<input class="entrada" type="date" name="data" id="l-data" max="' + hojeISO() + '" value="' + escapar(v.data || hojeISO()) + '">', null, e.data);
 
     if (TIPOS_COM_PRECO[tipo]) {
-        html += campoLancHTML('l-taxas', 'Taxas (R$)',
+        html += campoLancHTML('l-taxas', 'Taxas (' + (moedaPreco === 'USD' ? 'US$' : 'R$') + ')',
             '<input class="entrada" type="text" inputmode="decimal" name="taxas" id="l-taxas" autocomplete="off" placeholder="0,00" value="' + escapar(v.taxas || '') + '">',
-            'Opcional. Taxas da corretora ou da rede, em reais.', e.taxas);
+            'Opcional. Taxas da corretora ou da rede, em ' + (moedaPreco === 'USD' ? 'dólares.' : 'reais.'), e.taxas);
     }
 
     html += campoLancHTML('l-descricao', 'Nota (opcional)',
@@ -7931,7 +8933,8 @@ function gavetaHTML() {
         '<div class="gaveta-topo"><h2 id="gaveta-titulo">' + (editId ? 'Editar lançamento' : 'Novo lançamento') + '</h2>' +
         '<button type="button" class="botao-icone" data-lanc-fechar aria-label="Fechar">&times;</button></div>' +
         '<div class="gaveta-corpo" id="gaveta-corpo">' + corpoLancamentoHTML(lanc.valores, lanc.erros, editId) + '</div>' +
-        '<div class="gaveta-pe"><button type="button" class="botao botao-neutro" data-lanc-fechar>Cancelar</button>' +
+        '<div class="gaveta-pe"><div id="lanc-total"></div>' +
+        '<button type="button" class="botao botao-neutro" data-lanc-fechar>Cancelar</button>' +
         '<button type="button" class="botao botao-marca" data-lanc-salvar>Salvar lançamento</button></div></div>';
 }
 
@@ -7948,10 +8951,12 @@ function abrirLancamento(opcoes) {
     if (opcoes.editId) {
         var t = lerBanco().transacoes.filter(function (x) { return x.id === opcoes.editId; })[0];
         if (!t) return;
+        var editEhUSD = t.moedaRegistro === 'USD' && t.taxaCambial;
         valores = {
             tipo: t.tipo, moeda: t.moedaId, quantidade: numeroParaCampo(t.quantidade, 8), data: t.data,
-            preco: TIPOS_COM_PRECO[t.tipo] ? numeroParaCampo(t.precoUnitario, 10) : '',
-            taxas: t.taxas ? numeroParaCampo(t.taxas, 8) : '',
+            preco: TIPOS_COM_PRECO[t.tipo] ? (editEhUSD ? numeroParaCampo(t.precoUnitario / t.taxaCambial, 10) : numeroParaCampo(t.precoUnitario, 10)) : '',
+            taxas: t.taxas ? (editEhUSD ? numeroParaCampo(t.taxas / t.taxaCambial, 8) : numeroParaCampo(t.taxas, 8)) : '',
+            _moedaPreco: editEhUSD ? 'USD' : 'BRL',  // [ETAPA N]
             destino: t.moedaDestinoId || '',
             quantidadeDestino: t.quantidadeDestino ? numeroParaCampo(t.quantidadeDestino, 8) : '',
             descricao: t.descricao || '',  // [ETAPA 7]
@@ -7970,6 +8975,8 @@ function abrirLancamento(opcoes) {
         if (primeiro) primeiro.focus();
     });
     if (!opcoes.editId) aplicarAutopreenchimento();
+    if (lanc.valores.tipo === 'CONVERSAO') atualizarCotacaoConversao(); // [ETAPA N]
+    atualizarTotalLancamento(); // [ETAPA N]
 
     // sem o pacote diário carregado não há lista de moedas: busca e redesenha
     if (!mercado.lista.length) {
@@ -7993,6 +9000,8 @@ function redesenharCorpoLancamento(valores, erros) {
     lanc.valores = valores;
     lanc.erros = erros || {};
     document.getElementById('gaveta-corpo').innerHTML = corpoLancamentoHTML(lanc.valores, lanc.erros, lanc.editId);
+    if (lanc.valores.tipo === 'CONVERSAO') atualizarCotacaoConversao(); // [ETAPA N]
+    atualizarTotalLancamento(); // [ETAPA N]
 }
 
 // Sugestões só em lançamento novo, nunca em edição. Tudo que é sugerido leva
@@ -8019,11 +9028,24 @@ function aplicarAutopreenchimento() {
     if (preco && preco.value === '') {
         var m = mercado.porId[moeda.id];
         if (m && m.preco > 0) {
-            preco.value = numeroParaCampo(m.preco, 10);
-            preco.dataset.auto = '1';
-            if (infoPreco) infoPreco.textContent = 'Sugerido pelo preço atual. Confira antes de salvar.';
+            var mpEl = document.getElementById('l-moeda-preco');
+            var mp = mpEl ? mpEl.value : 'BRL';
+            if (mp === 'USD') {
+                var taxasCached = estado.ler('taxas');
+                var usdtbrl = taxasCached && taxasCached.USD ? taxasCached.USD : 0;
+                if (usdtbrl > 0) {
+                    preco.value = numeroParaCampo(m.preco / usdtbrl, 10);
+                    preco.dataset.auto = '1';
+                    if (infoPreco) infoPreco.textContent = 'Sugerido pelo preço atual. Confira antes de salvar.';
+                }
+            } else {
+                preco.value = numeroParaCampo(m.preco, 10);
+                preco.dataset.auto = '1';
+                if (infoPreco) infoPreco.textContent = 'Sugerido pelo preço atual. Confira antes de salvar.';
+            }
         }
     }
+    atualizarTotalLancamento(); // [ETAPA N]
 }
 
 function moedaMudou() {
@@ -8033,6 +9055,132 @@ function moedaMudou() {
     var info = document.getElementById('l-moeda-ajuda');
     if (info) info.textContent = infoMoedaTexto(lanc.valores.tipo, lanc.valores.moeda, lanc.editId);
     aplicarAutopreenchimento();
+    if (lanc.valores.tipo === 'CONVERSAO') atualizarCotacaoConversao(); // [ETAPA N]
+}
+
+// [ETAPA N] Busca e exibe as cotações de origem e destino na gaveta de conversão.
+// Chamada ao abrir, ao mudar moeda/destino/data. Armazena o preço da origem
+// no campo oculto #l-conv-preco para o motor usar em precoUnitario.
+function atualizarCotacaoConversao() {
+    if (!lanc || lanc.valores.tipo !== 'CONVERSAO') return;
+    var divCot  = document.getElementById('conv-cotacao');
+    var inpPreco = document.getElementById('l-conv-preco');
+    if (!divCot) return;
+    var v = lerCamposLancamento();
+    var mOrigem  = resolverMoeda(v.moeda);
+    var mDestino = resolverMoeda(v.destino);
+    var data = v.data || hojeISO();
+    if (!mOrigem) {
+        divCot.innerHTML = '';
+        if (inpPreco) inpPreco.value = '';
+        return;
+    }
+    divCot.innerHTML = '<div class="conv-cotacao conv-cotacao-loading">' +
+        '<span class="esqueleto" style="width:190px;height:14px;display:inline-block;border-radius:6px;"></span>' +
+        '</div>';
+    if (inpPreco) inpPreco.value = '';
+    var d = new Date(data + 'T12:00:00');
+    var dataDisplay = d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+
+    function linhaHTML(simbolo, preco, label) {
+        return '<div class="conv-cotacao-linha">' +
+            '<span class="conv-cotacao-simbolo">' + escapar(simbolo) + '</span>' +
+            (preco !== null
+                ? '<span class="conv-cotacao-valor">' + formatarPreco(preco) + '</span>'
+                : '<span class="conv-cotacao-valor conv-cotacao-nd">—</span>') +
+            '<span class="conv-cotacao-label">' + label + '</span>' +
+            '</div>';
+    }
+
+    buscarPrecoConvNaData(mOrigem.id, data, function (precoOrigem) {
+        if (!divCot.parentElement) return;
+        if (inpPreco && precoOrigem !== null) inpPreco.value = String(precoOrigem);
+        var html = '<div class="conv-cotacao"><p class="conv-cotacao-data">Cotação em ' + dataDisplay + '</p>' +
+            linhaHTML(mOrigem.simbolo, precoOrigem, 'por unidade · base do cálculo');
+        if (mDestino) {
+            buscarPrecoConvNaData(mDestino.id, data, function (precoDestino) {
+                if (!divCot.parentElement) return;
+                html += linhaHTML(mDestino.simbolo, precoDestino, 'por unidade · referência');
+                if (!precoOrigem) html += '<p class="conv-cotacao-aviso">Cotação indisponível — o custo será calculado sem realização de lucro.</p>';
+                html += '</div>';
+                divCot.innerHTML = html;
+            });
+        } else {
+            if (!precoOrigem) html += '<p class="conv-cotacao-aviso">Cotação indisponível — o custo será calculado sem realização de lucro.</p>';
+            html += '</div>';
+            divCot.innerHTML = html;
+        }
+    });
+}
+
+// [ETAPA N] Atualiza a sugestão de preço em COMPRA/VENDA quando a data muda.
+// Só age se o campo ainda for uma sugestão automática (data-auto="1") — nunca
+// sobrescreve o que o usuário digitou. Para datas passadas busca o kline diário;
+// para hoje mantém o preço ao vivo já preenchido por aplicarAutopreenchimento.
+function atualizarPrecoHistorico() {
+    if (!lanc || !TIPOS_COM_PRECO[lanc.valores.tipo]) return;
+    var elPreco = document.getElementById('l-preco');
+    var elInfo  = document.getElementById('l-preco-ajuda');
+    if (!elPreco || elPreco.dataset.auto !== '1') return;   // campo já é do usuário
+    var moeda = resolverMoeda(document.getElementById('l-moeda') ? document.getElementById('l-moeda').value : '');
+    if (!moeda) return;
+    var data = document.getElementById('l-data') ? document.getElementById('l-data').value : hojeISO();
+    if (data >= hojeISO()) return;   // hoje: preço ao vivo já está correto
+    var mpElH = document.getElementById('l-moeda-preco');
+    var mpH = mpElH ? mpElH.value : 'BRL';
+    if (elInfo) elInfo.textContent = 'Buscando cotação de ' + new Date(data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) + '…';
+    buscarPrecoConvNaData(moeda.id, data, function (historico) {  // historico em R$
+        var el   = document.getElementById('l-preco');
+        var info = document.getElementById('l-preco-ajuda');
+        if (!el || el.dataset.auto !== '1') return;   // usuário digitou enquanto buscávamos
+        if (historico !== null) {
+            var precoFinal = historico;
+            var dLabel = new Date(data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
+            if (mpH === 'USD') {
+                var taxasCachedH = estado.ler('taxas');
+                var usdtbrlH = taxasCachedH && taxasCachedH.USD ? taxasCachedH.USD : 0;
+                precoFinal = usdtbrlH > 0 ? historico / usdtbrlH : null;
+            }
+            if (precoFinal !== null) {
+                el.value = numeroParaCampo(precoFinal, 10);
+                if (info) info.textContent = 'Fechamento de ' + dLabel + (mpH === 'USD' ? ' (em US$, câmbio de hoje).' : '.') + ' Confira antes de salvar.';
+            } else {
+                if (info) info.textContent = 'Cotação histórica indisponível. Ajuste o valor se necessário.';
+            }
+        } else {
+            if (info) info.textContent = 'Cotação histórica indisponível. Ajuste o valor se necessário.';
+        }
+        atualizarTotalLancamento(); // [ETAPA N]
+    });
+}
+
+// [ETAPA N] Exibe o total da operação no rodapé da gaveta (Compra e Venda).
+// Atualiza ao digitar quantidade, preço ou taxas. Limpa para outros tipos.
+function atualizarTotalLancamento() {
+    var el = document.getElementById('lanc-total');
+    if (!el || !lanc) return;
+    var tipo = lanc.valores.tipo;
+    if (!TIPOS_COM_PRECO[tipo]) { el.innerHTML = ''; return; }
+    var elQtd   = document.getElementById('l-quantidade');
+    var elPreco = document.getElementById('l-preco');
+    var elTaxas = document.getElementById('l-taxas');
+    var qtd   = elQtd   ? lerNumero(elQtd.value)  : NaN;
+    var preco = elPreco ? lerNumero(elPreco.value) : NaN;
+    var taxas = (elTaxas && elTaxas.value.trim()) ? lerNumero(elTaxas.value) : 0;
+    if (isNaN(qtd) || isNaN(preco) || qtd <= 0 || preco <= 0) { el.innerHTML = ''; return; }
+    if (isNaN(taxas) || taxas < 0) taxas = 0;
+    var total  = tipo === 'COMPRA' ? qtd * preco + taxas : qtd * preco - taxas;
+    var rotulo = tipo === 'COMPRA' ? 'Total pago' : 'Total recebido';
+    var elMP2 = document.getElementById('l-moeda-preco');
+    var mp2 = elMP2 ? elMP2.value : 'BRL';
+    if (mp2 === 'USD') {
+        el.innerHTML = '<span class="lanc-total-rotulo">' + rotulo + '</span>' +
+            '<span class="lanc-total-valor">US$ ' + formatarBR(total, 2) + '</span>';
+    } else {
+        el.innerHTML = '<span class="lanc-total-rotulo">' + rotulo + '</span>' +
+            '<span class="lanc-total-valor" data-brl="' + total + '"></span>';
+        preencherValores(el);
+    }
 }
 
 // [ETAPA 8 · 02/10/2026] BUSCA EXTERNA NA GAVETA
@@ -8132,12 +9280,14 @@ document.addEventListener('click', function (ev) {
 
     var ex = ev.target.closest('[data-lanc-excluir]');
     if (ex) {
-        if (!window.confirm('Excluir este lançamento?')) return;
-        excluirLancamento(Number(ex.getAttribute('data-lanc-excluir'))).then(function (motivo) {
-            if (motivo) { avisar(motivo, 'erro'); return; }
-            avisar('Lançamento excluído.', 'sucesso');
-            desenhar();
-        }).catch(function () { avisar('Não foi possível excluir. Tente de novo.', 'erro'); });
+        var exId = Number(ex.getAttribute('data-lanc-excluir'));
+        abrirConfirmacao({ titulo: 'Excluir lançamento', mensagem: 'Esta ação não pode ser desfeita.', rotuloBotao: 'Excluir', variante: 'perigo' }, function () {
+            excluirLancamento(exId).then(function (motivo) {
+                if (motivo) { avisar(motivo, 'erro'); return; }
+                avisar('Lançamento excluído.', 'sucesso');
+                desenhar();
+            }).catch(function () { avisar('Não foi possível excluir. Tente de novo.', 'erro'); });
+        });
         return;
     }
 
@@ -8158,14 +9308,15 @@ document.addEventListener('click', function (ev) {
     // botão "Excluir" dentro da gaveta de detalhe
     var verExcluir = ev.target.closest('[data-ver-excluir]');
     if (verExcluir) {
-        if (!window.confirm('Excluir este lançamento?')) return;
         var verExcluirId = Number(verExcluir.getAttribute('data-ver-excluir'));
         fecharLancamento();
-        excluirLancamento(verExcluirId).then(function (motivoVer) {
-            if (motivoVer) { avisar(motivoVer, 'erro'); return; }
-            avisar('Lançamento excluído.', 'sucesso');
-            desenhar();
-        }).catch(function () { avisar('Não foi possível excluir. Tente de novo.', 'erro'); });
+        abrirConfirmacao({ titulo: 'Excluir lançamento', mensagem: 'Esta ação não pode ser desfeita.', rotuloBotao: 'Excluir', variante: 'perigo' }, function () {
+            excluirLancamento(verExcluirId).then(function (motivoVer) {
+                if (motivoVer) { avisar(motivoVer, 'erro'); return; }
+                avisar('Lançamento excluído.', 'sucesso');
+                desenhar();
+            }).catch(function () { avisar('Não foi possível excluir. Tente de novo.', 'erro'); });
+        });
         return;
     }
 
@@ -8182,6 +9333,38 @@ document.addEventListener('click', function (ev) {
         }
         return;
     }
+    // [ETAPA N] toggle R$/US$ no campo de preço
+    var btnMoeP = ev.target.closest('[data-moeda-preco]');
+    if (btnMoeP && lanc) {
+        var novoMP = btnMoeP.getAttribute('data-moeda-preco');
+        var inpMP = document.getElementById('l-moeda-preco');
+        if (inpMP && inpMP.value !== novoMP) {
+            inpMP.value = novoMP;
+            if (lanc.valores) lanc.valores._moedaPreco = novoMP;
+            // atualiza aria-pressed dos botões do toggle
+            document.querySelectorAll('.segmentado-preco [data-moeda-preco]').forEach(function (b) {
+                b.setAttribute('aria-pressed', b.getAttribute('data-moeda-preco') === novoMP ? 'true' : 'false');
+            });
+            // atualiza textos de ajuda e label das taxas
+            var elInfo2 = document.getElementById('l-preco-ajuda');
+            if (elInfo2) elInfo2.textContent = novoMP === 'USD' ? 'Em dólares, por unidade da moeda.' : 'Em reais, por unidade da moeda.';
+            var elTxLabel = document.querySelector('#l-taxas') ? document.querySelector('#l-taxas').closest('.campo').querySelector('label') : null;
+            if (elTxLabel) elTxLabel.textContent = 'Taxas (' + (novoMP === 'USD' ? 'US$' : 'R$') + ')';
+            var elTxAjuda = document.getElementById('l-taxas-ajuda');
+            if (elTxAjuda) elTxAjuda.textContent = 'Opcional. Taxas da corretora ou da rede, em ' + (novoMP === 'USD' ? 'dólares.' : 'reais.');
+            // se o preço era sugerido, limpa e re-sugere na nova moeda
+            var elPreco2 = document.getElementById('l-preco');
+            if (elPreco2 && elPreco2.dataset.auto === '1') {
+                elPreco2.value = '';
+                delete elPreco2.dataset.auto;
+                aplicarAutopreenchimento();
+            } else {
+                atualizarTotalLancamento();
+            }
+        }
+        return;
+    }
+
     var tipo = ev.target.closest('[data-lanc-tipo]');
     if (tipo) {
         var campos = lerCamposLancamento();
@@ -8201,6 +9384,14 @@ document.addEventListener('click', function (ev) {
 
 document.addEventListener('change', function (ev) {
     if (lanc && ev.target.id === 'l-moeda') moedaMudou();
+    // [ETAPA N] cotação da conversão: atualiza quando data ou destino mudam
+    if (lanc && lanc.valores.tipo === 'CONVERSAO' && (ev.target.id === 'l-data' || ev.target.id === 'l-destino')) {
+        atualizarCotacaoConversao();
+    }
+    // [ETAPA N] compra/venda: atualiza sugestão de preço quando a data muda
+    if (lanc && TIPOS_COM_PRECO[lanc.valores.tipo] && ev.target.id === 'l-data') {
+        atualizarPrecoHistorico();
+    }
     // [ETAPA 7] seletor de tipo no celular — mesma lógica dos botões data-lanc-tipo
     if (lanc && ev.target.id === 'l-tipo-select') {
         var campos = lerCamposLancamento();
@@ -8253,8 +9444,14 @@ document.addEventListener('input', function (ev) {
         delete ev.target.dataset.auto;
         if (ev.target.id === 'l-preco') {
             var info = document.getElementById('l-preco-ajuda');
-            if (info) info.textContent = 'Em reais, por unidade da moeda.';
+            var mpElI = document.getElementById('l-moeda-preco');
+            var mpI = mpElI ? mpElI.value : 'BRL';
+            if (info) info.textContent = mpI === 'USD' ? 'Em dólares, por unidade da moeda.' : 'Em reais, por unidade da moeda.';
         }
+    }
+    // [ETAPA N] atualiza o total ao digitar quantidade, preço ou taxas
+    if (ev.target.id === 'l-quantidade' || ev.target.id === 'l-preco' || ev.target.id === 'l-taxas') {
+        atualizarTotalLancamento();
     }
 });
 
@@ -8312,6 +9509,11 @@ function gavetaDetalheHTML(t, carteira) {
     if (TIPOS_COM_PRECO[t.tipo]) {
         conteudo += linha('Preço unitário', brl(t.precoUnitario, 'preco'));
         if (t.taxas) conteudo += linha('Taxas', brl(t.taxas));
+        if (t.moedaRegistro === 'USD' && t.taxaCambial) {  // [ETAPA N]
+            conteudo += linha('Registrado em',
+                'US$ ' + formatarPreco(t.precoUnitario / t.taxaCambial) +
+                ' <span style="color:var(--texto-3);">· câmbio R$ ' + formatarBR(t.taxaCambial, 2) + '/US$</span>');
+        }
     }
 
     if (total !== null) conteudo += linha('Valor total', brl(total));
@@ -8367,6 +9569,7 @@ function linhaLancamentoHTML(t) {
 
 // [ETAPA 7.4] estado do filtro de lançamentos (persiste na sessão, igual a mercado.aba)
 var filtroLanc = 'TODAS';
+var filtroLancPf = 'todos';  // [ETAPA 11] filtro de portfólio na página de Lançamentos
 
 var FILTROS_LANC = [['TODAS', 'Todas']].concat(TIPOS_ORDEM.map(function (k) { return [k, TIPOS[k]]; }));
 
@@ -8383,19 +9586,36 @@ function filtroBarraLancHTML() {
         '</div>';
 }
 
+function _lancListaFiltrada(lista) {
+    var porPf = (filtroLancPf !== 'todos' && _portfolios.length > 0)
+        ? lista.filter(function (t) { return _mapaPortfolioTx[t.id] === filtroLancPf; })
+        : lista;
+    return filtroLanc === 'TODAS' ? porPf : porPf.filter(function (t) { return t.tipo === filtroLanc; });
+}
+
 function paginaLancamentos() {
     var banco = lerBanco();
     var carteira = processarCarteira(ordenarTransacoes(banco.transacoes));
     var lista = ordenarTransacoes(banco.transacoes).reverse();   // mais recente primeiro
-    var listaFiltrada = filtroLanc === 'TODAS' ? lista : lista.filter(function (t) { return t.tipo === filtroLanc; });
+    var listaFiltrada = _lancListaFiltrada(lista);
     var realizadoTotal = Object.keys(carteira.realizado).reduce(function (s, k) { return s + carteira.realizado[k]; }, 0);
     var temVenda = Object.keys(carteira.realizado).length > 0;
+
+    // [ETAPA 11] seletor de portfólio: aparece só com 2+ portfólios
+    var seletorPf = '';
+    if (_portfolios.length > 1) {
+        var opsPf = '<option value="todos"' + (filtroLancPf === 'todos' ? ' selected' : '') + '>Todos os portfólios</option>';
+        _portfolios.forEach(function (p) {
+            opsPf += '<option value="' + escapar(p.id) + '"' + (filtroLancPf === p.id ? ' selected' : '') + '>' + escapar(p.nome) + '</option>';
+        });
+        seletorPf = '<select id="filtro-lanc-pf" class="portfolio-select-ctrl" style="max-width:200px" aria-label="Filtrar por portfólio">' + opsPf + '</select>';
+    }
 
     var corpo;
     if (lista.length) {
         var linhas = listaFiltrada.length
             ? listaFiltrada.map(function (t) { return linhaLancamentoHTML(t); }).join('')
-            : '<tr><td colspan="6" class="tabela-vazia">Nenhum lançamento do tipo "' + escapar(TIPOS[filtroLanc] || filtroLanc) + '".</td></tr>';
+            : '<tr><td colspan="6" class="tabela-vazia">Nenhum lançamento encontrado com esse filtro.</td></tr>';
         corpo = '<div class="painel painel-tabela"><table class="tabela tabela-lanc"><thead><tr>' +
             '<th>Data</th><th>Operação</th><th>Moeda</th><th>Quantidade</th><th>Preço</th><th>Valor total</th>' +
             '</tr></thead><tbody id="lanc-corpo">' + linhas + '</tbody></table></div>';
@@ -8408,7 +9628,8 @@ function paginaLancamentos() {
     return '<div class="pagina">' +
         '<div class="pagina-cabecalho"><div><h1>Lançamentos</h1>' +
         '<p>Compras, vendas, entradas, saídas e conversões. Cada lançamento é conferido na linha do tempo: nenhuma baixa pode ficar sem saldo.</p></div>' +
-        '<button type="button" class="botao botao-marca" data-lanc-novo>' + icone('mais') + 'Novo lançamento</button></div>' +
+        '<div class="lanc-cabecalho-acoes">' + seletorPf +
+        '<button type="button" class="botao botao-marca" data-lanc-novo>' + icone('mais') + 'Novo lançamento</button></div></div>' +
         (lista.length ? '<div class="grade-2 lanc-resumo"><div class="cartao"><p class="indicador-rotulo">Lançamentos</p><p class="indicador-valor" id="lanc-count">' + listaFiltrada.length + '</p></div>' +
             '<div class="cartao"><p class="indicador-rotulo">Lucro realizado</p><p class="indicador-valor">' +
             (temVenda ? '<span class="var ' + (realizadoTotal >= 0 ? 'alta' : 'queda') + '" data-brl="' + realizadoTotal + '"></span>' : '<span class="sem-dado sem-dado-legenda">sem vendas ainda</span>') +
@@ -8426,29 +9647,29 @@ function atualizarFiltroLanc(novo) {  // [ETAPA 7.4]
     // sincroniza seletor mobile
     var sel = document.getElementById('filtro-lanc-mobile');
     if (sel) sel.value = novo;
-    // re-renderiza só o tbody
-    var banco = lerBanco();
-    var lista = ordenarTransacoes(banco.transacoes).reverse();
-    var listaFiltrada = novo === 'TODAS' ? lista : lista.filter(function (t) { return t.tipo === novo; });
+    // re-renderiza só o tbody (respeita filtro de portfólio também)
+    var lista = ordenarTransacoes(lerBanco().transacoes).reverse();
+    var listaFiltrada = _lancListaFiltrada(lista);
     var tbody = document.getElementById('lanc-corpo');
     if (tbody) {
         tbody.innerHTML = listaFiltrada.length
             ? listaFiltrada.map(function (t) { return linhaLancamentoHTML(t); }).join('')
-            : '<tr><td colspan="6" class="tabela-vazia">Nenhum lançamento do tipo "' + escapar(TIPOS[novo] || novo) + '".</td></tr>';
+            : '<tr><td colspan="6" class="tabela-vazia">Nenhum lançamento encontrado com esse filtro.</td></tr>';
         preencherValores(tbody);
     }
-    // atualiza o contador de lançamentos
     var countEl = document.getElementById('lanc-count');
     if (countEl) countEl.textContent = listaFiltrada.length;
 }
 
 ROTAS['/lancamentos'].montar = function () {  // [ETAPA 7.4]
     var sel = document.getElementById('filtro-lanc-mobile');
-    if (sel) {
-        sel.addEventListener('change', function () {
-            atualizarFiltroLanc(this.value);
-        });
-    }
+    if (sel) sel.addEventListener('change', function () { atualizarFiltroLanc(this.value); });
+    // [ETAPA 11] seletor de portfólio
+    var selPf = document.getElementById('filtro-lanc-pf');
+    if (selPf) selPf.addEventListener('change', function () {
+        filtroLancPf = this.value;
+        atualizarFiltroLanc(filtroLanc);
+    });
 };
 
 // ---------- moeda: sua posição e seus lançamentos ----------
@@ -9225,7 +10446,7 @@ function criarGraficoPortfolio() {
 
 function carregarEvolucao() {
     var pg = portfolioPg;
-    var transacoes = lerBanco().transacoes;
+    var transacoes = transacoesDoPortfolioAtivo(); // [ETAPA 11] só txs do portfólio ativo
     if (!transacoes.length) return;
     var msg = document.getElementById('pf-grafico-msg');
     buscarHistoricosPortfolio(pg, transacoes).then(function (precos) {
@@ -9368,6 +10589,14 @@ document.addEventListener('click', function (ev) {
         return;
     }
 
+    // [PENDÊNCIA] confirmação genérica (substitui window.confirm)
+    if (ev.target.closest('[data-confirmar-ok-geral]') && _confirmacaoCallback) {
+        var cbGeral = _confirmacaoCallback;
+        fecharConfirmar();
+        cbGeral();
+        return;
+    }
+
     // [ETAPA 11] confirmar exclusão de portfólio
     if (ev.target.closest('[data-confirmar-ok]')) {
         var idOk = ev.target.closest('[data-confirmar-ok]').getAttribute('data-confirmar-ok');
@@ -9405,6 +10634,16 @@ document.addEventListener('keydown', function (ev) {
     if (ev.key === 'Escape' && document.getElementById('gaveta-confirmar') &&
             document.getElementById('gaveta-confirmar').classList.contains('aberta')) {
         fecharConfirmar();
+    }
+    // [ETAPA 12] Esc fecha gaveta de objetivo
+    if (ev.key === 'Escape' && document.getElementById('gaveta-objetivos') &&
+            document.getElementById('gaveta-objetivos').classList.contains('aberta')) {
+        fecharGavetaObjetivo();
+    }
+    // [ETAPA 13] Esc fecha gaveta do simulador
+    if (ev.key === 'Escape' && document.getElementById('gaveta-sim') &&
+            document.getElementById('gaveta-sim').classList.contains('aberta')) {
+        fecharGavetaSim();
     }
 });
 
@@ -9851,7 +11090,144 @@ document.addEventListener('click', function (ev) {
         return;
     }
     if (ev.target.closest('[data-backup-desfazer]')) { desfazerImportacao(); return; }
+
+    // [ETAPA 12] Objetivos
+    if (ev.target.closest('[data-obj-novo]')) { abrirGavetaObjetivo(null); return; }
+    if (ev.target.closest('[data-obj-editar]')) {
+        var elEditar = ev.target.closest('[data-obj-editar]');
+        abrirGavetaObjetivo(elEditar.dataset.objEditar || null);
+        return;
+    }
+    if (ev.target.closest('[data-obj-gav-fechar]')) { fecharGavetaObjetivo(); return; }
+    if (ev.target.closest('[data-obj-gav-salvar]')) {
+        var inpAlvo   = document.getElementById('obj-alvo');
+        var inpAporte = document.getElementById('obj-aporte');
+        var inpNome   = document.getElementById('obj-nome');
+        var inpObjId  = document.getElementById('obj-id');
+        if (!inpAlvo) return;
+        var vAlvo   = parseFloat(inpAlvo.value);
+        var vAporte = parseFloat(inpAporte ? inpAporte.value : '0') || 0;
+        if (!vAlvo || vAlvo <= 0) {
+            avisar('Informe uma meta maior que zero.', 'erro');
+            inpAlvo.focus();
+            return;
+        }
+        var dadosObj = { nome: (inpNome ? inpNome.value.trim() : ''), valorAlvo: vAlvo, aporteMensal: vAporte };
+        var editId   = inpObjId ? inpObjId.value : '';
+        fecharGavetaObjetivo();
+        if (editId) {
+            _editarObjetivoNoBanco(editId, dadosObj, function () {
+                if (rotaAtual === '/objetivos') _objRenderizar(_objUltimoPatrimonio);
+            });
+        } else {
+            _salvarObjetivoNoBanco(dadosObj, function () {
+                if (rotaAtual === '/objetivos') _objRenderizar(_objUltimoPatrimonio);
+            });
+        }
+        return;
+    }
+    if (ev.target.closest('[data-obj-excluir]')) {
+        var elExcluir = ev.target.closest('[data-obj-excluir]');
+        abrirConfirmarRemoverObjetivo(elExcluir.dataset.objExcluir);
+        return;
+    }
+    if (ev.target.closest('[data-obj-remover-ok]')) {
+        var elRemover = ev.target.closest('[data-obj-remover-ok]');
+        var remId = elRemover ? elRemover.dataset.objRemoverOk : '';
+        fecharConfirmar();
+        _excluirObjetivoNoBanco(remId, function () {
+            if (rotaAtual === '/objetivos') _objRenderizar(_objUltimoPatrimonio);
+        });
+        return;
+    }
+
+    // [ETAPA 13] Simulador de Aporte
+    if (ev.target.closest('[data-sim-abrir]')) { abrirGavetaSim(); return; }
+    if (ev.target.closest('[data-sim-fechar]')) { fecharGavetaSim(); return; }
+
+    if (ev.target.closest('[data-sim-calcular]')) {
+        var inpSimAporte = document.getElementById('sim-aporte');
+        var inpSimUpside = document.getElementById('sim-upside');
+        if (!inpSimAporte) return;
+
+        var aporteDisplay = parseFloat(String(inpSimAporte.value).replace(',', '.'));
+        var filtroUp = parseFloat(String(inpSimUpside ? inpSimUpside.value : '12').replace(',', '.'));
+        if (isNaN(filtroUp) || filtroUp < 0) filtroUp = 12;
+
+        if (!aporteDisplay || aporteDisplay <= 0) {
+            avisar('Informe um valor de aporte maior que zero.', 'erro');
+            inpSimAporte.focus();
+            return;
+        }
+
+        // converter aporte para BRL (cálculos sempre em BRL)
+        var taxasSim = estado.ler('taxas') || {};
+        var moedaSim = estado.ler('moeda') || 'BRL';
+        var aporteBRL = aporteDisplay;
+        if (moedaSim === 'USD' && taxasSim.USD) { aporteBRL = aporteDisplay * taxasSim.USD; }
+        else if (moedaSim === 'BTC' && taxasSim.BTC) { aporteBRL = aporteDisplay * taxasSim.BTC; }
+
+        // montar linhas da carteira atual (mesma lógica do balanceamento)
+        var carteiraSim = carteiraAtual();
+        var posicoesSim = carteiraSim.posicoes;
+        var idsSim = Object.keys(posicoesSim).filter(function (id) {
+            return posicoesSim[id].quantidade > QTD_EPSILON;
+        });
+        var saldoTotalSim = 0;
+        var linhasSim = idsSim.map(function (id) {
+            var pos = posicoesSim[id];
+            var m = mercado.porId[id];
+            var preco = m ? m.preco : null;
+            var saldo = preco !== null ? pos.quantidade * preco : pos.custoTotal;
+            saldoTotalSim += saldo;
+            return { id: id, info: infoMoeda(id), pos: pos, saldo: saldo, preco: preco || 0 };
+        });
+        linhasSim.forEach(function (l) {
+            l.pctAtual = saldoTotalSim > 0 ? l.saldo / saldoTotalSim * 100 : 0;
+        });
+
+        var modoSim = estado.ler('balModo') || 'pct';
+        var resultadoSim = calcularSimulador(aporteBRL, filtroUp, linhasSim, _targets, modoSim);
+
+        fecharGavetaSim();
+        renderizarResultadoSimulador(resultadoSim, aporteBRL, filtroUp);
+        return;
+    }
+
     if (ev.target.closest('[data-pwa-instalar]')) { instalarPWA(); return; }
+
+    // [PENDÊNCIA] salvar alterações de perfil
+    if (ev.target.closest('[data-ajustes-perfil-salvar]')) {
+        var elNomeP = document.getElementById('perf-nome');
+        var elSenhaP = document.getElementById('perf-senha');
+        var elConfP = document.getElementById('perf-senha-conf');
+        var elStatusP = document.getElementById('perf-status');
+        function statusP(msg, cor) {
+            if (elStatusP) { elStatusP.textContent = msg; elStatusP.style.color = cor || 'var(--texto-2)'; }
+        }
+        var novoNomeP = elNomeP ? elNomeP.value.trim() : '';
+        var novaSenhaP = elSenhaP ? elSenhaP.value : '';
+        var confP = elConfP ? elConfP.value : '';
+        if (!novoNomeP || novoNomeP.length < 2) { statusP('O nome precisa ter pelo menos 2 caracteres.', 'var(--queda)'); if (elNomeP) elNomeP.focus(); return; }
+        if (novaSenhaP && novaSenhaP.length < 6) { statusP('A senha precisa ter pelo menos 6 caracteres.', 'var(--queda)'); if (elSenhaP) elSenhaP.focus(); return; }
+        if (novaSenhaP && novaSenhaP !== confP) { statusP('As senhas não coincidem.', 'var(--queda)'); if (elConfP) elConfP.focus(); return; }
+        var updates = {};
+        if (novoNomeP !== nomeDoUsuario(_usuarioLogado)) updates.data = { full_name: novoNomeP };
+        if (novaSenhaP) updates.password = novaSenhaP;
+        if (!updates.data && !updates.password) { statusP('Nenhuma alteração.'); return; }
+        var btnP = ev.target.closest('[data-ajustes-perfil-salvar]');
+        btnP.disabled = true;
+        statusP('Salvando…');
+        supabaseClient.auth.updateUser(updates).then(function (r) {
+            btnP.disabled = false;
+            if (r.error) { statusP(traduzirErroSupabase(r.error.message), 'var(--queda)'); return; }
+            statusP('Salvo com sucesso.', 'var(--alta)');
+            if (elSenhaP) elSenhaP.value = '';
+            if (elConfP) elConfP.value = '';
+            if (r.data && r.data.user) { _usuarioLogado = r.data.user; atualizarInfoUsuario(); }
+        }).catch(function () { btnP.disabled = false; statusP('Não foi possível salvar. Tente de novo.', 'var(--queda)'); });
+        return;
+    }
 });
 
 /* =================================================================

@@ -13,7 +13,7 @@ Este documento resume o que foi construído até aqui e o que falta para v1.0.
 |---|---|
 | Arquivo principal | `index.html` (single-file: HTML + CSS + JS, sem build) |
 | Versão | `v0.3.0-beta` |
-| Etapas concluídas | 0, 0.1, 1, 1.1, 1.2, 2, 2.1, 3, 4, 4.1, 5, 5.1, 6, 6.1, 6.2, 6.3, 7, 7.1, 7.2, 7.3, 7.4, 8 (busca fora do top 100), 9 (Supabase auth), 9.1–9.5 (banco assíncrono, offline, Cloudflare Worker, refinamentos), 10 (Balanceamento), 10.1 (targets no Supabase) |
+| Etapas concluídas | 0, 0.1, 1, 1.1, 1.2, 2, 2.1, 3, 4, 4.1, 5, 5.1, 6, 6.1, 6.2, 6.3, 7, 7.1, 7.2, 7.3, 7.4, 8 (busca fora do top 100), 9 (Supabase auth), 9.1–9.5 (banco assíncrono, offline, Cloudflare Worker, refinamentos), 10 (Balanceamento), 10.1 (targets no Supabase), 11 (Objetivos), 12 (Pendências v1.0: modal nativo, perfil, LW Charts offline, registro em USD), 13 (Simulador de Aporte) |
 | PWA | Entregue no v0.2.0-beta: `manifest.json`, `sw.js`, ícones, registro do SW, botão de instalação, banner de atualização (sem número de etapa próprio) |
 | Tema claro | Entregue no v0.2.0-beta: toggle em Ajustes, `aplicarTema()`, tokens completos em `:root[data-tema="claro"]` |
 | Hospedagem | App publicado e no ar. Cloudflare Worker (`teste-koin.correiaerisvaldo.workers.dev`) como proxy da CoinGecko |
@@ -301,6 +301,33 @@ Ajustes finos no ciclo de leitura e gravação do banco local/Supabase.
 ### Etapa 10.1 · Targets reais via Supabase
 Tabela `portfolio_targets`: `user_id`, `moeda_id`, `peso_alvo`, `modo`. RLS ativa. Toast quando lançamento novo é feito em moeda sem target.
 
+### Etapa 11 · Objetivos
+- Página `/objetivos`: metas de patrimônio com progresso em % e previsão de conclusão.
+- Cada objetivo tem nome (opcional), valor alvo e aporte mensal estimado.
+- Gaveta `#gaveta-objetivos` para criar e editar; confirmação nativa para excluir.
+- Dados em `objetivos` no Supabase: `user_id`, `nome`, `valor_alvo`, `aporte_mensal`. RLS ativa.
+- `_objCalcularPatrimonio()` soma saldos ao vivo via Binance para calcular progresso.
+
+### Etapa 12 · Pendências v1.0
+- **Modal nativo** (`abrirConfirmacao`): substitui todos os `window.confirm`; funciona em modo standalone.
+- **Página de perfil** em Ajustes: campos para alterar nome de exibição e senha via `supabase.auth.updateUser`.
+- **Lightweight Charts offline**: bundle baixado para `assets/lightweight-charts.standalone.production.js`; referenciado localmente; adicionado ao `ASSETS_ESTATICOS` do SW.
+- **Registro de lançamento em USD**: campo de preço com toggle R$/US$; taxa de câmbio capturada no momento do lançamento; recalcule automático ao editar; detalhe exibe preço original em US$.
+
+### Etapa 13 · Simulador de Aporte
+- Página `/simulador` no grupo Análise do menu.
+- Botão "Simular aporte" abre gaveta `#gaveta-sim` com dois campos: valor do aporte (na moeda de exibição atual) e filtro de upside (%, padrão 12%, editável — não salvo no banco).
+- Algoritmo `calcularSimulador(aporte, filtroUpside, linhas, targets, modo)` puro:
+  1. Calcula `novoTotal = saldoTotal + aporte`.
+  2. Para cada ativo com target: `delta = novoTotal × (targetPct / 100) − saldoAtual`.
+  3. Filtra por PM: exclui ativos onde `precoAtual > PM × (1 + filtroUpside / 100)`. Ativos com PM=0 (custo zero) são sempre elegíveis.
+  4. Ordena elegíveis por `delta` desc, limita a 4.
+  5. Distribui o aporte proporcionalmente aos deltas dos top 4.
+- Resultado renderizado na página com PM, preço atual, upside e alocação atual → target.
+- Ativos bloqueados exibidos com motivo (upside acima do filtro).
+- Disclaimer fixo: "não é recomendação de investimento".
+- Sem banco de dados — parâmetros são efêmeros (resetam a cada sessão da gaveta).
+
 ---
 
 ## Entregues no v0.2.0-beta (sem número de etapa próprio)
@@ -342,20 +369,9 @@ Tabela `portfolio_targets`: `user_id`, `moeda_id`, `peso_alvo`, `modo`. RLS ativ
 
 ## Pendências para v1.0
 
-### 1. Página Objetivos
-`/objetivos` ainda é `paginaEmBreve`. Era parte do escopo original (Análise > Objetivos). Funcionalidade: patrimônio total ou por moeda, progresso em %, aporte mensal e data estimada de conclusão.
+~~Todas as pendências originais foram resolvidas nas Etapas 11–13.~~
 
-### 2. Lightweight Charts offline
-`LW_URL` carrega de `https://unpkg.com/lightweight-charts@4.2.3/...` — não está em `ASSETS_ESTATICOS` do SW. Sem rede, a página da moeda não consegue carregar o gráfico. Resolver: baixar o bundle para `assets/` e referenciar localmente, ou adicionar o CDN ao cache do SW.
-
-### 3. `window.confirm` → modal nativo
-Três ocorrências que podem não aparecer no modo standalone (PWA instalado) em alguns navegadores/sistemas:
-- `verificarMigracao` (migração localStorage → Supabase)
-- `excluirLancamento` × 2 (confirmação de exclusão)
-Substituir por modal/gaveta nativa do app antes da publicação final.
-
-### 4. Página de perfil (trocar nome/senha)
-Não existe. Hoje o usuário não tem como trocar o nome de exibição ou a senha dentro do app. Mínimo: formulário em Ajustes com campos para nome e senha atual/nova, usando `supabase.auth.updateUser`.
+Pendências restantes antes do lançamento público:
 
 ---
 
@@ -371,11 +387,11 @@ Não existe. Hoje o usuário não tem como trocar o nome de exibição ou a senh
 ## Antes de publicar com URL definitiva
 
 1. ~~**Chave da CoinGecko no código:**~~ resolvido na Etapa 9.4 — chave no Worker.
-2. **Lightweight Charts offline:** adicionar ao cache do SW (ver Pendências item 2).
+2. ~~**Lightweight Charts offline:**~~ resolvido na Etapa 12 — bundle local em `assets/`.
 3. ~~**Testar pelo endereço publicado:**~~ resolvido — app já está no ar.
 4. ~~**Página "Sistema visual" no menu:**~~ resolvido na Etapa 7.2.
 5. ~~**Rodapé "dados só no aparelho":**~~ resolvido — rodapé simplificado, Ajustes informa nuvem.
-6. **`window.confirm`:** substituir por modal nativo (ver Pendências item 3).
+6. ~~**`window.confirm`:**~~ resolvido na Etapa 12 — `abrirConfirmacao` nativa.
 7. **Chave CoinGecko nova:** a chave atual apareceu em commits anteriores antes do Worker existir. Gerar nova no painel da CoinGecko e atualizar no Worker antes do lançamento público.
 
 ---
