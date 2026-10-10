@@ -5605,6 +5605,29 @@ function paginaAjustes() {
         '<p class="painel-sub">Adicione o KoinFin à tela inicial para acesso rápido, sem abrir o navegador.</p>' +
         '<button type="button" class="botao botao-neutro" data-pwa-instalar>' + icone('sistema') + 'Instalar KoinFin</button>' +
         '</div>' +
+        // [PENDÊNCIA] seção de conta — trocar nome e senha
+        (function () {
+            var u = _usuarioLogado;
+            var nomeAtual = nomeDoUsuario(u);
+            var email = u ? u.email : '';
+            return '<div class="painel">' +
+                '<p class="painel-titulo">Conta</p>' +
+                '<p class="painel-sub">Altere seu nome de exibição ou defina uma nova senha.</p>' +
+                '<p style="font-size:var(--t-sm);color:var(--texto-3);margin-bottom:14px;">' + escapar(email) + '</p>' +
+                '<div style="display:grid;gap:14px;">' +
+                '<div class="campo"><label for="perf-nome">Nome</label>' +
+                '<input class="entrada" type="text" id="perf-nome" autocomplete="name" placeholder="Seu nome" value="' + escapar(nomeAtual) + '"></div>' +
+                '<div class="campo"><label for="perf-senha">Nova senha</label>' +
+                '<input class="entrada" type="password" id="perf-senha" autocomplete="new-password" placeholder="Deixe em branco para não alterar">' +
+                '<p class="campo-ajuda" id="perf-senha-ajuda">Mínimo de 6 caracteres.</p></div>' +
+                '<div class="campo"><label for="perf-senha-conf">Confirmar nova senha</label>' +
+                '<input class="entrada" type="password" id="perf-senha-conf" autocomplete="new-password" placeholder="Repita a nova senha"></div>' +
+                '</div>' +
+                '<div style="display:flex;align-items:center;gap:12px;margin-top:16px;">' +
+                '<button type="button" class="botao botao-marca" data-ajustes-perfil-salvar>Salvar alterações</button>' +
+                '<span id="perf-status" style="font-size:var(--t-sm);color:var(--texto-2);"></span>' +
+                '</div></div>';
+        })() +
         '</div>';
 }
 
@@ -6435,7 +6458,7 @@ document.addEventListener('keydown', function (ev) {
 //   o gráfico não está disponível (a regra de 1 chamada por dia da CoinGecko
 //   impede buscar o histórico de lá).
 
-var LW_URL = 'https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js';
+var LW_URL = './assets/lightweight-charts.standalone.production.js';  // [PENDÊNCIA] local para offline
 var LW_SRI = 'sha384-stKllnUqA9AD0gsKCuUtf5XlqAW7PwIgDagoNsTWkjkBmJ/GZ/uHTgEBxdLV2VSK';
 
 // período -> tamanho da vela e quantas velas buscar (segundos por vela em `seg`)
@@ -6494,8 +6517,6 @@ function carregarLightweight() {
     lwPromessa = new Promise(function (ok, falha) {
         var el = document.createElement('script');
         el.src = LW_URL;
-        el.integrity = LW_SRI;
-        el.crossOrigin = 'anonymous';
         el.onload = ok;
         el.onerror = function () { lwPromessa = null; falha(new Error('biblioteca do gráfico')); };
         document.head.appendChild(el);
@@ -7839,7 +7860,33 @@ function fecharConfirmar() {
     if (!raiz) return;
     raiz.classList.remove('aberta');
     document.body.style.overflow = '';
-    setTimeout(function () { raiz.innerHTML = ''; }, menosMovimento ? 0 : 240);
+    setTimeout(function () { raiz.innerHTML = ''; _confirmacaoCallback = null; }, menosMovimento ? 0 : 240);
+}
+
+// [PENDÊNCIA] substitui window.confirm — funciona em modo standalone
+var _confirmacaoCallback = null;
+
+function abrirConfirmacao(opcoes, onOk) {
+    var raiz = document.getElementById('gaveta-confirmar');
+    if (!raiz) return;
+    _confirmacaoCallback = onOk || null;
+    var ehPerigo = opcoes.variante === 'perigo';
+    raiz.innerHTML =
+        '<div class="gaveta-fundo" data-confirmar-fechar></div>' +
+        '<div class="gaveta" role="dialog" aria-modal="true" aria-labelledby="conf-gen-titulo">' +
+        '<div class="gaveta-topo"><h2 id="conf-gen-titulo">' + escapar(opcoes.titulo || 'Confirmar') + '</h2>' +
+        '<button type="button" class="botao-icone" data-confirmar-fechar aria-label="Fechar">&times;</button></div>' +
+        '<div class="gaveta-corpo"><div class="confirmar-alerta">' +
+        '<div class="confirmar-alerta-icone">' + icone(ehPerigo ? 'alerta' : 'info') + '</div>' +
+        '<p>' + escapar(opcoes.mensagem || '') + '</p>' +
+        '</div></div>' +
+        '<div class="gaveta-pe">' +
+        '<button type="button" class="botao botao-neutro" data-confirmar-fechar>Cancelar</button>' +
+        '<button type="button" class="botao ' + (ehPerigo ? 'botao-perigo' : 'botao-marca') + '" data-confirmar-ok-geral>' +
+        escapar(opcoes.rotuloBotao || 'Confirmar') + '</button>' +
+        '</div></div>';
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function () { raiz.classList.add('aberta'); });
 }
 
 // [ETAPA 11] exclui portfólio do Supabase; com ON DELETE CASCADE as txs vinculadas
@@ -8002,9 +8049,8 @@ function verificarMigracao() {
     var local = armazem.json(chaveDosBanco(), null);
     if (!local || !Array.isArray(local.transacoes) || !local.transacoes.length) return;
     var n = local.transacoes.length;
-    var msg = 'Encontramos ' + n + ' lançamento(s) salvos neste aparelho que ainda não estão na nuvem.\nDeseja migrá-los agora?';
-    if (!window.confirm(msg)) return;
-    migrarDadosLocais(local);
+    var msg = 'Encontramos ' + n + ' lançamento(s) salvos neste aparelho que ainda não estão na nuvem. Deseja migrá-los agora?';
+    abrirConfirmacao({ titulo: 'Migrar lançamentos', mensagem: msg, rotuloBotao: 'Migrar agora' }, function () { migrarDadosLocais(local); });
 }
 
 // [ETAPA 9.2] migra lançamentos do localStorage para o Supabase
@@ -8936,12 +8982,14 @@ document.addEventListener('click', function (ev) {
 
     var ex = ev.target.closest('[data-lanc-excluir]');
     if (ex) {
-        if (!window.confirm('Excluir este lançamento?')) return;
-        excluirLancamento(Number(ex.getAttribute('data-lanc-excluir'))).then(function (motivo) {
-            if (motivo) { avisar(motivo, 'erro'); return; }
-            avisar('Lançamento excluído.', 'sucesso');
-            desenhar();
-        }).catch(function () { avisar('Não foi possível excluir. Tente de novo.', 'erro'); });
+        var exId = Number(ex.getAttribute('data-lanc-excluir'));
+        abrirConfirmacao({ titulo: 'Excluir lançamento', mensagem: 'Esta ação não pode ser desfeita.', rotuloBotao: 'Excluir', variante: 'perigo' }, function () {
+            excluirLancamento(exId).then(function (motivo) {
+                if (motivo) { avisar(motivo, 'erro'); return; }
+                avisar('Lançamento excluído.', 'sucesso');
+                desenhar();
+            }).catch(function () { avisar('Não foi possível excluir. Tente de novo.', 'erro'); });
+        });
         return;
     }
 
@@ -8962,14 +9010,15 @@ document.addEventListener('click', function (ev) {
     // botão "Excluir" dentro da gaveta de detalhe
     var verExcluir = ev.target.closest('[data-ver-excluir]');
     if (verExcluir) {
-        if (!window.confirm('Excluir este lançamento?')) return;
         var verExcluirId = Number(verExcluir.getAttribute('data-ver-excluir'));
         fecharLancamento();
-        excluirLancamento(verExcluirId).then(function (motivoVer) {
-            if (motivoVer) { avisar(motivoVer, 'erro'); return; }
-            avisar('Lançamento excluído.', 'sucesso');
-            desenhar();
-        }).catch(function () { avisar('Não foi possível excluir. Tente de novo.', 'erro'); });
+        abrirConfirmacao({ titulo: 'Excluir lançamento', mensagem: 'Esta ação não pode ser desfeita.', rotuloBotao: 'Excluir', variante: 'perigo' }, function () {
+            excluirLancamento(verExcluirId).then(function (motivoVer) {
+                if (motivoVer) { avisar(motivoVer, 'erro'); return; }
+                avisar('Lançamento excluído.', 'sucesso');
+                desenhar();
+            }).catch(function () { avisar('Não foi possível excluir. Tente de novo.', 'erro'); });
+        });
         return;
     }
 
@@ -10242,6 +10291,14 @@ document.addEventListener('click', function (ev) {
         return;
     }
 
+    // [PENDÊNCIA] confirmação genérica (substitui window.confirm)
+    if (ev.target.closest('[data-confirmar-ok-geral]') && _confirmacaoCallback) {
+        var cbGeral = _confirmacaoCallback;
+        fecharConfirmar();
+        cbGeral();
+        return;
+    }
+
     // [ETAPA 11] confirmar exclusão de portfólio
     if (ev.target.closest('[data-confirmar-ok]')) {
         var idOk = ev.target.closest('[data-confirmar-ok]').getAttribute('data-confirmar-ok');
@@ -10782,6 +10839,39 @@ document.addEventListener('click', function (ev) {
     }
 
     if (ev.target.closest('[data-pwa-instalar]')) { instalarPWA(); return; }
+
+    // [PENDÊNCIA] salvar alterações de perfil
+    if (ev.target.closest('[data-ajustes-perfil-salvar]')) {
+        var elNomeP = document.getElementById('perf-nome');
+        var elSenhaP = document.getElementById('perf-senha');
+        var elConfP = document.getElementById('perf-senha-conf');
+        var elStatusP = document.getElementById('perf-status');
+        function statusP(msg, cor) {
+            if (elStatusP) { elStatusP.textContent = msg; elStatusP.style.color = cor || 'var(--texto-2)'; }
+        }
+        var novoNomeP = elNomeP ? elNomeP.value.trim() : '';
+        var novaSenhaP = elSenhaP ? elSenhaP.value : '';
+        var confP = elConfP ? elConfP.value : '';
+        if (!novoNomeP || novoNomeP.length < 2) { statusP('O nome precisa ter pelo menos 2 caracteres.', 'var(--queda)'); if (elNomeP) elNomeP.focus(); return; }
+        if (novaSenhaP && novaSenhaP.length < 6) { statusP('A senha precisa ter pelo menos 6 caracteres.', 'var(--queda)'); if (elSenhaP) elSenhaP.focus(); return; }
+        if (novaSenhaP && novaSenhaP !== confP) { statusP('As senhas não coincidem.', 'var(--queda)'); if (elConfP) elConfP.focus(); return; }
+        var updates = {};
+        if (novoNomeP !== nomeDoUsuario(_usuarioLogado)) updates.data = { full_name: novoNomeP };
+        if (novaSenhaP) updates.password = novaSenhaP;
+        if (!updates.data && !updates.password) { statusP('Nenhuma alteração.'); return; }
+        var btnP = ev.target.closest('[data-ajustes-perfil-salvar]');
+        btnP.disabled = true;
+        statusP('Salvando…');
+        supabaseClient.auth.updateUser(updates).then(function (r) {
+            btnP.disabled = false;
+            if (r.error) { statusP(traduzirErroSupabase(r.error.message), 'var(--queda)'); return; }
+            statusP('Salvo com sucesso.', 'var(--alta)');
+            if (elSenhaP) elSenhaP.value = '';
+            if (elConfP) elConfP.value = '';
+            if (r.data && r.data.user) { _usuarioLogado = r.data.user; atualizarInfoUsuario(); }
+        }).catch(function () { btnP.disabled = false; statusP('Não foi possível salvar. Tente de novo.', 'var(--queda)'); });
+        return;
+    }
 });
 
 /* =================================================================

@@ -3,7 +3,7 @@
 // Chamadas de API (Supabase, Binance, Cloudflare) vão direto à rede —
 // o app já tem cache próprio via localStorage.
 
-const CACHE = 'koinfin-v0.3.0-beta';
+const CACHE = 'koinfin-v1.0.0';
 
 const ASSETS_ESTATICOS = [
     './',
@@ -11,6 +11,7 @@ const ASSETS_ESTATICOS = [
     './manifest.json',
     './assets/icon-192.png',
     './assets/icon-512.png',
+    './assets/lightweight-charts.standalone.production.js',  // [PENDÊNCIA] gráficos offline
 ];
 
 // dominios que nunca passam pelo cache do SW
