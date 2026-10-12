@@ -2386,28 +2386,100 @@ body:has(#gaveta.aberta) .avisos {
 #gaveta-portfolio .gaveta,
 #gaveta-confirmar .gaveta,
 #gaveta-objetivos .gaveta,
-#gaveta-sim .gaveta {
+#gaveta-sim .gaveta,
+#gaveta-pf-pos .gaveta {
     width: min(480px, 100vw);
 }
 #gaveta-portfolio.aberta .gaveta-fundo,
 #gaveta-confirmar.aberta .gaveta-fundo,
 #gaveta-objetivos.aberta .gaveta-fundo,
-#gaveta-sim.aberta .gaveta-fundo {
+#gaveta-sim.aberta .gaveta-fundo,
+#gaveta-pf-pos.aberta .gaveta-fundo {
     opacity: 1;
     visibility: visible;
 }
 #gaveta-portfolio.aberta .gaveta,
 #gaveta-confirmar.aberta .gaveta,
 #gaveta-objetivos.aberta .gaveta,
-#gaveta-sim.aberta .gaveta {
+#gaveta-sim.aberta .gaveta,
+#gaveta-pf-pos.aberta .gaveta {
     transform: none;
     visibility: visible;
 }
 body:has(#gaveta-portfolio.aberta) .avisos,
 body:has(#gaveta-confirmar.aberta) .avisos,
 body:has(#gaveta-objetivos.aberta) .avisos,
-body:has(#gaveta-sim.aberta) .avisos {
+body:has(#gaveta-sim.aberta) .avisos,
+body:has(#gaveta-pf-pos.aberta) .avisos {
     right: calc(min(480px, 100vw) + 20px);
+}
+
+/* [ETAPA 13.1] gaveta de posição do portfólio (mobile) */
+.pos-topo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--borda);
+    margin-bottom: 16px;
+}
+.pos-topo-info {
+    flex: 1;
+    min-width: 0;
+}
+.pos-topo-info strong {
+    display: block;
+    font-size: var(--t-md);
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.pos-topo-info span {
+    font-size: var(--t-sm);
+    color: var(--texto-2);
+}
+.pos-topo-preco {
+    text-align: right;
+}
+.pos-topo-preco .pos-preco {
+    display: block;
+    font-weight: 700;
+    font-size: var(--t-md);
+}
+.pos-info {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0;
+}
+.pos-info-rotulo {
+    font-size: var(--t-sm);
+    color: var(--texto-2);
+    padding: 9px 0;
+    border-bottom: 1px solid var(--borda);
+    display: flex;
+    align-items: center;
+}
+.pos-info-valor {
+    font-size: var(--t-sm);
+    font-weight: 600;
+    text-align: right;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--borda);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+}
+.pos-info-rotulo:last-of-type,
+.pos-info-valor:last-of-type {
+    border-bottom: none;
+}
+.pos-sem-custo {
+    display: block;
+    font-size: var(--t-xs);
+    color: var(--texto-3);
+    font-weight: 400;
 }
 
 /* [ETAPA 13] Simulador de Aporte */
@@ -4117,6 +4189,7 @@ body:has(#gaveta-sim.aberta) .avisos {
 <div id="gaveta-confirmar"></div>
 <div id="gaveta-objetivos"></div>
 <div id="gaveta-sim"></div>
+<div id="gaveta-pf-pos"></div>
 
 <div id="banner-atualizacao" hidden role="status" aria-live="polite">
     <p>
@@ -4160,7 +4233,7 @@ function instalarPWA() {
    ================================================================= */
 var APP = {
     nome: 'KoinFin',
-    versao: 'v1.1.0',
+    versao: 'v1.2.1',
     ano: 2026,
     autor: 'BitCoderSoft',
 };
@@ -4664,6 +4737,12 @@ document.addEventListener('click', function (ev) {
     var link = ev.target.closest('[data-rota]');
     if (link) {
         ev.preventDefault();
+        // [ETAPA 13.1] no mobile, qualquer clique dentro de uma linha do portfólio
+        // abre a gaveta de posição — o botão "Ver moeda" é o único caminho para /moeda
+        if (ehTelaPequena()) {
+            var linhaGav = link.closest('.tabela-portfolio tbody tr[data-moeda-id]');
+            if (linhaGav) { abrirGavetaPosicao(linhaGav.getAttribute('data-moeda-id')); return; }
+        }
         navegar(link.getAttribute('data-rota'));
         return;
     }
@@ -5791,6 +5870,111 @@ function fecharGavetaSim() {
     setTimeout(function () { raiz.innerHTML = ''; }, menosMovimento ? 0 : 240);
 }
 
+/* [ETAPA 13.1] Gaveta de posição do portfólio (mobile)
+   Abre ao tocar em uma linha da tabela de ativos no celular, exibindo
+   os dados completos da posição sem sair da página do portfólio. */
+
+function gavetaPosicaoHTML(x) {
+    var l = x.l;
+    var p = l.pos;
+    var info = l.info || {};
+    var nome = info.nome || info.simbolo || l.id;
+    var simbolo = (info.simbolo || l.id).toUpperCase();
+    var logo = logoHTML(info);
+    var semCusto = p.quantidade - (p.qtdComCusto || 0);
+
+    var precoHTML = l.preco !== null
+        ? '<span class="pos-preco" data-brl="' + l.preco + '" data-tipo="preco"></span>'
+        : '<span class="pos-preco sem-dado">sem cotação</span>';
+    var var24hHTML = l.var24h !== null ? varHTML(l.var24h, true) : '';
+
+    function linha(rot, val) {
+        return '<span class="pos-info-rotulo">' + rot + '</span>' +
+               '<span class="pos-info-valor">' + val + '</span>';
+    }
+
+    var qtdHTML = textoQuantidade(p.quantidade) + ' ' + simbolo +
+        (semCusto > QTD_EPSILON
+            ? '<span class="pos-sem-custo">' + textoQuantidade(semCusto) + ' sem custo</span>'
+            : '');
+
+    var pmHTML = x.pm !== null
+        ? '<span data-brl="' + x.pm + '" data-tipo="preco"></span>'
+        : '<span class="sem-dado">custo zero</span>';
+
+    var saldoHTML = x.saldo !== null
+        ? '<span data-brl="' + x.saldo + '"></span>'
+        : '<span class="sem-dado">sem cotação</span>';
+
+    var lucroHTML;
+    if (x.saldo === null) {
+        lucroHTML = '<span class="sem-dado">—</span>';
+    } else if (p.custoTotal <= 0) {
+        lucroHTML = '<span class="var alta">custo zero</span>';
+    } else {
+        lucroHTML =
+            '<span class="var ' + (x.lucro >= 0 ? 'alta' : 'queda') + '" data-brl="' + x.lucro + '"></span>' +
+            '<span class="lucro-pct ' + (x.lucro >= 0 ? 'alta' : 'queda') + '">' + formatarPct(x.rent) + '</span>';
+    }
+
+    var pctHTML = pctCelulaPortfolio(x.pct, l.id);
+
+    return '<div class="gaveta-fundo" data-pos-fechar></div>' +
+        '<div class="gaveta" role="dialog" aria-modal="true" aria-labelledby="pos-gav-titulo">' +
+        '<div class="gaveta-topo">' +
+            '<h2 id="pos-gav-titulo">' + escapar(simbolo) + '</h2>' +
+            '<button type="button" class="botao-icone" data-pos-fechar aria-label="Fechar">&times;</button>' +
+        '</div>' +
+        '<div class="gaveta-corpo">' +
+            '<div class="pos-topo">' +
+                logo +
+                '<div class="pos-topo-info">' +
+                    '<strong>' + escapar(nome) + '</strong>' +
+                    '<span>' + escapar(simbolo) + '</span>' +
+                '</div>' +
+                '<div class="pos-topo-preco">' +
+                    precoHTML +
+                    var24hHTML +
+                '</div>' +
+            '</div>' +
+            '<div class="pos-info">' +
+                linha('Quantidade', qtdHTML) +
+                linha('Preço médio', pmHTML) +
+                linha('Custo total', '<span data-brl="' + p.custoTotal + '"></span>') +
+                linha('Saldo atual', saldoHTML) +
+                linha('Lucro não realizado', lucroHTML) +
+                linha('% da carteira', pctHTML) +
+            '</div>' +
+        '</div>' +
+        '<div class="gaveta-pe">' +
+            '<button type="button" class="botao botao-neutro" data-pos-fechar>Fechar</button>' +
+            '<button type="button" class="botao botao-marca" data-pos-ver-moeda="' + escapar(l.id) + '">' +
+                'Ver moeda' + icone('alta') +
+            '</button>' +
+        '</div></div>';
+}
+
+function abrirGavetaPosicao(moedaId) {
+    if (!portfolioPg) return;
+    var r = portfolioPg.ultimo || calcularPortfolio(portfolioPg);
+    var x = r.linhas.filter(function (item) { return item.l.id === moedaId; })[0];
+    if (!x) return;
+    var raiz = document.getElementById('gaveta-pf-pos');
+    if (!raiz) return;
+    raiz.innerHTML = gavetaPosicaoHTML(x);
+    preencherValores(raiz);
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function () { raiz.classList.add('aberta'); });
+}
+
+function fecharGavetaPosicao() {
+    var raiz = document.getElementById('gaveta-pf-pos');
+    if (!raiz) return;
+    raiz.classList.remove('aberta');
+    document.body.style.overflow = '';
+    setTimeout(function () { raiz.innerHTML = ''; }, menosMovimento ? 0 : 240);
+}
+
 function _objCalcularPatrimonio(cb) {
     var banco    = lerBanco();
     var carteira = processarCarteira(ordenarTransacoes(banco.transacoes));
@@ -6234,6 +6418,7 @@ function buscarPrecoConvNaData(moedaId, dataISO, cb) {
 // preço. [ETAPA 2] Com a CoinGecko 1x por dia, o preço do pacote pode ter
 // horas: a tolerância sobe conforme a idade (10% até 1h; 40% depois).
 // Símbolo repetido de verdade costuma diferir por ordens de grandeza.
+// Usado para preços ao vivo do mercado: verificação de divergência obrigatória.
 function parBinanceDe(m, precos) {
     if (m.simbolo === 'USDT') return precos.USDTBRL ? 'USDTBRL' : null;
     var par = m.simbolo + 'USDT';
@@ -6243,6 +6428,16 @@ function parBinanceDe(m, precos) {
     var tolerancia = idade > 60 * 60 * 1000 ? 0.40 : DIVERGENCIA_MAX;
     if (m.preco > 0 && Math.abs(precos[par] * taxa / m.preco - 1) > tolerancia) return null;
     return par;
+}
+
+// Verifica apenas se o par existe na Binance, sem checar divergência de preço.
+// Usado na página da moeda: CoinGecko e Binance podem usar taxas USD/BRL
+// diferentes, causando divergência falsa em stablecoins (ex.: PYUSD).
+// Colisão real de símbolo difere por ordens de grandeza, não por 10-20%.
+function parExisteBinance(simbolo, precos) {
+    if (simbolo === 'USDT') return precos.USDTBRL ? 'USDTBRL' : null;
+    var par = simbolo + 'USDT';
+    return precos[par] ? par : null;
 }
 
 function conectarAoVivo() {
@@ -7244,7 +7439,9 @@ ROTAS['/moeda'].montar = function (miolo) {
 
         obterPrecosBinance().then(function (precos) {
             if (moedaPg !== pg) return;
-            pg.par = m.extra ? m.parBinance : parBinanceDe(m, precos);  // [ETAPA 8]
+            // [ETAPA 2] para gráfico e live socket: só verifica existência do par,
+            // sem divergência (fontes CoinGecko/Binance usam taxas BRL diferentes).
+            pg.par = m.extra ? m.parBinance : parExisteBinance(m.simbolo, precos);
             pg.usdtbrl = precos.USDTBRL || null;
             abrirSocketMoeda();
             atualizarEstatisticas24h();
@@ -10651,6 +10848,11 @@ document.addEventListener('keydown', function (ev) {
             document.getElementById('gaveta-sim').classList.contains('aberta')) {
         fecharGavetaSim();
     }
+    // [ETAPA 13.1] Esc fecha gaveta de posição
+    if (ev.key === 'Escape' && document.getElementById('gaveta-pf-pos') &&
+            document.getElementById('gaveta-pf-pos').classList.contains('aberta')) {
+        fecharGavetaPosicao();
+    }
 });
 
 // [ETAPA 11] teclado na gaveta de portfólio: Enter cria, Esc fecha
@@ -10840,10 +11042,15 @@ document.addEventListener('click', function (ev) {
         return;
     }
 
-    // toque na linha inteira leva pra moeda (a estrela e o link têm ação própria)
-    if (!ehTelaPequena() || ev.target.closest('a, button')) return;
-    var linha = ev.target.closest('.tabela-mercado tbody tr[data-moeda-id], .tabela-portfolio tbody tr[data-moeda-id]');
-    if (linha) navegar('/moeda/' + linha.getAttribute('data-moeda-id'));
+    // toque na linha inteira
+    if (!ehTelaPequena()) return;
+    // mercado: guarda ação própria da estrela e dos links
+    if (ev.target.closest('a, button')) return;
+    var linhaM = ev.target.closest('.tabela-mercado tbody tr[data-moeda-id]');
+    if (linhaM) { navegar('/moeda/' + linhaM.getAttribute('data-moeda-id')); return; }
+    // [ETAPA 13.1] portfólio → gaveta; [data-rota] dentro da linha já foi interceptado acima
+    var linhaP = ev.target.closest('.tabela-portfolio tbody tr[data-moeda-id]');
+    if (linhaP && !ev.target.closest('button')) { abrirGavetaPosicao(linhaP.getAttribute('data-moeda-id')); return; }
 });
 
 document.addEventListener('keydown', function (ev) {
@@ -11144,6 +11351,15 @@ document.addEventListener('click', function (ev) {
         _excluirObjetivoNoBanco(remId, function () {
             if (rotaAtual === '/objetivos') _objRenderizar(_objUltimoPatrimonio);
         });
+        return;
+    }
+
+    // [ETAPA 13.1] gaveta de posição do portfólio (mobile)
+    if (ev.target.closest('[data-pos-fechar]')) { fecharGavetaPosicao(); return; }
+    if (ev.target.closest('[data-pos-ver-moeda]')) {
+        var idPosVer = ev.target.closest('[data-pos-ver-moeda]').getAttribute('data-pos-ver-moeda');
+        fecharGavetaPosicao();
+        navegar('/moeda/' + idPosVer);
         return;
     }
 
