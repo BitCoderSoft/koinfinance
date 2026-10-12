@@ -2475,11 +2475,17 @@ body:has(#gaveta-pf-pos.aberta) .avisos {
 .pos-info-valor:last-of-type {
     border-bottom: none;
 }
+.pos-qtd-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
 .pos-sem-custo {
-    display: block;
     font-size: var(--t-xs);
     color: var(--texto-3);
     font-weight: 400;
+    text-align: right;
 }
 
 /* [ETAPA 13] Simulador de Aporte */
@@ -4233,7 +4239,7 @@ function instalarPWA() {
    ================================================================= */
 var APP = {
     nome: 'KoinFin',
-    versao: 'v1.2.1',
+    versao: 'v1.2.2',
     ano: 2026,
     autor: 'BitCoderSoft',
 };
@@ -5893,10 +5899,12 @@ function gavetaPosicaoHTML(x) {
                '<span class="pos-info-valor">' + val + '</span>';
     }
 
-    var qtdHTML = textoQuantidade(p.quantidade) + ' ' + simbolo +
+    var qtdHTML = '<span class="pos-qtd-wrap">' +
+        '<span>' + textoQuantidade(p.quantidade) + ' ' + simbolo + '</span>' +
         (semCusto > QTD_EPSILON
             ? '<span class="pos-sem-custo">' + textoQuantidade(semCusto) + ' sem custo</span>'
-            : '');
+            : '') +
+        '</span>';
 
     var pmHTML = x.pm !== null
         ? '<span data-brl="' + x.pm + '" data-tipo="preco"></span>'
